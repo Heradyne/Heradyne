@@ -12,7 +12,7 @@ interface Variable {
   category: string;
   weight: string;
   optimal_range: string;
-  caution_range: string;
+  caution_range: string | null;
   reject_threshold: string | null;
   description: string;
   phase: string;
