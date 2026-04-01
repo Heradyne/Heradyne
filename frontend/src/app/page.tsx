@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { ArrowRight, Shield, BarChart3, Users, FileCheck } from 'lucide-react';
 import { DISCLAIMER } from '@/lib/utils';
