@@ -24,8 +24,9 @@ export default function DashboardPage() {
 
   const loadData = async () => {
     try {
+      let dealsData: any[] = [];
       if (user?.role === 'borrower' || user?.role === 'admin') {
-        const dealsData = await api.getDeals();
+        dealsData = await api.getDeals();
         setDeals(dealsData);
         
         // For borrowers, check for info requests on each deal
