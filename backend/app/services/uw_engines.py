@@ -1,4 +1,3 @@
-from app.services.claude_ai import claude_generate_playbooks  # AI-powered option
 """
 underwrite-platform — app/services/uw_engines.py
 
@@ -23,6 +22,7 @@ lending, guarantee, insurance, or investment decisions.
 from __future__ import annotations
 import math
 from typing import Optional
+from app.services.claude_ai import claude_generate_playbooks  # AI-powered option
 
 # ─── SBA industry data (from 1.59M loan dataset) ───────────────────────────
 
