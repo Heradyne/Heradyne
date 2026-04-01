@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import underwriting, predeal, portfolio_reserve, sba_diligence, support_indication, qsbs_eval, deal_chat
+from app.api.v1.endpoints import underwriting, predeal, portfolio_reserve, sba_diligence, support_indication, qsbs_eval, deal_chat, admin_reseed
 from app.api.v1.endpoints import auth, users, deals, policies, matching, cashflow, assumptions, audit, financial, secondary_market, origination, signature_documents, default_protection, collateral, verification, reinsurance, ai_agent, sba_compliance, actuarial
 
 api_router = APIRouter()
@@ -33,3 +33,5 @@ api_router.include_router(support_indication.router, prefix="/support-indication
 api_router.include_router(qsbs_eval.router, prefix="/qsbs", tags=["UnderwriteOS — QSBS Evaluator"])
 
 api_router.include_router(deal_chat.router, prefix="/chat", tags=["UnderwriteOS — AI Deal Chat"])
+
+api_router.include_router(admin_reseed.router, prefix="/admin", tags=["Admin"])

@@ -67,4 +67,3 @@ def root():
 def health_check():
     """Health check endpoint."""
     return {"status": "healthy"}
-# force rebuild Wed Apr  1 18:14:20 EDT 2026
