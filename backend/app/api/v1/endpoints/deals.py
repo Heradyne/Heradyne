@@ -85,7 +85,7 @@ def list_deals(
         query = query.filter(Deal.status.in_([
             DealStatus.ANALYZED, DealStatus.MATCHED, 
             DealStatus.PENDING_LENDER, DealStatus.PENDING_INSURER,
-            DealStatus.APPROVED, DealStatus.CLOSED
+            DealStatus.APPROVED, DealStatus.CLOSED, DealStatus.FUNDED
         ]))
     
     if status_filter:

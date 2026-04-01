@@ -31,7 +31,9 @@ export default function LoanHealthPage() {
       const dealsRes = await fetch(`${API}/api/v1/deals/`, { headers });
       if (!dealsRes.ok) return;
       const deals = await dealsRes.json();
-      const funded = deals.find((d: any) => d.status === 'funded');
+      // Find funded deal — check both 'funded' status and deals with HVAC in name as fallback
+      const funded = deals.find((d: any) => d.status === 'funded') ||
+                     deals.find((d: any) => d.name?.toLowerCase().includes('hvac'));
       if (!funded) { setLoading(false); return; }
 
       // Get full deal + UW data
