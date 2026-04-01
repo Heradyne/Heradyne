@@ -41,6 +41,7 @@ def reseed_database(token: str = Query(None, description="Reseed secret token"))
         db = SessionLocal()
 
         # Clear in dependency order
+        from app.models.audit import AuditLog
         db.query(LoanPayment).delete()
         db.query(ExecutedLoan).delete()
         db.query(MonthlyCashflow).delete()
@@ -49,6 +50,7 @@ def reseed_database(token: str = Query(None, description="Reseed secret token"))
         db.query(Deal).delete()
         db.query(LenderPolicy).delete()
         db.query(InsurerPolicy).delete()
+        db.query(AuditLog).delete()
         db.query(User).delete()
         db.commit()
 
