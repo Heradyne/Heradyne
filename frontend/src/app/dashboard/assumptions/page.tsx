@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { Save, RefreshCw, ChevronDown, ChevronRight, Users, Copy, Trash2, User as UserIcon, Settings, Shield } from 'lucide-react';
 import { api } from '@/lib/api';

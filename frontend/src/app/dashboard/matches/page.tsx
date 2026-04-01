@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { CheckCircle, XCircle, MessageSquare, RefreshCw, AlertTriangle, ShieldCheck, ShieldAlert, ChevronDown, ChevronUp, Eye, FileText, Download, Brain, Zap } from 'lucide-react';

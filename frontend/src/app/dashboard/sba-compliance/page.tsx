@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { Shield, CheckCircle, XCircle, AlertTriangle, FileText, ChevronDown, ChevronUp, ExternalLink, RefreshCw, ClipboardList, BookOpen } from 'lucide-react';
 import { useAuth } from '@/lib/auth';

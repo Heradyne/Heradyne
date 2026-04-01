@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { FileText, Plus, TrendingUp, Clock, CheckCircle, Bell, MessageSquare } from 'lucide-react';
