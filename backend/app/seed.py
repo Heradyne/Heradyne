@@ -410,8 +410,6 @@ def seed_funded_loan(db, users):
         ],
         owner_credit_score=734,
         owner_experience_years=8,
-        state="SC", city="Greenville", zip_code="29601",
-        naics_code="238220",
     )
     db.add(deal)
     db.flush()
