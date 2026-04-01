@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import { 
   Shield, Home, FileText, Users, Settings, LogOut, 
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
-  ClipboardCheck, Brain, Scale, Calculator, Database
+  ClipboardCheck, Brain, Scale, Calculator, Database, Activity
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn, getRoleLabel, DISCLAIMER, isLenderRole } from '@/lib/utils';
