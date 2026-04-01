@@ -35,11 +35,11 @@ for informational purposes.
     redoc_url="/redoc"
 )
 
-# CORS middleware
+# CORS middleware — allow all origins (restrict after go-live)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
     expose_headers=["Content-Disposition", "Content-Type", "Content-Length"],
