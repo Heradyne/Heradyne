@@ -57,7 +57,10 @@ export default function MonitoringPage() {
     try {
       const token = localStorage.getItem('access_token');
       const res = await fetch(`${API}/api/v1/deals/${dealId}/cashflows`, { headers: { Authorization: `Bearer ${token}` } });
-      if (res.ok) setCashflows(prev => ({ ...prev, [dealId]: await res.json() }));
+      if (res.ok) {
+        const data = await res.json();
+        setCashflows(prev => ({ ...prev, [dealId]: data }));
+      }
     } catch {}
   };
 
@@ -85,7 +88,10 @@ export default function MonitoringPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       });
-      if (res.ok) setMonitoring(prev => ({ ...prev, [loan.id]: await res.json() }));
+      if (res.ok) {
+        const data = await res.json();
+        setMonitoring(prev => ({ ...prev, [loan.id]: data }));
+      }
     } catch (e) { console.error(e); }
     finally { setMonitoringLoading(prev => ({ ...prev, [loan.id]: false })); }
   };
