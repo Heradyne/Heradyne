@@ -8,6 +8,8 @@ RUN npm install
 COPY . .
 
 # Build — next.config.js has output: 'standalone'
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 # Production stage
