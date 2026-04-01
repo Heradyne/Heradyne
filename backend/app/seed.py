@@ -639,18 +639,15 @@ def main():
             return
         if force:
             print("Force re-seed requested — clearing existing data...")
-            # Delete in dependency order
-            from app.models.executed_loan import LoanPayment, ExecutedLoan
-            from app.models.deal import MonthlyCashflow, DealMatch, DealRiskReport, Deal
-            db.query(LoanPayment).delete()
-            db.query(ExecutedLoan).delete()
-            db.query(MonthlyCashflow).delete()
-            db.query(DealMatch).delete()
-            db.query(DealRiskReport).delete()
-            db.query(Deal).delete()
-            db.query(LenderPolicy).delete()
-            db.query(InsurerPolicy).delete()
-            db.query(User).delete()
+            from app.models.executed_loan import LoanPayment, InsuranceClaim, ExecutedLoan
+            from app.models.deal import MonthlyCashflow, FeeLedger, DealMatch, DealRiskReport, Deal
+            from app.models.audit import AuditLog
+            from app.models.verification import VerificationStatus
+            from app.models.collateral import CollateralItem
+            from app.models.signature_document import SignatureDocument
+            from sqlalchemy import text
+            # Use CASCADE truncate to avoid FK ordering issues
+            db.execute(text("TRUNCATE TABLE audit_logs, loan_payments, insurance_claims, executed_loans, monthly_cashflows, fee_ledger, deal_matches, deal_risk_reports, deals, lender_policies, insurer_policies, users RESTART IDENTITY CASCADE"))
             db.commit()
             print("  Cleared existing data")
         users = seed_users(db)
