@@ -199,7 +199,7 @@ export default function AIAgentPage() {
       
       // Initialize variable settings if not set
       const initialVarSettings: Record<string, VariableSettings> = {};
-      Object.values(varsToUse).flat().forEach((v: Variable) => {
+      (Object.values(varsToUse).flat() as Variable[]).forEach((v: Variable) => {
         if (!variableSettings[v.id]) {
           initialVarSettings[v.id] = {
             enabled: true,

@@ -3,15 +3,16 @@ underwrite-platform Database Seed Script
 Creates pre-analyzed deals so UnderwriteOS results appear immediately on first login.
 """
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, date, timezone, timedelta
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, engine
 from app.core.security import get_password_hash
 from app.models import Base
 from app.models.user import User, UserRole
-from app.models.deal import Deal, DealType, DealStatus, DealRiskReport
+from app.models.deal import Deal, DealType, DealStatus, DealRiskReport, DealMatch, MonthlyCashflow
 from app.models.policy import LenderPolicy, InsurerPolicy
 from app.models.assumption import SystemAssumption, DEFAULT_ASSUMPTIONS
+from app.models.executed_loan import ExecutedLoan, LoanPayment, LoanStatus
 
 
 def seed_users(db):
@@ -351,21 +352,313 @@ def seed_assumptions(db):
     print(f"  Created {count} system assumptions")
 
 
+def seed_funded_loan(db, users):
+    """
+    Seed a funded + insured SBA loan with 14 months of payment history,
+    deteriorating cash flow, and 3 AI-flagged monitoring alerts.
+
+    Business: Greenville HVAC Solutions LLC
+      - Funded Feb 2023, 14 months in
+      - Lender: First Capital Partners
+      - Insurer: Credit Shield Insurance
+      - Status: ADVISORY — revenue declining, DSCR slipping, one late payment
+    """
+    print("Seeding funded loan with monitoring data...")
+
+    borrower  = users["borrower"]
+    lender    = users["lender1"]
+    insurer   = users["insurer"]
+    origination = date(2023, 2, 15)
+    today = date(2024, 4, 1)
+
+    # ── 1. Deal (FUNDED status) ──────────────────────────────────────────────
+    deal = Deal(
+        borrower_id=borrower.id,
+        name="Greenville HVAC Solutions LLC — Acquisition",
+        deal_type=DealType.ACQUISITION,
+        status=DealStatus.FUNDED,
+        industry="hvac",
+        business_description=(
+            "Acquisition of Greenville HVAC Solutions LLC, an 18-year established "
+            "HVAC service company in Greenville, SC. 11 employees, $2.1M TTM revenue "
+            "at closing. Strong commercial maintenance contracts (42% of revenue). "
+            "Post-close: lost largest commercial account (Johnson Controls, $310K/yr) "
+            "in month 9. Revenue trending down. Owner implementing corrective actions."
+        ),
+        loan_amount_requested=1_920_000,
+        loan_term_months=120,
+        annual_revenue=2_108_000,
+        gross_profit=1_054_000,
+        ebitda=463_000,
+        capex=38_000,
+        debt_service=0,
+        addbacks=[
+            {"description": "Owner compensation above market", "amount": 145_000},
+            {"description": "Depreciation and amortization",   "amount": 56_000},
+            {"description": "One-time truck purchase",         "amount": 28_000},
+        ],
+        purchase_price=2_310_000,
+        equity_injection=390_000,
+        business_assets=[
+            {"type": "equipment",           "value": 285_000, "description": "HVAC fleet + tools"},
+            {"type": "accounts_receivable", "value": 176_000, "description": "AR (38-day avg)"},
+            {"type": "cash",                "value": 112_000, "description": "Operating cash at close"},
+        ],
+        personal_assets=[
+            {"type": "primary_residence", "value": 420_000, "description": "Owner home, Greenville SC"},
+            {"type": "brokerage_accounts", "value": 95_000,  "description": "Investment portfolio"},
+        ],
+        owner_credit_score=734,
+        owner_experience_years=8,
+        owner_industry_experience="8 years HVAC operations, former service manager at Carrier dealership",
+        state="SC", city="Greenville", zip_code="29601",
+        naics_code="238220",
+    )
+    db.add(deal)
+    db.flush()
+
+    # ── 2. Risk Report (at origination — strong numbers) ────────────────────
+    report = DealRiskReport(
+        deal_id=deal.id, version=1,
+        # Heradyne engines
+        dscr_base=1.68, dscr_stress=1.31,
+        annual_pd=0.028, lifetime_pd=0.19,
+        ev_low=1_980_000, ev_mid=2_310_000, ev_high=2_640_000,
+        equity_value_low=1_560_000, equity_value_mid=1_890_000, equity_value_high=2_220_000,
+        net_debt=420_000,
+        collateral_coverage=1.42,
+        business_nolv=228_000, personal_nolv=310_000,
+        recommended_guarantee_pct=0.75,
+        # UnderwriteOS health score (at origination)
+        health_score=82,
+        health_score_cashflow=79,
+        health_score_stability=88,
+        health_score_growth=76,
+        health_score_liquidity=84,
+        health_score_distress=83,
+        # DSCR / PDSCR
+        pdscr=1.41,
+        owner_draw_annual=145_000,
+        premium_capacity_monthly=4_200,
+        # Valuation
+        normalized_sde=318_000,
+        sde_multiple_implied=3.2,
+        # SBA
+        sba_eligible=True,
+        sba_max_loan=5_000_000,
+        # Deal verdict at origination
+        deal_killer_verdict="buy",
+        deal_confidence_score=87,
+        max_supportable_price=2_410_000,
+        # Cash flow
+        cash_runway_months=18,
+        # Playbooks (at origination — proactive)
+        playbooks=[
+            {
+                "title": "Customer Concentration Risk — Johnson Controls 14.7% of Revenue",
+                "severity": "warning",
+                "trigger": "Single commercial account >10% of revenue",
+                "impact_summary": "Loss of Johnson Controls would reduce DSCR from 1.68 to 1.23",
+                "estimated_annual_impact": 310_000,
+                "actions": [
+                    {"step": 1, "label": "Immediate", "detail": "Lock Johnson Controls into 3-year maintenance contract renewal at current pricing. Offer 5% loyalty discount ($15,500/yr) to secure. Use ServiceTitan CRM to track contract status.", "dollar_impact": 310_000},
+                    {"step": 2, "label": "90 days", "detail": "Develop 3 new commercial maintenance accounts to diversify. Target property management companies via BOMA Upstate SC chapter. Each new account worth $80-120K/yr.", "dollar_impact": 90_000},
+                ]
+            },
+            {
+                "title": "Technician Shortage — 2 Open Positions Reducing Capacity",
+                "severity": "warning",
+                "trigger": "Unfilled positions >15% of workforce",
+                "impact_summary": "2 unfilled tech positions costing estimated $180K/yr in lost revenue",
+                "estimated_annual_impact": 180_000,
+                "actions": [
+                    {"step": 1, "label": "This week", "detail": "Post on Indeed and Ziprecruiter with $2,500 sign-on bonus. Budget $5,000 total. Greenville tech market tight — consider Spartanburg candidates.", "dollar_impact": 180_000},
+                    {"step": 2, "label": "30 days", "detail": "Partner with Greenville Technical College HVAC program for apprentice pipeline. $0 cost, 6-month lead time.", "dollar_impact": 45_000},
+                ]
+            },
+        ],
+        # Breakpoints
+        deal_killer_breakpoints={
+            "scenarios": [
+                {"scenario": "Base case", "revenue_change": 0, "dscr": 1.68, "verdict": "buy"},
+                {"scenario": "-10% revenue", "revenue_change": -0.10, "dscr": 1.42, "verdict": "buy"},
+                {"scenario": "-20% revenue", "revenue_change": -0.20, "dscr": 1.16, "verdict": "renegotiate"},
+                {"scenario": "-30% revenue", "revenue_change": -0.30, "dscr": 0.89, "verdict": "pass"},
+                {"scenario": "+10% revenue", "revenue_change": 0.10, "dscr": 1.94, "verdict": "buy"},
+            ]
+        },
+        # SBA checklist
+        sba_checklist={
+            "items": [
+                {"criterion": "For-profit US business", "result": "pass"},
+                {"criterion": "Meets SBA size standards (NAICS 238220)", "result": "pass"},
+                {"criterion": "Owner equity injection ≥10%", "result": "pass", "detail": "16.9% injection"},
+                {"criterion": "Business operates in US", "result": "pass"},
+                {"criterion": "Owner credit score ≥650", "result": "pass", "detail": "734"},
+                {"criterion": "No prior SBA default", "result": "pass"},
+                {"criterion": "Business viable / positive cash flow", "result": "pass"},
+                {"criterion": "Collateral identified", "result": "pass"},
+                {"criterion": "Personal guarantee from owner", "result": "pass"},
+                {"criterion": "No delinquent federal debt", "result": "pass"},
+                {"criterion": "DSCR ≥1.15", "result": "pass", "detail": "1.68x"},
+                {"criterion": "Business age ≥2 years", "result": "pass", "detail": "18 years"},
+                {"criterion": "Purpose is eligible (CoO)", "result": "pass"},
+                {"criterion": "Loan amount ≤$5M", "result": "pass", "detail": "$1.92M"},
+            ]
+        },
+    )
+    db.add(report)
+    db.flush()
+
+    # ── 3. Deal Match (accepted by lender + insurer) ─────────────────────────
+    # We need a lender policy — get first one
+    lender_policy = db.query(LenderPolicy).filter(LenderPolicy.lender_id == lender.id).first()
+    insurer_policy = db.query(InsurerPolicy).filter(InsurerPolicy.insurer_id == insurer.id).first()
+
+    match = DealMatch(
+        deal_id=deal.id,
+        lender_policy_id=lender_policy.id if lender_policy else None,
+        insurer_policy_id=insurer_policy.id if insurer_policy else None,
+        match_score=87.4,
+        match_reasons=["DSCR 1.68x exceeds minimum 1.25x", "18yr business age", "SC preferred geography", "HVAC tier-1 industry"],
+        constraints_met=["dscr", "credit_score", "business_age", "equity_injection", "geography"],
+        constraints_failed=[],
+        status="accepted",
+        decision_notes="Strong acquisition. Johnson Controls concentration noted — monitor quarterly. Approved at full $1.92M.",
+        decision_at=datetime(2023, 1, 28, 14, 30, tzinfo=timezone.utc),
+    )
+    db.add(match)
+    db.flush()
+
+    # ── 4. Executed Loan ─────────────────────────────────────────────────────
+    monthly_payment = 22_847  # P&I on $1.92M @ 7.25% over 10 years
+    loan = ExecutedLoan(
+        deal_id=deal.id,
+        match_id=match.id,
+        borrower_id=borrower.id,
+        lender_id=lender.id,
+        insurer_id=insurer.id,
+        loan_number="SBA-2023-GVL-00147",
+        principal_amount=1_920_000,
+        interest_rate=0.0725,
+        term_months=120,
+        monthly_payment=monthly_payment,
+        origination_date=origination,
+        maturity_date=date(2033, 2, 15),
+        status=LoanStatus.ACTIVE,
+        current_principal_balance=1_796_420,
+        guarantee_percentage=0.75,
+        premium_rate=0.028,
+        premium_paid=44_800,
+        state="SC", city="Greenville", zip_code="29601",
+        industry="hvac",
+        days_past_due=0,
+        last_payment_date=date(2024, 3, 15),
+        total_payments_made=13,
+        total_principal_paid=123_580,
+        total_interest_paid=173_230,
+        notes=(
+            "ADVISORY watch initiated Apr 2024. Johnson Controls contract lost month 9 ($310K ARR). "
+            "Revenue -14.7% trailing 3mo vs origination. One payment 8 days late (Feb 2024, cured). "
+            "Owner deploying corrective plan: 2 new commercial accounts in pipeline, hiring 2 techs."
+        ),
+    )
+    db.add(loan)
+    db.flush()
+
+    # ── 5. Payment History (14 months) ──────────────────────────────────────
+    balance = 1_920_000.0
+    monthly_rate = 0.0725 / 12
+
+    for month_num in range(1, 15):
+        pay_date = date(2023, 2, 15) + timedelta(days=30 * month_num)
+        interest = balance * monthly_rate
+        principal = monthly_payment - interest
+        balance -= principal
+        is_late = (month_num == 13)  # Feb 2024 payment was 8 days late
+        payment = LoanPayment(
+            loan_id=loan.id,
+            payment_date=pay_date,
+            payment_number=month_num,
+            scheduled_payment=monthly_payment,
+            actual_payment=monthly_payment,
+            principal_portion=round(principal, 2),
+            interest_portion=round(interest, 2),
+            principal_balance_after=round(balance, 2),
+            is_late=is_late,
+            days_late=8 if is_late else 0,
+        )
+        db.add(payment)
+
+    # ── 6. Monthly Cash Flow (14 months — healthy then declining) ────────────
+    # Months 1-8: on-plan. Month 9: Johnson Controls lost. Months 10-14: declining.
+    cashflow_data = [
+        # month, year, revenue, ebitda
+        (1,  2023, 178_200, 39_400),
+        (2,  2023, 182_400, 41_200),
+        (3,  2023, 194_600, 46_800),   # spring surge
+        (4,  2023, 201_300, 48_900),
+        (5,  2023, 198_700, 47_200),
+        (6,  2023, 188_400, 43_100),
+        (7,  2023, 192_800, 44_600),
+        (8,  2023, 185_300, 41_800),
+        (9,  2023, 161_400, 28_300),   # Johnson Controls lost mid-month
+        (10, 2023, 149_200, 18_600),   # first full month without JC
+        (11, 2023, 143_800, 14_200),
+        (12, 2023, 138_600, 11_800),   # slow winter
+        (1,  2024, 132_400,  8_900),   # worst month — late payment
+        (2,  2024, 141_700, 13_400),   # slight recovery, new account signed
+    ]
+    for (mo, yr, rev, ebitda) in cashflow_data:
+        cf = MonthlyCashflow(
+            deal_id=deal.id,
+            month=mo, year=yr,
+            revenue=rev,
+            ebitda=ebitda,
+            debt_service=monthly_payment,
+            post_debt_fcf=round(ebitda - monthly_payment, 2),
+        )
+        db.add(cf)
+
+    db.commit()
+    print(f"  Created funded loan: SBA-2023-GVL-00147 (Greenville HVAC Solutions LLC)")
+    print(f"  14 months payment history, 14 months cash flow, ADVISORY status")
+    return loan
+
+
 def main():
     print("\n" + "="*50)
     print("underwrite-platform Database Seeder")
     print("="*50 + "\n")
     db = SessionLocal()
+    force = "--force" in sys.argv
     try:
-        if db.query(User).count() > 0:
+        if db.query(User).count() > 0 and not force:
             print("Database already seeded — skipping.")
-            print("To re-seed: docker compose down -v && docker compose up --build")
+            print("To re-seed: run with --force flag")
             return
+        if force:
+            print("Force re-seed requested — clearing existing data...")
+            # Delete in dependency order
+            from app.models.executed_loan import LoanPayment, ExecutedLoan
+            from app.models.deal import MonthlyCashflow, DealMatch, DealRiskReport, Deal
+            db.query(LoanPayment).delete()
+            db.query(ExecutedLoan).delete()
+            db.query(MonthlyCashflow).delete()
+            db.query(DealMatch).delete()
+            db.query(DealRiskReport).delete()
+            db.query(Deal).delete()
+            db.query(LenderPolicy).delete()
+            db.query(InsurerPolicy).delete()
+            db.query(User).delete()
+            db.commit()
+            print("  Cleared existing data")
         users = seed_users(db)
         seed_deals(db, users["borrower"])
         seed_lender_policies(db, users["lender1"], users["lender2"])
         seed_insurer_policies(db, users["insurer"])
         seed_assumptions(db)
+        seed_funded_loan(db, users)
         print("\n" + "="*50)
         print("Seeding complete!")
         print("="*50)
