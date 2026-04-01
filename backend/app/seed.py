@@ -417,37 +417,30 @@ def seed_funded_loan(db, users):
     # ── 2. Risk Report (at origination — strong numbers) ────────────────────
     report = DealRiskReport(
         deal_id=deal.id, version=1,
-        # Heradyne engines
         dscr_base=1.68, dscr_stress=1.31,
-        annual_pd=0.028, lifetime_pd=0.19,
+        annual_pd=0.028,
         ev_low=1_980_000, ev_mid=2_310_000, ev_high=2_640_000,
         equity_value_low=1_560_000, equity_value_mid=1_890_000, equity_value_high=2_220_000,
         net_debt=420_000,
         collateral_coverage=1.42,
         business_nolv=228_000, personal_nolv=310_000,
         recommended_guarantee_pct=0.75,
-        # UnderwriteOS health score (at origination)
         health_score=82,
         health_score_cashflow=79,
         health_score_stability=88,
         health_score_growth=76,
         health_score_liquidity=84,
         health_score_distress=83,
-        # DSCR / PDSCR
         pdscr=1.41,
         owner_draw_annual=145_000,
         premium_capacity_monthly=4_200,
-        # Valuation
         normalized_sde=318_000,
         sde_multiple_implied=3.2,
-        # SBA
         sba_eligible=True,
         sba_max_loan=5_000_000,
-        # Deal verdict at origination
         deal_killer_verdict="buy",
         deal_confidence_score=87,
         max_supportable_price=2_410_000,
-        # Cash flow
         cash_runway_months=18,
         # Playbooks (at origination — proactive)
         playbooks=[
@@ -475,7 +468,7 @@ def seed_funded_loan(db, users):
             },
         ],
         # Breakpoints
-        deal_killer_breakpoints={
+        breakpoint_scenarios={
             "scenarios": [
                 {"scenario": "Base case", "revenue_change": 0, "dscr": 1.68, "verdict": "buy"},
                 {"scenario": "-10% revenue", "revenue_change": -0.10, "dscr": 1.42, "verdict": "buy"},
@@ -485,7 +478,7 @@ def seed_funded_loan(db, users):
             ]
         },
         # SBA checklist
-        sba_checklist={
+        sba_eligibility_checklist={
             "items": [
                 {"criterion": "For-profit US business", "result": "pass"},
                 {"criterion": "Meets SBA size standards (NAICS 238220)", "result": "pass"},
