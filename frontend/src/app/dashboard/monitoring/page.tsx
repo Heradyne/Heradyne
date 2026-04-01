@@ -31,7 +31,7 @@ export default function MonitoringPage() {
 
   const loadLoans = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
       // Get all funded deals
@@ -57,7 +57,7 @@ export default function MonitoringPage() {
   const loadCashflow = async (dealId: number) => {
     if (cashflows[dealId]) return;
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/v1/deals/${dealId}/cashflows`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
@@ -70,7 +70,7 @@ export default function MonitoringPage() {
     if (monitoring[loan.id] || monitoringLoading[loan.id]) return;
     setMonitoringLoading(prev => ({ ...prev, [loan.id]: true }));
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const cf = cashflows[loan.id] || [];
       const latest = cf[cf.length - 1] || {};
       const prev3 = cf.slice(-4, -1);

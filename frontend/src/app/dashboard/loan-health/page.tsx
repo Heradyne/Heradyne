@@ -24,7 +24,7 @@ export default function LoanHealthPage() {
 
   const loadData = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
 
       // Get funded deals for this borrower
@@ -64,7 +64,7 @@ export default function LoanHealthPage() {
     setChatMessages(newHistory);
     setChatLoading(true);
     try {
-      const token = localStorage.getItem('access_token');
+      const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/v1/chat/deals/${loan.id}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
