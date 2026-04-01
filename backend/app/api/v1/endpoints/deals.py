@@ -637,3 +637,30 @@ def run_verification(
     )
     
     return verification_service.get_verification_summary(deal)
+
+
+@router.get("/{deal_id}/cashflows")
+def get_deal_cashflows(
+    deal_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get monthly cash flow data for a deal."""
+    from app.models.deal import MonthlyCashflow
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+    if current_user.role == UserRole.BORROWER and deal.borrower_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied")
+    cashflows = db.query(MonthlyCashflow).filter(
+        MonthlyCashflow.deal_id == deal_id
+    ).order_by(MonthlyCashflow.year, MonthlyCashflow.month).all()
+    return [
+        {
+            "month": c.month, "year": c.year,
+            "revenue": c.revenue, "ebitda": c.ebitda,
+            "debt_service": c.debt_service,
+            "post_debt_fcf": c.post_debt_fcf,
+        }
+        for c in cashflows
+    ]

@@ -410,7 +410,6 @@ def seed_funded_loan(db, users):
         ],
         owner_credit_score=734,
         owner_experience_years=8,
-        owner_industry_experience="8 years HVAC operations, former service manager at Carrier dealership",
         state="SC", city="Greenville", zip_code="29601",
         naics_code="238220",
     )

@@ -16,6 +16,7 @@ const navigation = {
   borrower: [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'My Deals', href: '/dashboard/deals', icon: FileText },
+    { name: 'Business Dashboard', href: '/dashboard/loan-health', icon: Activity },
     { name: 'Collateral', href: '/dashboard/collateral', icon: Building2 },
     { name: 'Signatures', href: '/dashboard/signatures', icon: FileSignature },
     { name: 'Default Protection', href: '/dashboard/protection', icon: ShieldAlert },
@@ -24,6 +25,7 @@ const navigation = {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'My Policies', href: '/dashboard/policies', icon: Building2 },
     { name: 'Matched Deals', href: '/dashboard/matches', icon: FileText },
+    { name: 'Portfolio', href: '/dashboard/monitoring', icon: Activity },
     { name: 'Origination', href: '/dashboard/origination', icon: CreditCard },
     { name: 'SBA Compliance', href: '/dashboard/sba-compliance', icon: Scale },
     { name: 'AI Agent', href: '/dashboard/ai-agent', icon: Brain },
@@ -53,6 +55,7 @@ const navigation = {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'My Policies', href: '/dashboard/policies', icon: ShieldCheck },
     { name: 'Matched Deals', href: '/dashboard/matches', icon: FileText },
+    { name: 'Portfolio', href: '/dashboard/monitoring', icon: Activity },
     { name: 'Actuary Advisor', href: '/dashboard/actuary-advisor', icon: Calculator },
     { name: 'Actuarial Workbench', href: '/dashboard/actuarial-workbench', icon: Database },
     { name: 'Guarantees', href: '/dashboard/origination', icon: Shield },
@@ -64,6 +67,7 @@ const navigation = {
   admin: [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'All Deals', href: '/dashboard/deals', icon: FileText },
+    { name: 'Portfolio', href: '/dashboard/monitoring', icon: Activity },
     { name: 'SBA Compliance', href: '/dashboard/sba-compliance', icon: Scale },
     { name: 'AI Agent', href: '/dashboard/ai-agent', icon: Brain },
     { name: 'Financials', href: '/dashboard/financials', icon: DollarSign },
