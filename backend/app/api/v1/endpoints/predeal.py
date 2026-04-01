@@ -142,3 +142,30 @@ def submit_investment_review(
         ],
         "disclaimer": DISCLAIMER,
     }
+
+
+class PurchaseRequest(BaseModel):
+    deal_id: int
+    tier: str  # 'valuation' or 'diligence'
+    amount: float
+
+
+@router.post("/purchase")
+def record_purchase(
+    request: PurchaseRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Record a pre-deal package purchase (payment processing handled externally)."""
+    audit_service.log(
+        db=db, action="predeal_purchase", entity_type="deal",
+        entity_id=request.deal_id, user_id=current_user.id,
+        details={"tier": request.tier, "amount": request.amount}
+    )
+    return {
+        "status": "recorded",
+        "tier": request.tier,
+        "amount": request.amount,
+        "deal_id": request.deal_id,
+        "message": f"{request.tier.title()} package purchased for deal {request.deal_id}"
+    }
