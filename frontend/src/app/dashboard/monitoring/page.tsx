@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useState } from 'react';
 import { AlertTriangle, CheckCircle, Activity, TrendingDown, TrendingUp, ChevronDown, ChevronUp, DollarSign } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
