@@ -48,7 +48,6 @@ export default function MatchesPage() {
   const [aiLoading, setAiLoading] = useState<number | null>(null);
   const [expandedDeals, setExpandedDeals] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
-  const [uwScores, setUwScores] = useState<Record<number, any>>({});
   const [actionLoading, setActionLoading] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState<'all' | 'pending' | 'accepted' | 'rejected'>('all');
