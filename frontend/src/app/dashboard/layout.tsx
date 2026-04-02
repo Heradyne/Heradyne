@@ -141,16 +141,21 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="w-64 flex flex-col fixed inset-y-0" style={{background:'var(--navy)',borderRight:'1px solid rgba(255,255,255,0.06)'}}>
 
         {/* Logo */}
-        <div className="h-16 flex items-center px-6" style={{borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
-          <span style={{fontFamily:'"DM Serif Display",serif',fontSize:'1.15rem',color:'#fff',letterSpacing:'0.06em',fontWeight:400}}>
-            HERADYNE
-          </span>
+        <div className="h-16 flex items-center px-6" style={{borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
+          <div style={{display:'flex',flexDirection:'column',gap:'1px'}}>
+            <span style={{fontFamily:'"DM Serif Display",serif',fontSize:'1.1rem',color:'#fff',letterSpacing:'0.08em',fontWeight:400,lineHeight:1}}>
+              HERADYNE
+            </span>
+            <span style={{fontSize:'0.55rem',letterSpacing:'0.2em',color:'rgba(196,165,90,0.7)',textTransform:'uppercase',fontFamily:'"DM Sans",sans-serif'}}>
+              Risk Infrastructure
+            </span>
+          </div>
         </div>
 
         {/* User */}
         <div className="px-4 py-3" style={{borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-          <p className="text-sm font-medium truncate" style={{color:'rgba(255,255,255,0.9)'}}>{user.full_name || user.email}</p>
-          <span className={`${getRoleBadge(user.role)} mt-1`} style={{opacity:0.85}}>
+          <p className="text-sm font-medium truncate" style={{color:'rgba(255,255,255,0.88)',marginBottom:'4px'}}>{user.full_name || user.email}</p>
+          <span className={`${getRoleBadge(user.role)} mt-1`} style={{opacity:0.8}}>
             {getRoleLabel(user.role)}
           </span>
         </div>
