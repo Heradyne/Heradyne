@@ -131,11 +131,19 @@ function GetStartedContent() {
     setError('');
     setStep('processing');
 
+    // Always read token fresh — state may be stale if session was refreshed
+    const freshToken = localStorage.getItem('token');
+    if (!freshToken) {
+      setError('Your session expired. Please sign in again.');
+      setStep('account');
+      return;
+    }
+
     try {
       // Create the deal
       const dealRes = await fetch(`${API}/api/v1/deals/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${freshToken}` },
         body: JSON.stringify({
           name: `${deal.business_name} — Acquisition`,
           deal_type: 'acquisition',
@@ -165,13 +173,13 @@ function GetStartedContent() {
       // Submit for analysis
       await fetch(`${API}/api/v1/deals/${dealData.id}/submit`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${freshToken}` },
       });
 
       // Run UnderwriteOS engines synchronously so results are instant
       await fetch(`${API}/api/v1/underwriting/deals/${dealData.id}/analyze`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${freshToken}` },
       }).catch(() => {});
 
       // Small wait to let analysis complete
@@ -180,7 +188,7 @@ function GetStartedContent() {
       // Record pre-deal purchase (simulated)
       await fetch(`${API}/api/v1/predeal/purchase`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${freshToken}` },
         body: JSON.stringify({ deal_id: dealData.id, tier, amount: tierInfo.price }),
       }).catch(() => {}); // non-blocking if endpoint not ready
 
