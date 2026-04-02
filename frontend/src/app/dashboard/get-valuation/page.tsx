@@ -43,7 +43,10 @@ export default function GetValuationPage() {
       valued.forEach(async (deal: any) => {
         try {
           const r = await fetch(`${API}/api/v1/underwriting/deals/${deal.id}/full-underwriting`, { headers: { Authorization: `Bearer ${token}` } });
-          if (r.ok) setUwData(prev => ({ ...prev, [deal.id]: await r.json() }));
+          if (r.ok) {
+            const data = await r.json();
+            setUwData(prev => ({ ...prev, [deal.id]: data }));
+          }
         } catch {}
       });
     } catch(e) { console.error(e); }
