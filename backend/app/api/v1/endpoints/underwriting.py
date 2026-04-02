@@ -156,6 +156,66 @@ def get_full_underwriting(
     }
 
 
+@router.get("/deals/{deal_id}/master-analysis")
+def get_master_analysis(
+    deal_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get Claude's master synthesis of all engine outputs.
+    Returns executive summary, top factors, next steps, and lender talking points.
+    """
+    deal = _check_deal_access(deal_id, current_user, db)
+    report = _latest_report(deal_id, db)
+
+    from app.services.claude_ai import claude_analyze_deal
+
+    deal_data = {
+        "name": deal.name,
+        "industry": deal.industry,
+        "annual_revenue": deal.annual_revenue,
+        "ebitda": deal.ebitda,
+        "purchase_price": deal.purchase_price,
+        "loan_amount_requested": deal.loan_amount_requested,
+        "equity_injection": deal.equity_injection,
+        "owner_credit_score": deal.owner_credit_score,
+        "owner_experience_years": deal.owner_experience_years,
+    }
+
+    uw_results = {
+        "health_score": {
+            "score": report.health_score, "cashflow": report.health_score_cashflow,
+            "stability": report.health_score_stability, "growth": report.health_score_growth,
+            "liquidity": report.health_score_liquidity,
+        },
+        "dscr_pdscr": {
+            "dscr_base": report.dscr_base, "dscr_stress": report.dscr_stress,
+            "pdscr": report.pdscr, "dscr_stress_20": report.dscr_stress,
+        },
+        "valuation": {
+            "normalized_sde": report.normalized_sde, "equity_value_low": report.equity_value_low,
+            "equity_value_mid": report.equity_value_mid, "equity_value_high": report.equity_value_high,
+        },
+        "deal_killer": {
+            "verdict": report.deal_killer_verdict, "confidence_score": report.deal_confidence_score,
+            "max_supportable_price": report.max_supportable_price,
+        },
+        "cash_flow_forecast": {"runway_months": report.cash_runway_months},
+        "sba_eligibility": {"eligible": report.sba_eligible, "max_loan": report.sba_max_loan},
+        "playbooks": report.playbooks or [],
+    }
+
+    analysis = claude_analyze_deal(deal_data, uw_results)
+
+    audit_service.log(db=db, action="master_analysis_viewed", entity_type="deal",
+                      entity_id=deal_id, user_id=current_user.id)
+
+    if analysis:
+        return {"deal_id": deal_id, "deal_name": deal.name, **analysis}
+    return {"deal_id": deal_id, "error": "AI analysis unavailable — check ANTHROPIC_API_KEY"}
+
+
 @router.get("/deals/{deal_id}/deal-killer")
 def get_deal_killer(
     deal_id: int,

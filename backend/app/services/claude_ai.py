@@ -1,160 +1,168 @@
 """
 underwrite-platform — app/services/claude_ai.py
 
-Claude-powered replacements for Heradyne's rules-based engines.
+Claude-powered AI engines for UnderwriteOS + Heradyne.
 
-Replaces 4 engines with live Anthropic API calls:
-  1. RiskScoringEngine.score_deal()        → claude_score_deal()
-  2. MonitoringEngine.assess_loan()        → claude_monitor_loan()
-  3. Deal advisory / chat                  → claude_deal_chat()
-  4. ActuarialPricingEngine               → claude_actuarial_price()
+Every engine receives actual deal numbers and is prompted to:
+  1. Reference specific metrics by name and value
+  2. Explain WHY each metric drives the score/verdict/recommendation  
+  3. Quantify every risk and opportunity in dollars
+  4. Produce output the display layer renders with full context
 
-The UnderwriteOS math engines (health score, DSCR, valuation, SBA,
-deal killer, cash flow, playbooks) remain as pure Python — they are
-more reliable and faster for deterministic financial calculations.
-Claude adds judgment, explanation, and context on top of the numbers.
-
-Usage: set ANTHROPIC_API_KEY in environment. If key is absent or the
-call fails, all functions fall back gracefully to the original
-rules-based engine so the app never breaks.
+Engines:
+  1. claude_score_deal()         — SBA risk scoring with per-category rationale
+  2. claude_monitor_loan()       — Post-funding monitoring with trend analysis
+  3. claude_deal_chat()          — Conversational advisor with full deal context
+  4. claude_actuarial_price()    — Credit insurance pricing with actuarial rationale
+  5. claude_generate_playbooks() — Deal-specific action plans with named vendors
+  6. claude_analyze_deal()       — Master synthesis: verdict + narrative + next steps
 """
 
 from __future__ import annotations
-import os
-import json
-import logging
-import urllib.request
-import urllib.error
+import os, json, logging, urllib.request, urllib.error
 from typing import Any, Optional
 
 log = logging.getLogger("claude_ai")
-
 MODEL = "claude-sonnet-4-20250514"
-MAX_TOKENS = 1500
 API_URL = "https://api.anthropic.com/v1/messages"
 
+INDUSTRY_COHORT_RATES = {
+    "plumbing": 0.028, "hvac": 0.028, "electrical": 0.031, "roofing": 0.035,
+    "landscaping": 0.038, "cleaning": 0.042, "auto_repair": 0.045,
+    "restaurant": 0.082, "retail": 0.055, "healthcare": 0.022,
+    "manufacturing": 0.029, "technology": 0.041, "construction": 0.038,
+    "transportation": 0.044, "childcare": 0.033, "fitness": 0.052,
+    "services": 0.038, "other": 0.040,
+}
 
-# ─── Core call ──────────────────────────────────────────────────────────────
 
-def _call_claude(system: str, user: str, max_tokens: int = MAX_TOKENS) -> Optional[str]:
-    """
-    Make a single Claude API call. Returns the text response or None on failure.
-    Never raises — callers should handle None by falling back to rules engine.
-    """
+def _call_claude(system: str, user: str, max_tokens: int = 1500) -> Optional[str]:
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
     if not api_key:
-        log.warning("ANTHROPIC_API_KEY not set — falling back to rules engine")
+        log.warning("ANTHROPIC_API_KEY not set")
         return None
-
     payload = json.dumps({
-        "model": MODEL,
-        "max_tokens": max_tokens,
+        "model": MODEL, "max_tokens": max_tokens,
         "system": system,
         "messages": [{"role": "user", "content": user}],
     }).encode("utf-8")
-
-    req = urllib.request.Request(
-        API_URL,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
-    )
+    req = urllib.request.Request(API_URL, data=payload, headers={
+        "Content-Type": "application/json",
+        "x-api-key": api_key,
+        "anthropic-version": "2023-06-01",
+    }, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read())
-            return data["content"][0]["text"]
+        with urllib.request.urlopen(req, timeout=45) as resp:
+            return json.loads(resp.read())["content"][0]["text"]
     except urllib.error.HTTPError as e:
-        log.error(f"Claude API HTTP error {e.code}: {e.read().decode()[:200]}")
-        return None
+        log.error(f"Claude HTTP {e.code}: {e.read().decode()[:200]}")
     except Exception as e:
-        log.error(f"Claude API error: {e}")
-        return None
-
-
-def _parse_json(text: str) -> Optional[dict]:
-    """Extract JSON from Claude response, stripping markdown fences."""
-    if not text:
-        return None
-    clean = text.strip()
-    if clean.startswith("```"):
-        lines = clean.split("\n")
-        clean = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
-    try:
-        return json.loads(clean)
-    except Exception:
-        # Try to find JSON object in the text
-        start = clean.find("{")
-        end = clean.rfind("}") + 1
-        if start >= 0 and end > start:
-            try:
-                return json.loads(clean[start:end])
-            except Exception:
-                pass
-    log.warning(f"Could not parse JSON from Claude response: {clean[:100]}")
+        log.error(f"Claude error: {e}")
     return None
 
 
-# ─── ENGINE 1: Deal Risk Scoring ────────────────────────────────────────────
+def _parse_json(text: str) -> Optional[dict]:
+    if not text: return None
+    clean = text.strip()
+    if clean.startswith("```"):
+        lines = clean.split("\n")
+        clean = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+    try:
+        return json.loads(clean)
+    except Exception:
+        s, e = clean.find("{"), clean.rfind("}") + 1
+        if s >= 0 and e > s:
+            try: return json.loads(clean[s:e])
+            except Exception: pass
+    log.warning(f"Could not parse JSON: {clean[:100]}")
+    return None
 
-SCORING_SYSTEM = """You are an SBA 7(a) underwriting AI with deep knowledge of the 1.59 million loan 
-SBA dataset (FY2000–2024). You score SMB acquisition and growth deals across 5 categories 
-exactly like an experienced SBA lender would.
 
-You ALWAYS respond with valid JSON only — no markdown, no preamble, no explanation outside the JSON.
+def _parse_list(text: str) -> Optional[list]:
+    if not text: return None
+    clean = text.strip()
+    if clean.startswith("```"):
+        lines = clean.split("\n")
+        clean = "\n".join(lines[1:-1] if lines[-1].strip() == "```" else lines[1:])
+    try:
+        r = json.loads(clean)
+        if isinstance(r, list): return r
+        if isinstance(r, dict) and "playbooks" in r: return r["playbooks"]
+    except Exception:
+        s, e = clean.find("["), clean.rfind("]") + 1
+        if s >= 0 and e > s:
+            try: return json.loads(clean[s:e])
+            except Exception: pass
+    return None
 
-Score each deal and return this exact structure:
+
+# ── ENGINE 1: Deal Risk Scoring ──────────────────────────────────────────────
+
+SCORING_SYSTEM = """You are a senior SBA 7(a) underwriter with 20 years experience and deep knowledge of the 1.59M loan SBA FOIA dataset (FY2000-2024).
+
+Score deals across 5 categories. For EACH category you MUST reference the specific metric values provided and explain in one sentence why that metric drives the score.
+
+Respond with valid JSON only. No markdown. No preamble.
+
 {
   "composite_score": <0-100 float>,
   "tier": <"preferred"|"standard"|"elevated"|"high_risk"|"decline">,
-  "tier_display": <human-readable tier label>,
-  "recommended_premium": <annual premium as decimal, e.g. 0.025>,
-  "expected_annual_default_rate": <float, e.g. 0.032>,
-  "foia_benchmark_rate": <SBA cohort benchmark, e.g. 0.035>,
+  "tier_display": <e.g. "Preferred — Top 20% of SBA Applicants">,
   "decision": <"approve"|"approve_with_conditions"|"refer"|"decline">,
-  "monitoring_frequency": <"standard"|"enhanced"|"intensive"|"monthly">,
-  "risk_flags": [<list of specific concerns, max 5>],
-  "positive_factors": [<list of strengths, max 5>],
+  "monitoring_frequency": <"quarterly"|"semi-annual"|"monthly"|"intensive">,
+  "recommended_premium": <annual insurance rate decimal>,
+  "expected_annual_default_rate": <float>,
+  "foia_benchmark_rate": <SBA cohort benchmark for this industry+size>,
   "category_scores": {
-    "structural": <0-100>,
-    "financial": <0-100>,
-    "operator": <0-100>,
-    "asset": <0-100>,
-    "geographic": <0-100>
+    "structural": {"score": <0-100>, "weight": 0.25, "rationale": "<cite specific metrics>"},
+    "financial": {"score": <0-100>, "weight": 0.30, "rationale": "<cite actual numbers>"},
+    "operator": {"score": <0-100>, "weight": 0.20, "rationale": "<cite credit, experience>"},
+    "asset": {"score": <0-100>, "weight": 0.15, "rationale": "<cite collateral coverage, LTV>"},
+    "geographic": {"score": <0-100>, "weight": 0.10, "rationale": "<cite state, industry risk>"}
   },
-  "key_insight": "<one-sentence expert judgment that a rules engine could never produce>"
+  "risk_flags": [{"flag": "<concern>", "metric": "<metric>", "value": "<actual value>", "threshold": "<threshold>", "dollar_impact": "<dollar impact>"}],
+  "positive_factors": [{"factor": "<strength>", "metric": "<metric>", "value": "<actual value>", "why_it_matters": "<why this reduces default risk>"}],
+  "key_insight": "<one sentence citing actual deal numbers that a rules engine could never produce>",
+  "conditions": ["<approval conditions if any>"]
 }
 
-Scoring anchors (from SBA dataset):
-- DSCR ≥ 1.50: strong positive; < 1.20: significant concern; < 1.0: likely decline
-- Equity injection ≥ 20%: strong signal; < 10%: red flag
-- Business age ≥ 10 years: preferred; < 3 years: elevated risk
-- SDE multiple ≤ 3.0×: conservative; > 4.5×: aggressive
-- Credit score ≥ 720: standard; < 660: high risk
-- Industry: CoO (change of ownership) defaults 40% less than expansion loans"""
+SBA anchors: DSCR >=1.50 strong; 1.25-1.49 standard; 1.00-1.24 elevated; <1.00 decline. Equity >=20% preferred; <10% red flag. Biz age >=10yr preferred. SDE multiple <=3.0x conservative; >4.5x aggressive. Credit >=720 preferred. CoO loans default 40% less than expansion. Industry rates: plumbing/HVAC 2.8%; restaurants 8.2%; manufacturing 2.9%; healthcare 2.2%."""
 
 
 def claude_score_deal(deal_data: dict) -> Optional[dict]:
-    """
-    Score a deal using Claude instead of the rules-based RiskScoringEngine.
-    Returns dict matching RiskScoreResult fields, or None to trigger fallback.
-    """
-    user_msg = f"""Score this SMB deal for SBA 7(a) financing:
+    dscr = deal_data.get("dscr", "unknown")
+    eq = deal_data.get("equity_injection", 0)
+    cr = deal_data.get("borrower_credit_score", "unknown")
+    age = deal_data.get("business_age", "unknown")
+    loan = deal_data.get("loan_amount", 0)
+    rev = deal_data.get("annual_revenue", 0)
+    ebitda = deal_data.get("ebitda", 0)
+    industry = deal_data.get("naics_industry", deal_data.get("industry", "unknown"))
+    price = deal_data.get("asking_price", deal_data.get("purchase_price", 0))
+    margin = round(ebitda/rev*100, 1) if rev else "unknown"
+    ltv = round(loan/price*100, 1) if price else "unknown"
 
-DEAL DATA:
+    user_msg = f"""Score this SBA 7(a) deal. Reference every specific number in your rationale.
+
+KEY METRICS:
+Industry: {industry} | DSCR: {dscr}x | Revenue: ${rev:,.0f} | EBITDA: ${ebitda:,.0f} ({margin}% margin)
+Loan: ${loan:,.0f} | Asking Price: ${price:,.0f} | LTV: {ltv}% | Equity: {eq}%
+Credit Score: {cr} | Business Age: {age} years
+
+FULL DATA:
 {json.dumps(deal_data, indent=2)}
 
-Provide your expert underwriting assessment as JSON."""
+Score each category citing specific metrics. JSON only."""
 
-    text = _call_claude(SCORING_SYSTEM, user_msg)
+    text = _call_claude(SCORING_SYSTEM, user_msg, max_tokens=2000)
     result = _parse_json(text)
-    if not result:
-        return None
+    if not result: return None
 
-    # Normalize to match the shape the endpoint expects
+    cats = result.get("category_scores", {})
+    norm_cats = {}
+    for cat, val in cats.items():
+        norm_cats[cat] = val if isinstance(val, dict) else {"score": float(val), "weight": 0.2, "rationale": ""}
+
     return {
         "composite_score": float(result.get("composite_score", 65)),
         "tier": result.get("tier", "standard"),
@@ -163,11 +171,12 @@ Provide your expert underwriting assessment as JSON."""
         "expected_annual_default_rate": float(result.get("expected_annual_default_rate", 0.035)),
         "foia_benchmark_rate": float(result.get("foia_benchmark_rate", 0.035)),
         "decision": result.get("decision", "refer"),
-        "monitoring_frequency": result.get("monitoring_frequency", "standard"),
+        "monitoring_frequency": result.get("monitoring_frequency", "quarterly"),
         "risk_flags": result.get("risk_flags", []),
         "positive_factors": result.get("positive_factors", []),
-        "category_scores": result.get("category_scores", {}),
+        "category_scores": norm_cats,
         "key_insight": result.get("key_insight", ""),
+        "conditions": result.get("conditions", []),
         "variables_evaluated": len(deal_data),
         "variables_missing": [],
         "scored_at": __import__("datetime").datetime.utcnow().isoformat(),
@@ -175,61 +184,56 @@ Provide your expert underwriting assessment as JSON."""
     }
 
 
-# ─── ENGINE 2: Loan Monitoring ──────────────────────────────────────────────
+# ── ENGINE 2: Loan Monitoring ────────────────────────────────────────────────
 
-MONITORING_SYSTEM = """You are an SBA loan portfolio monitoring AI. You assess active loans 
-for early warning signals using the same 18-variable framework SBA lenders use for 
-post-origination monitoring.
+MONITORING_SYSTEM = """You are an SBA loan portfolio monitoring AI. Analyze funded loans for early warning signals using the 18-variable SBA monitoring framework.
 
-You ALWAYS respond with valid JSON only.
+You MUST reference specific numbers — not generic thresholds. If DSCR dropped from 1.68 to 1.21, say that. Lenders act on specifics.
 
-Return this exact structure:
+Respond with valid JSON only.
+
 {
-  "health_score": <0-100 int>,
+  "health_score": <0-100>,
   "alert_level": <"none"|"watch"|"advisory"|"escalation"|"pre_claim">,
-  "alert_level_display": <human label>,
-  "active_alerts": [
-    {
-      "variable_name": "<what triggered>",
-      "severity": <"low"|"medium"|"high"|"critical">,
-      "message": "<specific actionable description>",
-      "recommended_action": "<concrete next step>"
-    }
-  ],
-  "positive_signals": [<list of healthy indicators>],
+  "alert_level_display": <"Healthy"|"Watch — Monitor Closely"|"Advisory — Action in 30 Days"|"Escalation — Contact Now"|"Pre-Claim — Imminent Loss">,
   "trend_direction": <"improving"|"stable"|"deteriorating"|"critical">,
-  "estimated_months_to_default_risk": <null or integer>,
-  "recommended_intervention": "<specific next action for the lender/insurer>",
-  "key_insight": "<one sentence expert judgment>"
+  "estimated_months_to_default_risk": <null or int>,
+  "active_alerts": [{"variable_name": "<SBA var>", "severity": <"low"|"medium"|"high"|"critical">, "message": "<cite actual values>", "recommended_action": "<specific step with deadline>", "dollar_at_risk": "<exposure estimate>"}],
+  "positive_signals": ["<cite actual improving metrics>"],
+  "recommended_intervention": "<specific action with deadline citing actual numbers>",
+  "narrative": "<2-3 sentences: what is happening and why, citing specific metrics>",
+  "key_insight": "<one sentence citing specific numbers>"
 }
 
-Alert level guidance:
-- none: health ≥ 80, all metrics green
-- watch: health 65-79, one soft concern  
-- advisory: health 50-64, multiple concerns, action recommended in 30 days
-- escalation: health 35-49, immediate lender contact required, 14-day deadline
-- pre_claim: health < 35, loss likely without intervention, 1-day deadline"""
+Alert thresholds: none >=80; watch 65-79; advisory 50-64; escalation 35-49; pre_claim <35."""
 
 
 def claude_monitor_loan(loan_data: dict, monitoring_data: dict) -> Optional[dict]:
-    """
-    Assess a funded loan using Claude instead of MonitoringEngine.
-    Returns dict matching MonitoringResult shape, or None to trigger fallback.
-    """
-    user_msg = f"""Assess this active SBA loan for early warning signals:
+    dscr_orig = loan_data.get("origination_dscr", monitoring_data.get("dscr_at_origination", "unknown"))
+    dscr_curr = monitoring_data.get("dscr_current", monitoring_data.get("mon_dscr_rolling", "unknown"))
+    rev_vs_proj = monitoring_data.get("revenue_vs_projection", "unknown")
+    days_late = monitoring_data.get("days_past_due", 0)
+    balance = loan_data.get("current_principal_balance", loan_data.get("principal_amount", 0))
 
-LOAN INFO:
+    user_msg = f"""Assess this active SBA loan.
+
+KEY METRICS:
+Origination DSCR: {dscr_orig}x → Current DSCR: {dscr_curr}x
+Revenue vs Projection: {rev_vs_proj}
+Payment Status: {monitoring_data.get('sba_payment_status','current')} ({days_late} days past due)
+Outstanding Balance: ${balance:,.0f}
+
+LOAN DATA:
 {json.dumps(loan_data, indent=2)}
 
-CURRENT MONITORING DATA:
+MONITORING DATA:
 {json.dumps(monitoring_data, indent=2)}
 
-Provide your expert monitoring assessment as JSON."""
+Reference specific numbers in every alert. JSON only."""
 
     text = _call_claude(MONITORING_SYSTEM, user_msg)
     result = _parse_json(text)
-    if not result:
-        return None
+    if not result: return None
 
     return {
         "loan_id": loan_data.get("loan_id"),
@@ -237,262 +241,258 @@ Provide your expert monitoring assessment as JSON."""
         "borrower_name": loan_data.get("borrower_name", ""),
         "health_score": int(result.get("health_score", 70)),
         "alert_level": result.get("alert_level", "none"),
-        "alert_level_display": result.get("alert_level_display", "No Alert"),
+        "alert_level_display": result.get("alert_level_display", "Healthy"),
         "active_alerts": result.get("active_alerts", []),
         "positive_signals": result.get("positive_signals", []),
         "trend_direction": result.get("trend_direction", "stable"),
         "estimated_months_to_default_risk": result.get("estimated_months_to_default_risk"),
         "recommended_intervention": result.get("recommended_intervention", ""),
+        "narrative": result.get("narrative", ""),
         "key_insight": result.get("key_insight", ""),
         "assessed_at": __import__("datetime").datetime.utcnow().isoformat(),
         "_powered_by": "claude",
     }
 
 
-# ─── ENGINE 3: Deal Advisory Chat ───────────────────────────────────────────
+# ── ENGINE 3: Deal Advisory Chat ─────────────────────────────────────────────
 
-CHAT_SYSTEM = """You are an expert SBA 7(a) acquisition underwriter and CFO advisor embedded 
-in the UnderwriteOS platform. You have access to full deal data, risk reports, and 
-UnderwriteOS analysis outputs for the deal in context.
-
-Your role: give the user specific, dollar-quantified, actionable advice — not generic commentary.
-Speak like a senior deal advisor who has closed hundreds of SBA transactions.
+CHAT_SYSTEM = """You are a senior SBA 7(a) deal advisor embedded in UnderwriteOS.
 
 Rules:
-- Always ground your response in the specific numbers from the deal data provided
-- Be direct. Users pay for clarity, not caveats
-- When asked about risks, give specific dollar impact estimates
-- When asked about actions, give numbered steps with dollar amounts and named vendors
-- Mention DSCR, SDE, health score, and playbooks by their specific values when relevant
-- Keep responses concise — 150-300 words unless a detailed analysis is explicitly requested
-- Never say "I cannot" — reframe as what you CAN do
-- End with one specific next action the user should take today"""
+1. ALWAYS cite specific numbers — say "your DSCR of 1.42x" not "your DSCR"
+2. Quantify every risk in dollars
+3. Give numbered action steps with named vendors and dollar amounts
+4. 150-250 words unless detailed analysis requested
+5. End every response with "Next step: [one specific action to take today]"
+6. Never say "I cannot" — you have everything you need in the deal context"""
 
 
-def claude_deal_chat(
-    user_message: str,
-    deal_data: dict,
-    risk_report: dict,
-    uw_data: dict,
-    conversation_history: list = None,
-) -> Optional[str]:
-    """
-    AI chat about a specific deal. Uses full deal context.
-    Returns response text or None to trigger fallback.
-    """
-    context = f"""DEAL CONTEXT:
-Name: {deal_data.get('name', 'Unknown')}
-Industry: {deal_data.get('industry', 'Unknown')}
-Revenue: ${deal_data.get('annual_revenue', 0):,.0f}
-EBITDA: ${deal_data.get('ebitda', 0):,.0f}
-Purchase price: ${deal_data.get('purchase_price', 0):,.0f}
-Loan requested: ${deal_data.get('loan_amount_requested', 0):,.0f}
-Equity injection: ${deal_data.get('equity_injection', 0):,.0f}
+def claude_deal_chat(user_message: str, deal_data: dict, risk_report: dict, uw_data: dict, conversation_history: list = None) -> Optional[str]:
+    health = uw_data.get("health_score", {})
+    dscr = uw_data.get("dscr_pdscr", {})
+    val = uw_data.get("valuation", {})
+    dk = uw_data.get("deal_killer", {})
+    cf = uw_data.get("cash_flow_forecast", {})
+    sba = uw_data.get("sba_eligibility", {})
+    pbs = uw_data.get("playbooks", [])
+    rev = deal_data.get("annual_revenue", 0)
+    ebitda = deal_data.get("ebitda", 0)
 
-HERADYNE ANALYSIS:
-DSCR (base): {risk_report.get('dscr_base', 'N/A')}
-DSCR (stress): {risk_report.get('dscr_stress', 'N/A')}
-Annual PD: {risk_report.get('annual_pd', 'N/A')}
-EV range: ${risk_report.get('ev_low', 0):,.0f} – ${risk_report.get('ev_high', 0):,.0f}
-Collateral coverage: {risk_report.get('collateral_coverage', 'N/A')}
+    context = f"""=== DEAL: {deal_data.get('name','Unknown')} | {deal_data.get('industry','unknown')} ===
+Revenue: ${rev:,.0f} | EBITDA: ${ebitda:,.0f} ({round(ebitda/rev*100,1) if rev else 0}% margin)
+Asking: ${deal_data.get('purchase_price',0):,.0f} | Loan: ${deal_data.get('loan_amount_requested',0):,.0f}
+Equity: ${deal_data.get('equity_injection',0):,.0f} ({round(deal_data.get('equity_injection',0)/deal_data.get('purchase_price',1)*100,1) if deal_data.get('purchase_price') else 0}%) | Credit: {deal_data.get('owner_credit_score','N/A')} | Experience: {deal_data.get('owner_experience_years','N/A')}yr
 
-UNDERWRITEOS ANALYSIS:
-Health score: {uw_data.get('health_score', {}).get('score', 'N/A')}/100
-PDSCR: {uw_data.get('dscr_pdscr', {}).get('pdscr', 'N/A')}
-Cash runway: {uw_data.get('cash_flow_forecast', {}).get('runway_months', 'N/A')} months
-SBA eligible: {uw_data.get('sba_eligibility', {}).get('eligible', 'N/A')}
-Deal verdict: {uw_data.get('deal_killer', {}).get('verdict', 'N/A')}
-Deal confidence: {uw_data.get('deal_killer', {}).get('confidence_score', 'N/A')}/100
-Max supportable price: ${uw_data.get('deal_killer', {}).get('max_supportable_price', 0):,.0f}
-Normalized SDE: ${uw_data.get('valuation', {}).get('normalized_sde', 0):,.0f}
-Equity value range: ${uw_data.get('valuation', {}).get('equity_value_low', 0):,.0f} – ${uw_data.get('valuation', {}).get('equity_value_high', 0):,.0f}
+=== UNDERWRITEOS ===
+Health: {health.get('score','N/A')}/100 (CF:{health.get('cashflow','N/A')} Stab:{health.get('stability','N/A')} Growth:{health.get('growth','N/A')} Liq:{health.get('liquidity','N/A')})
+DSCR: {dscr.get('dscr_base','N/A')}x base | {dscr.get('pdscr','N/A')}x post-draw | stressed: {dscr.get('dscr_stress_20','N/A')}x
+Owner Draw: ${dscr.get('owner_draw_annual',0):,.0f}/yr | Premium Capacity: ${dscr.get('premium_capacity_monthly',0):,.0f}/mo
+Verdict: {dk.get('verdict','N/A').upper()} | Confidence: {dk.get('confidence_score','N/A')}/100 | Max Price: ${dk.get('max_supportable_price',0):,.0f}
+Cash Runway: {cf.get('runway_months','N/A')} mo | SBA: {'Yes' if sba.get('eligible') else 'No'}
+Equity Value: ${val.get('equity_value_mid',0):,.0f} (${val.get('equity_value_low',0):,.0f}–${val.get('equity_value_high',0):,.0f})
 
-PLAYBOOKS:
-{json.dumps([{'title': p.get('title'), 'severity': p.get('severity'), 'impact': p.get('estimated_annual_impact')} for p in uw_data.get('playbooks', [])], indent=2)}"""
+=== PLAYBOOKS ===
+{chr(10).join([f"• [{p.get('severity','').upper()}] {p.get('title','')} — {p.get('impact_summary','')}" for p in pbs])}
+
+=== HERADYNE ===
+DSCR: {risk_report.get('dscr_base','N/A')}x | Annual PD: {risk_report.get('annual_pd','N/A')} | Collateral: {risk_report.get('collateral_coverage','N/A')}x"""
 
     messages = []
-    # Add conversation history
     if conversation_history:
-        for msg in conversation_history[-6:]:  # last 6 messages for context
+        for msg in conversation_history[-8:]:
             messages.append({"role": msg["role"], "content": msg["content"]})
-
-    messages.append({"role": "user", "content": f"{context}\n\nUSER QUESTION: {user_message}"})
+    messages.append({"role": "user", "content": f"{context}\n\n---\nQUESTION: {user_message}"})
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
-    if not api_key:
-        log.warning("ANTHROPIC_API_KEY not set")
-        return None
+    if not api_key: return None
 
-    payload = json.dumps({
-        "model": MODEL,
-        "max_tokens": 600,
-        "system": CHAT_SYSTEM,
-        "messages": messages,
-    }).encode("utf-8")
-
-    req = urllib.request.Request(
-        API_URL,
-        data=payload,
-        headers={
-            "Content-Type": "application/json",
-            "x-api-key": api_key,
-            "anthropic-version": "2023-06-01",
-        },
-        method="POST",
-    )
+    payload = json.dumps({"model": MODEL, "max_tokens": 700, "system": CHAT_SYSTEM, "messages": messages}).encode()
+    req = urllib.request.Request(API_URL, data=payload, headers={
+        "Content-Type": "application/json", "x-api-key": api_key, "anthropic-version": "2023-06-01"
+    }, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=30) as resp:
-            data = json.loads(resp.read())
-            return data["content"][0]["text"]
+            return json.loads(resp.read())["content"][0]["text"]
     except Exception as e:
         log.error(f"Claude chat error: {e}")
         return None
 
 
-# ─── ENGINE 4: Actuarial Pricing ────────────────────────────────────────────
+# ── ENGINE 4: Actuarial Pricing ──────────────────────────────────────────────
 
-ACTUARIAL_SYSTEM = """You are a senior actuarial AI specializing in SBA 7(a) credit insurance pricing.
-You use frequency-severity methodology anchored to SBA FOIA charge-off data.
+ACTUARIAL_SYSTEM = """You are a senior actuarial AI for SBA 7(a) credit insurance. Use frequency-severity methodology anchored to SBA FOIA data.
 
-You ALWAYS respond with valid JSON only — no markdown, no explanation outside the JSON.
+Reference specific deal metrics in your rationale. Explain your pricing to a lender in plain English.
 
-Return this exact structure:
+Respond with valid JSON only.
+
 {
-  "pure_premium": <annual loss rate as decimal, e.g. 0.018>,
-  "risk_load": <additional load for variance, e.g. 0.004>,
-  "expense_load": <operating expense load, e.g. 0.005>,
-  "profit_margin": <target margin, e.g. 0.003>,
-  "indicated_rate": <total annual rate, e.g. 0.030>,
-  "indicated_rate_low": <optimistic scenario rate>,
-  "indicated_rate_high": <conservative scenario rate>,
-  "monthly_premium_dollars": <dollar amount per month>,
-  "annual_premium_dollars": <dollar amount per year>,
+  "pd_estimate": <probability of default>,
+  "lgd_estimate": <loss given default after SBA guarantee recovery>,
+  "pure_premium": <pd * lgd>,
+  "risk_load": <variance load, 20-30% of pure premium>,
+  "expense_load": <0.004-0.007>,
+  "profit_margin": <0.002-0.004>,
+  "indicated_rate": <total annual rate>,
+  "indicated_rate_low": <optimistic scenario>,
+  "indicated_rate_high": <stress scenario>,
+  "monthly_premium_dollars": <rate * loan / 12>,
+  "annual_premium_dollars": <rate * loan>,
   "risk_decision": <"accept"|"accept_with_conditions"|"refer"|"decline">,
-  "expected_loss_ratio": <expected losses / premium, e.g. 0.60>,
-  "pd_estimate": <probability of default, e.g. 0.045>,
-  "lgd_estimate": <loss given default, e.g. 0.40>,
-  "cohort_benchmark_rate": <SBA historical rate for similar loans>,
-  "credibility_weight": <how much weight on this deal vs cohort, 0-1>,
-  "key_risk_factors": [<top 3 drivers of this premium>],
-  "pricing_rationale": "<2-3 sentence actuarial explanation of the pricing>",
-  "conditions": [<any conditions for acceptance, empty list if none>]
-}
-
-Actuarial anchors from SBA dataset:
-- Overall SBA 7(a) charge-off rate: ~3.5% (varies widely by cohort)
-- Manufacturing: ~2.8%, Technology: ~4.1%, Restaurants: ~8.2%, Healthcare: ~2.2%
-- LGD typically 35-55% after SBA guarantee recovery
-- DSCR 1.50+: PD multiplier ~0.7; DSCR 1.20-1.49: 1.0; DSCR <1.20: 1.4-1.8
-- Equity injection: each 5% above minimum reduces PD ~18%
-- Business age: each year reduces PD ~13.6%"""
+  "expected_loss_ratio": <pure/indicated, target 55-65%>,
+  "cohort_benchmark_rate": <industry cohort rate>,
+  "credibility_weight": <0.0-1.0 deal vs cohort weighting>,
+  "key_risk_factors": ["<factor citing actual metric>", "<factor 2>", "<factor 3>"],
+  "pricing_rationale": "<3-4 sentences citing actual DSCR, equity %, industry rate — write for lender>",
+  "conditions": ["<underwriting conditions>"]
+}"""
 
 
 def claude_actuarial_price(submission: dict, policy_terms: dict) -> Optional[dict]:
-    """
-    Price an SBA credit insurance submission using Claude.
-    Returns dict matching PricingResult shape, or None to trigger fallback.
-    """
-    loan_amount = submission.get("loan_amount", 0)
+    loan = submission.get("loan_amount", 0)
+    industry = submission.get("industry", submission.get("naics_industry", "other")).lower()
+    cohort = INDUSTRY_COHORT_RATES.get(industry, 0.040)
+    dscr = submission.get("dscr", 1.35)
+    eq = submission.get("equity_injection", 10)
+    guarantee = submission.get("sba_guarantee_pct", 75)
+    age = submission.get("business_age", 5)
 
-    user_msg = f"""Price this SBA 7(a) credit insurance submission:
+    pd_mult = 0.70 if dscr >= 1.50 else 1.00 if dscr >= 1.25 else 1.45 if dscr >= 1.00 else 2.00
+    eq_adj = 1.0 - max(0, (eq - 10) / 100 * 1.8)
+    adj_pd = cohort * pd_mult * eq_adj
 
-SUBMISSION:
-{json.dumps(submission, indent=2)}
+    user_msg = f"""Price this SBA 7(a) credit insurance submission.
 
-POLICY TERMS:
-{json.dumps(policy_terms, indent=2)}
+ACTUARIAL INPUTS (cite in rationale):
+Industry: {industry} | Cohort Base Rate (SBA FOIA): {cohort:.1%}
+Loan: ${loan:,.0f} | DSCR: {dscr}x → PD multiplier: {pd_mult}x
+Equity: {eq}% → reduces PD ~{(1-eq_adj)*100:.0f}%
+Business Age: {age} years | SBA Guarantee: {guarantee}%
+Pre-adjusted PD: {adj_pd:.1%}
 
-Calculate the indicated annual premium rate and provide full actuarial breakdown as JSON.
-The loan amount is ${loan_amount:,.0f}."""
+SUBMISSION: {json.dumps(submission, indent=2)}
+POLICY: {json.dumps(policy_terms, indent=2)}
 
-    text = _call_claude(ACTUARIAL_SYSTEM, user_msg, max_tokens=800)
+JSON only."""
+
+    text = _call_claude(ACTUARIAL_SYSTEM, user_msg, max_tokens=1000)
     result = _parse_json(text)
-    if not result:
-        return None
+    if not result: return None
 
-    # Fill in derived fields
-    rate = float(result.get("indicated_rate", 0.030))
-    result["monthly_premium_dollars"] = round(loan_amount * rate / 12, 2)
-    result["annual_premium_dollars"] = round(loan_amount * rate, 2)
+    rate = float(result.get("indicated_rate", adj_pd * 1.4))
+    result["monthly_premium_dollars"] = round(loan * rate / 12, 2)
+    result["annual_premium_dollars"] = round(loan * rate, 2)
     result["_powered_by"] = "claude"
     return result
 
 
-# ─── ENGINE 5: Portfolio Playbook Generation ─────────────────────────────────
+# ── ENGINE 5: Playbook Generation ────────────────────────────────────────────
 
-PLAYBOOK_SYSTEM = """You are a CFO-level business advisor specializing in SMB turnarounds and 
-SBA acquisition businesses. You generate specific, dollar-quantified action plans.
+PLAYBOOK_SYSTEM = """You are a CFO-level SMB advisor for SBA acquisition businesses. Generate specific dollar-quantified action plans.
 
-You ALWAYS respond with valid JSON only.
+Every playbook MUST:
+1. Reference the specific metric that triggered it (e.g. "Your DSCR of 1.21x is 4bps above floor")
+2. Quantify dollar impact of inaction
+3. Name actual vendors/software/resources (ServiceTitan, QuickBooks, SCORE, SBA Form 413)
+4. Give actions with specific dollar amounts
+5. Order by time horizon: Immediate → This week → 30 days → 90 days
 
-Return a list of playbooks:
-[
-  {
-    "title": "<specific problem + impact>",
-    "severity": <"critical"|"warning"|"opportunity">,
-    "trigger": "<what metric/threshold triggered this>",
-    "impact_summary": "<one sentence dollar-quantified impact>",
-    "estimated_annual_impact": <dollar amount>,
-    "actions": [
-      {
-        "step": <1|2|3>,
-        "label": "<time horizon: Immediate/This week/30 days/90 days>",
-        "detail": "<specific action with named vendors, dollar amounts, and exact steps>",
-        "dollar_impact": <estimated dollar impact of this action>
-      }
-    ]
-  }
-]
+Respond with a JSON array only.
 
-Rules:
-- Every action must have a specific dollar amount
-- Name actual vendors, tools, or resources (e.g. ServiceTitan, QuickBooks, SBA Form 413)
-- Lead with the most critical/highest-impact playbook first
-- Maximum 5 playbooks
-- Minimum 2 actions per playbook
-- Be brutally specific — no generic advice"""
+[{
+  "title": "<cite specific metric e.g. 'DSCR 1.21x — 4bps Above Minimum'>",
+  "severity": <"critical"|"warning"|"opportunity">,
+  "trigger": "<specific metric and value>",
+  "impact_summary": "<what happens if unaddressed, in dollars>",
+  "estimated_annual_impact": <dollars>,
+  "actions": [{"step": 1, "label": "<Immediate|This week|30 days|90 days>", "detail": "<specific vendor, amount, step>", "dollar_impact": <dollars>}]
+}]
+
+Max 5 playbooks, min 2 actions each. Lead with most critical."""
 
 
 def claude_generate_playbooks(deal_data: dict, financial_data: dict, uw_metrics: dict) -> Optional[list]:
-    """
-    Generate deal-specific playbooks using Claude instead of the rules-based generator.
-    Returns list of playbook dicts or None to trigger fallback.
-    """
-    user_msg = f"""Generate actionable playbooks for this SMB acquisition deal:
+    dscr = uw_metrics.get("dscr", financial_data.get("dscr", "unknown"))
+    health = uw_metrics.get("health_score", "unknown")
+    runway = uw_metrics.get("cash_runway_months", "unknown")
+    verdict = uw_metrics.get("deal_verdict", "unknown")
+    rev = financial_data.get("revenue", deal_data.get("annual_revenue", 0))
+    ebitda = financial_data.get("ebitda", deal_data.get("ebitda", 0))
+    price = deal_data.get("purchase_price", deal_data.get("asking_price", 0))
+    loan = deal_data.get("loan_amount", deal_data.get("loan_amount_requested", 0))
 
-DEAL:
-{json.dumps(deal_data, indent=2)}
+    user_msg = f"""Generate playbooks for: {deal_data.get('name','Unknown')} | {deal_data.get('industry','unknown')}
 
-FINANCIAL METRICS:
-{json.dumps(financial_data, indent=2)}
+CITE IN EVERY PLAYBOOK:
+DSCR: {dscr}x | Health: {health}/100 | Runway: {runway} mo | Verdict: {verdict}
+Revenue: ${rev:,.0f} | EBITDA: ${ebitda:,.0f} | Price: ${price:,.0f} | Loan: ${loan:,.0f}
 
-UNDERWRITEOS METRICS:
-{json.dumps(uw_metrics, indent=2)}
+FINANCIALS: {json.dumps(financial_data, indent=2)}
+UW OUTPUTS: {json.dumps(uw_metrics, indent=2)}
+DEAL: {json.dumps(deal_data, indent=2)}
 
-Create specific, dollar-quantified playbooks as JSON."""
+JSON array only."""
 
-    text = _call_claude(PLAYBOOK_SYSTEM, user_msg, max_tokens=2000)
-    if not text:
-        return None
+    return _parse_list(_call_claude(PLAYBOOK_SYSTEM, user_msg, max_tokens=2500))
 
-    # Try parsing as list
-    clean = text.strip()
-    if clean.startswith("```"):
-        lines = clean.split("\n")
-        clean = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
-    try:
-        result = json.loads(clean)
-        if isinstance(result, list):
-            return result
-        if isinstance(result, dict) and "playbooks" in result:
-            return result["playbooks"]
-    except Exception:
-        # Try to find array in text
-        start = clean.find("[")
-        end = clean.rfind("]") + 1
-        if start >= 0 and end > start:
-            try:
-                return json.loads(clean[start:end])
-            except Exception:
-                pass
-    return None
+
+# ── ENGINE 6: Master Deal Analysis ───────────────────────────────────────────
+
+ANALYSIS_SYSTEM = """You are a senior SBA underwriter providing a master deal analysis. You have full quantitative output from 7 UnderwriteOS engines.
+
+Synthesize into an expert narrative that:
+1. States verdict with specific justification citing actual metrics
+2. Identifies the 2-3 things that most determine this deal's outcome
+3. Gives borrower concrete numbered next steps
+4. Is written in plain English a first-time buyer understands
+5. References every key number by name and value
+
+Respond with valid JSON only.
+
+{
+  "executive_summary": "<3-4 sentences: verdict, key strengths, key risks, recommendation — cite specific metrics>",
+  "verdict_explanation": "<why buy/renegotiate/pass — cite DSCR, multiple, health score, runway>",
+  "top_3_success_factors": ["<factor citing metric and why it matters>", "<factor 2>", "<factor 3>"],
+  "top_3_risk_factors": ["<risk citing metric, dollar impact, probability>", "<risk 2>", "<risk 3>"],
+  "borrower_next_steps": [
+    {"step": 1, "action": "<specific>", "why": "<why for this deal>", "timeline": "<when>"},
+    {"step": 2, "action": "<specific>", "why": "<why>", "timeline": "<when>"},
+    {"step": 3, "action": "<specific>", "why": "<why>", "timeline": "<when>"}
+  ],
+  "lender_talking_points": ["<point 1 — lead with when talking to lenders>", "<point 2>", "<point 3>"],
+  "negotiation_leverage": "<specific advice on price negotiation based on valuation vs asking price>"
+}"""
+
+
+def claude_analyze_deal(deal_data: dict, uw_results: dict) -> Optional[dict]:
+    health = uw_results.get("health_score", {})
+    dscr = uw_results.get("dscr_pdscr", {})
+    val = uw_results.get("valuation", {})
+    dk = uw_results.get("deal_killer", {})
+    cf = uw_results.get("cash_flow_forecast", {})
+    sba = uw_results.get("sba_eligibility", {})
+    pbs = uw_results.get("playbooks", [])
+
+    user_msg = f"""Synthesize this deal analysis.
+
+DEAL: {deal_data.get('name','Unknown')} | {deal_data.get('industry','unknown')}
+Revenue: ${deal_data.get('annual_revenue',0):,.0f} | EBITDA: ${deal_data.get('ebitda',0):,.0f}
+Asking: ${deal_data.get('purchase_price',0):,.0f} | Loan: ${deal_data.get('loan_amount_requested',0):,.0f}
+
+ENGINE OUTPUTS:
+Health: {health.get('score','N/A')}/100 (CF:{health.get('cashflow','N/A')} Stab:{health.get('stability','N/A')} Growth:{health.get('growth','N/A')} Liq:{health.get('liquidity','N/A')})
+DSCR: {dscr.get('dscr_base','N/A')}x | PDSCR: {dscr.get('pdscr','N/A')}x | Stressed: {dscr.get('dscr_stress_20','N/A')}x
+Verdict: {dk.get('verdict','N/A').upper()} | Confidence: {dk.get('confidence_score','N/A')}/100 | Max Price: ${dk.get('max_supportable_price',0):,.0f}
+Equity Value: ${val.get('equity_value_mid',0):,.0f} (${val.get('equity_value_low',0):,.0f}–${val.get('equity_value_high',0):,.0f})
+Cash Runway: {cf.get('runway_months','N/A')} mo | SBA: {'Yes' if sba.get('eligible') else 'No'}
+
+TOP RISKS:
+{chr(10).join([f"• {p.get('title','')} — {p.get('impact_summary','')}" for p in pbs[:3]])}
+
+JSON only."""
+
+    text = _call_claude(ANALYSIS_SYSTEM, user_msg, max_tokens=2000)
+    result = _parse_json(text)
+    if not result: return None
+    result["_powered_by"] = "claude"
+    return result

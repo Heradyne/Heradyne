@@ -1,13 +1,13 @@
 'use client';
-
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { XCircle, AlertTriangle, TrendingUp, Shield, ArrowRight, Lock, ChevronDown, ChevronUp } from 'lucide-react';
+import { XCircle, AlertTriangle, TrendingUp, Shield, ArrowRight, Lock, ChevronDown, ChevronUp, Brain, CheckCircle } from 'lucide-react';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
 const LockedSection = ({ title, onUpgrade }: { title: string; onUpgrade: () => void }) => (
   <div className="bg-white rounded-xl border border-gray-200 p-6 relative overflow-hidden">
@@ -32,10 +32,12 @@ export default function ValuationResultsPage() {
   const dealId = params.id as string;
   const [deal, setDeal] = useState<any>(null);
   const [uw, setUw] = useState<any>(null);
+  const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [retries, setRetries] = useState(0);
   const [tier, setTier] = useState<'valuation'|'diligence'>('valuation');
   const [expandedPlaybook, setExpandedPlaybook] = useState<number|null>(null);
+  const [expandedCat, setExpandedCat] = useState<string|null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatMessages, setChatMessages] = useState<{role:string;content:string}[]>([]);
   const [chatLoading, setChatLoading] = useState(false);
@@ -50,14 +52,24 @@ export default function ValuationResultsPage() {
   const loadData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const headers = { Authorization: `Bearer ${token}` };
+      const h = { Authorization: `Bearer ${token}` };
       const [dRes, uRes] = await Promise.all([
-        fetch(`${API}/api/v1/deals/${dealId}`, { headers }),
-        fetch(`${API}/api/v1/underwriting/deals/${dealId}/full-underwriting`, { headers }),
+        fetch(`${API}/api/v1/deals/${dealId}`, { headers: h }),
+        fetch(`${API}/api/v1/underwriting/deals/${dealId}/full-underwriting`, { headers: h }),
       ]);
       if (dRes.ok) setDeal(await dRes.json());
-      if (uRes.ok) { setUw(await uRes.json()); }
-      else if (retries < 4) { setTimeout(() => setRetries(r => r+1), 3000); return; }
+      if (uRes.ok) {
+        const uwData = await uRes.json();
+        setUw(uwData);
+        // Load master analysis in background (non-blocking)
+        fetch(`${API}/api/v1/underwriting/deals/${dealId}/master-analysis`, { headers: h })
+          .then(r => r.ok ? r.json() : null)
+          .then(d => { if (d && !d.error) setAnalysis(d); })
+          .catch(() => {});
+      } else if (retries < 4) {
+        setTimeout(() => setRetries(r => r+1), 3000);
+        return;
+      }
     } catch(e) { console.error(e); }
     finally { setLoading(false); }
   };
@@ -91,11 +103,22 @@ export default function ValuationResultsPage() {
   const vbg = verdict==='buy'?'bg-green-50 border-green-300':verdict==='renegotiate'?'bg-yellow-50 border-yellow-300':'bg-red-50 border-red-300';
   const vl = verdict==='buy'?'✓ Strong Buy':verdict==='renegotiate'?'⚠ Renegotiate':'✗ Pass';
   const val = uw?.valuation||{}; const dscr = uw?.dscr_pdscr||{}; const sba = uw?.sba_eligibility||{};
-  const pbs = uw?.playbooks||[]; const isFull = tier==='diligence';
+  const pbs = uw?.playbooks||[]; const cf = uw?.cash_flow_forecast||{};
+  const isFull = tier==='diligence';
   const upgrade = () => router.push('/get-started?tier=diligence');
+
+  // Category score config
+  const catConfig: Record<string, {label:string;weight:string}> = {
+    structural: {label:'Structural', weight:'25%'},
+    financial: {label:'Financial', weight:'30%'},
+    operator: {label:'Operator', weight:'20%'},
+    asset: {label:'Asset Quality', weight:'15%'},
+    geographic: {label:'Geographic', weight:'10%'},
+  };
 
   return (
     <div className="max-w-3xl mx-auto space-y-6">
+
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
@@ -108,7 +131,62 @@ export default function ValuationResultsPage() {
         <button onClick={()=>router.push('/dashboard/get-valuation')} className="text-sm text-blue-600 hover:text-blue-800 flex items-center gap-1">New valuation <ArrowRight className="h-3 w-3"/></button>
       </div>
 
-      {/* Verdict */}
+      {/* Master AI Analysis — shown when available */}
+      {analysis?.executive_summary && (
+        <div className="bg-white rounded-xl border border-blue-200 p-6">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain className="h-5 w-5 text-blue-600"/>
+            <h2 className="text-lg font-semibold text-gray-900">AI Expert Analysis</h2>
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-semibold">Powered by Claude</span>
+          </div>
+          <p className="text-gray-700 text-sm leading-relaxed mb-4">{analysis.executive_summary}</p>
+
+          {analysis.verdict_explanation && (
+            <div className={`rounded-lg p-4 mb-4 ${vbg} border`}>
+              <p className="text-sm font-semibold mb-1" style={{color:vc}}>Why this verdict</p>
+              <p className="text-sm" style={{color:vc}}>{analysis.verdict_explanation}</p>
+            </div>
+          )}
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            {analysis.top_3_success_factors?.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase text-green-700 mb-2">Top Strengths</p>
+                <ul className="space-y-1.5">
+                  {analysis.top_3_success_factors.map((f:string,i:number) => (
+                    <li key={i} className="flex gap-2 text-sm text-gray-700">
+                      <CheckCircle className="h-4 w-4 text-green-500 shrink-0 mt-0.5"/>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {analysis.top_3_risk_factors?.length > 0 && (
+              <div>
+                <p className="text-xs font-bold uppercase text-red-700 mb-2">Top Risks</p>
+                <ul className="space-y-1.5">
+                  {analysis.top_3_risk_factors.map((f:string,i:number) => (
+                    <li key={i} className="flex gap-2 text-sm text-gray-700">
+                      <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5"/>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          {analysis.negotiation_leverage && (
+            <div className="bg-blue-50 rounded-lg p-3">
+              <p className="text-xs font-bold uppercase text-blue-700 mb-1">Negotiation Leverage</p>
+              <p className="text-sm text-blue-800">{analysis.negotiation_leverage}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Verdict banner */}
       {uw?.deal_killer && (
         <div className={`rounded-xl border-2 p-6 ${vbg}`}>
           <div className="flex items-center justify-between">
@@ -125,7 +203,7 @@ export default function ValuationResultsPage() {
         </div>
       )}
 
-      {/* Metrics */}
+      {/* Key metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           {label:'Health Score', value:`${hs.toFixed(0)}`, sub:'out of 100', ok:hs>=70},
@@ -165,16 +243,21 @@ export default function ValuationResultsPage() {
                   {val.equity_value_mid>=deal.purchase_price?'✓ Priced fairly':'⚠ Overpriced'}
                 </p>
                 <p className="text-xs text-gray-400">vs {fmt(deal.purchase_price)} asking</p>
+                {val.equity_value_mid < deal.purchase_price && (
+                  <p className="text-xs text-red-600 font-semibold">{fmt(deal.purchase_price - val.equity_value_mid)} overpay</p>
+                )}
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Risk flags — 2 free, rest locked */}
+      {/* Risk flags with rationale */}
       {pbs.length>0&&(
         <div className="bg-white rounded-xl border p-6">
-          <h2 className="text-lg font-semibold mb-4">Risk Flags {!isFull&&<span className="text-sm font-normal text-gray-400">(showing 2 of {pbs.length})</span>}</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            Risk Flags {!isFull&&<span className="text-sm font-normal text-gray-400">(showing 2 of {pbs.length})</span>}
+          </h2>
           <div className="space-y-3">
             {pbs.slice(0,isFull?pbs.length:2).map((pb:any,i:number)=>(
               <div key={i} className={`rounded-lg border p-4 ${pb.severity==='critical'?'bg-red-50 border-red-200':pb.severity==='warning'?'bg-yellow-50 border-yellow-200':'bg-blue-50 border-blue-200'}`}>
@@ -184,17 +267,22 @@ export default function ValuationResultsPage() {
                     <div>
                       <p className="text-sm font-semibold text-gray-900">{pb.title}</p>
                       <p className="text-xs text-gray-600 mt-0.5">{pb.impact_summary}</p>
-                      {pb.estimated_annual_impact&&<p className="text-xs font-semibold text-gray-500 mt-1">{fmt(pb.estimated_annual_impact)} impact</p>}
+                      {pb.trigger && <p className="text-xs text-gray-400 mt-0.5 italic">Triggered by: {pb.trigger}</p>}
+                      {pb.estimated_annual_impact&&<p className="text-xs font-semibold text-gray-500 mt-1">{fmt(pb.estimated_annual_impact)} annual impact</p>}
                     </div>
                   </div>
                   {isFull&&(expandedPlaybook===i?<ChevronUp className="h-4 w-4 text-gray-400 shrink-0"/>:<ChevronDown className="h-4 w-4 text-gray-400 shrink-0"/>)}
                 </div>
                 {isFull&&expandedPlaybook===i&&pb.actions&&(
-                  <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
+                  <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
                     {pb.actions.map((a:any)=>(
                       <div key={a.step} className="flex gap-3">
-                        <span className="w-6 h-6 rounded-full bg-white border text-xs font-bold flex items-center justify-center shrink-0">{a.step}</span>
-                        <div><p className="text-xs font-semibold text-gray-500">{a.label}</p><p className="text-sm text-gray-800">{a.detail}</p></div>
+                        <span className="w-7 h-7 rounded-full bg-white border-2 text-xs font-bold flex items-center justify-center shrink-0">{a.step}</span>
+                        <div>
+                          <p className="text-xs font-bold uppercase text-gray-400">{a.label}</p>
+                          <p className="text-sm text-gray-800 mt-0.5">{a.detail}</p>
+                          {a.dollar_impact&&<p className="text-xs text-gray-500 mt-0.5">{fmt(a.dollar_impact)} impact</p>}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -212,20 +300,58 @@ export default function ValuationResultsPage() {
       )}
 
       {/* Full package sections */}
-      {isFull?(
+      {isFull ? (
         <>
-          {/* Cash flow */}
-          {uw?.cash_flow_forecast&&(
+          {/* Borrower next steps from AI */}
+          {analysis?.borrower_next_steps?.length > 0 && (
+            <div className="bg-white rounded-xl border p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Brain className="h-5 w-5 text-blue-600"/>
+                <h2 className="text-lg font-semibold">Your Next Steps</h2>
+              </div>
+              <div className="space-y-3">
+                {analysis.borrower_next_steps.map((s:any,i:number)=>(
+                  <div key={i} className="flex gap-4 p-3 rounded-lg bg-gray-50">
+                    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">{s.step}</div>
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{s.action}</p>
+                      <p className="text-xs text-gray-500 mt-0.5">{s.why}</p>
+                      {s.timeline&&<p className="text-xs text-blue-600 font-semibold mt-1">⏱ {s.timeline}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Lender talking points */}
+          {analysis?.lender_talking_points?.length > 0 && (
+            <div className="bg-white rounded-xl border p-6">
+              <h2 className="text-lg font-semibold mb-3">When Talking to Lenders</h2>
+              <p className="text-xs text-gray-400 mb-3">Lead with these points — they address what SBA lenders care about most.</p>
+              <ul className="space-y-2">
+                {analysis.lender_talking_points.map((pt:string,i:number)=>(
+                  <li key={i} className="flex gap-2 text-sm text-gray-700">
+                    <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold shrink-0">{i+1}</span>
+                    {pt}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Cash flow summary */}
+          {cf.runway_months && (
             <div className="bg-white rounded-xl border p-6">
               <h2 className="text-lg font-semibold mb-4">Cash Flow Summary</h2>
               <div className="grid grid-cols-3 gap-4">
                 <div className="text-center bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400">Cash Runway</p>
-                  <p className="text-2xl font-bold text-gray-900">{uw.cash_flow_forecast.runway_months===18?'18+':uw.cash_flow_forecast.runway_months?.toFixed(1)} mo</p>
+                  <p className="text-2xl font-bold text-gray-900">{cf.runway_months===18?'18+':cf.runway_months?.toFixed(1)} mo</p>
                 </div>
                 <div className="text-center bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400">Avg Monthly FCF</p>
-                  <p className={`text-2xl font-bold ${(uw.cash_flow_forecast.avg_monthly_fcf||0)>=0?'text-green-700':'text-red-600'}`}>{fmt(uw.cash_flow_forecast.avg_monthly_fcf||0)}</p>
+                  <p className={`text-2xl font-bold ${(cf.avg_monthly_fcf||0)>=0?'text-green-700':'text-red-600'}`}>{fmt(cf.avg_monthly_fcf||0)}</p>
                 </div>
                 <div className="text-center bg-gray-50 rounded-lg p-3">
                   <p className="text-xs text-gray-400">PDSCR</p>
@@ -235,7 +361,7 @@ export default function ValuationResultsPage() {
             </div>
           )}
 
-          {/* SBA checklist */}
+          {/* SBA document checklist */}
           <div className="bg-white rounded-xl border p-6">
             <h2 className="text-lg font-semibold mb-2">SBA 7(a) Document Checklist</h2>
             <p className="text-xs text-gray-400 mb-4">AI-generated based on your deal profile. Gather these before meeting with lenders.</p>
@@ -265,19 +391,22 @@ export default function ValuationResultsPage() {
 
           {/* AI Chat */}
           <div className="bg-white rounded-xl border p-6">
-            <h2 className="text-lg font-semibold mb-1">Ask Your Deal Advisor</h2>
-            <p className="text-xs text-gray-400 mb-4">AI advisor with full context of your financials.</p>
+            <div className="flex items-center gap-2 mb-1">
+              <Brain className="h-5 w-5 text-blue-600"/>
+              <h2 className="text-lg font-semibold">Ask Your Deal Advisor</h2>
+            </div>
+            <p className="text-xs text-gray-400 mb-4">AI advisor with full context of your financials. Cites specific numbers from your deal.</p>
             <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
               {chatMessages.length===0&&(
                 <div className="flex flex-wrap gap-2">
-                  {["What's my biggest risk?","Is this priced fairly?","What documents do I need first?","How do I improve my DSCR?"].map(q=>(
+                  {["What's my biggest risk?","Is this priced fairly?","What should I do first?","How do I improve my DSCR?","What lender talking points should I use?"].map(q=>(
                     <button key={q} onClick={()=>setChatInput(q)} className="text-xs px-3 py-1.5 rounded-full border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100">{q}</button>
                   ))}
                 </div>
               )}
               {chatMessages.map((msg,i)=>(
                 <div key={i} className={`flex ${msg.role==='user'?'justify-end':'justify-start'}`}>
-                  <div className={`rounded-xl px-4 py-3 max-w-[85%] text-sm ${msg.role==='user'?'bg-blue-600 text-white':'bg-gray-50 border text-gray-800'}`}>{msg.content}</div>
+                  <div className={`rounded-xl px-4 py-3 max-w-[85%] text-sm leading-relaxed ${msg.role==='user'?'bg-blue-600 text-white':'bg-gray-50 border text-gray-800'}`}>{msg.content}</div>
                 </div>
               ))}
               {chatLoading&&<div className="flex justify-start"><div className="bg-gray-50 border rounded-xl px-4 py-3 text-sm text-gray-400 animate-pulse">Analyzing your deal...</div></div>}
@@ -300,15 +429,16 @@ export default function ValuationResultsPage() {
         </>
       ):(
         <>
+          <LockedSection title="AI Expert Next Steps" onUpgrade={upgrade}/>
           <LockedSection title="18-Month Cash Flow Forecast" onUpgrade={upgrade}/>
           <LockedSection title="SBA 7(a) Document Checklist" onUpgrade={upgrade}/>
-          <LockedSection title="AI Deal Advisor" onUpgrade={upgrade}/>
+          <LockedSection title="AI Deal Advisor Chat" onUpgrade={upgrade}/>
           <LockedSection title="Shareable Lender Link" onUpgrade={upgrade}/>
           <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-6">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-semibold text-indigo-900 mb-1">Upgrade to Full Diligence Package</p>
-                <p className="text-sm text-indigo-700 mb-3">Unlock the document checklist, cash flow forecast, AI advisor, shareable lender link, and all risk flag action steps.</p>
+                <p className="text-sm text-indigo-700 mb-3">Unlock AI next steps, document checklist, cash flow forecast, AI advisor, and shareable lender link.</p>
                 <button onClick={upgrade} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg text-sm font-semibold hover:bg-indigo-700 flex items-center gap-2">
                   Upgrade — $399 <ArrowRight className="h-4 w-4"/>
                 </button>

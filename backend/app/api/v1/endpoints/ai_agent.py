@@ -142,19 +142,39 @@ async def score_existing_deal(
         equity_pct = (deal.equity_injection / deal.purchase_price) * 100
     
     deal_data = {
+        "name": deal.name,
         "loan_amount": deal.loan_amount_requested,
         "loan_purpose": "acquisition" if deal.deal_type and "acquisition" in str(deal.deal_type).lower() else "expansion",
-        "naics_industry": deal.industry or "999",
+        "industry": deal.industry or "services",
+        "naics_industry": deal.industry or "services",
         "business_age": deal.owner_experience_years or 5,
         "equity_injection": equity_pct,
         "dscr": 1.35,
         "borrower_credit_score": deal.owner_credit_score or 700,
+        "annual_revenue": deal.annual_revenue or 0,
+        "ebitda": deal.ebitda or 0,
+        "gross_profit": deal.gross_profit or 0,
+        "asking_price": deal.purchase_price or 0,
+        "purchase_price": deal.purchase_price or 0,
+        "equity_injection_dollars": deal.equity_injection or 0,
+        "loan_term_months": deal.loan_term_months or 120,
+        "owner_experience_years": deal.owner_experience_years or 5,
+        "addbacks": deal.addbacks or [],
+        "business_description": deal.business_description or "",
     }
-    
-    # Get DSCR from risk report if available
+
+    # Enrich with risk report data if available
     risk_report = db.query(DealRiskReport).filter(DealRiskReport.deal_id == deal_id).order_by(DealRiskReport.version.desc()).first()
-    if risk_report and risk_report.dscr_base:
-        deal_data["dscr"] = risk_report.dscr_base
+    if risk_report:
+        if risk_report.dscr_base: deal_data["dscr"] = risk_report.dscr_base
+        if risk_report.dscr_stress: deal_data["dscr_stress"] = risk_report.dscr_stress
+        if risk_report.annual_pd: deal_data["annual_pd"] = risk_report.annual_pd
+        if risk_report.ev_mid: deal_data["enterprise_value"] = risk_report.ev_mid
+        if risk_report.collateral_coverage: deal_data["collateral_coverage"] = risk_report.collateral_coverage
+        if risk_report.normalized_sde: deal_data["normalized_sde"] = risk_report.normalized_sde
+        if risk_report.sde_multiple_implied: deal_data["sde_multiple"] = risk_report.sde_multiple_implied
+        if risk_report.health_score: deal_data["health_score"] = risk_report.health_score
+        if risk_report.pdscr: deal_data["pdscr"] = risk_report.pdscr
     
     # Try Claude-powered scoring first; fall back to rules engine
     claude_result = claude_score_deal(deal_data)

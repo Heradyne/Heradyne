@@ -263,14 +263,21 @@ export default function MonitoringPage() {
                           <span className="text-xs text-gray-500">· {mon.trend_direction}</span>
                         </div>
                         {mon.key_insight && <p className="text-sm text-gray-700 mb-3 italic">"{mon.key_insight}"</p>}
+                        {mon.narrative && (
+                          <div className="bg-white rounded-lg p-3 border mb-3">
+                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">What's Happening</p>
+                            <p className="text-sm text-gray-800">{mon.narrative}</p>
+                          </div>
+                        )}
                         {mon.active_alerts?.length > 0 && (
                           <div className="space-y-2 mb-3">
                             {mon.active_alerts.map((alert: any, i: number) => (
-                              <div key={i} className="flex gap-2">
+                              <div key={i} className="flex gap-2 bg-red-50 border border-red-100 rounded-lg p-2">
                                 <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5"/>
                                 <div>
                                   <p className="text-sm font-medium text-gray-800">{alert.message}</p>
-                                  <p className="text-xs text-gray-500">{alert.recommended_action}</p>
+                                  <p className="text-xs text-gray-500 mt-0.5">{alert.recommended_action}</p>
+                                  {alert.dollar_at_risk && <p className="text-xs text-red-600 font-semibold mt-0.5">At risk: {alert.dollar_at_risk}</p>}
                                 </div>
                               </div>
                             ))}
