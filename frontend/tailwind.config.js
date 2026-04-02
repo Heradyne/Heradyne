@@ -8,20 +8,21 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        navy: { DEFAULT: '#0f2340', mid: '#1a3a6b', light: '#e8edf4' },
+        gold: { DEFAULT: '#b08d4a', light: '#e8d9b5', dark: '#7a5f28', accent: '#c4a55a' },
+        ink:  { DEFAULT: '#0d1117', muted: '#4a5568', faint: '#9ca3af' },
+        surface: { DEFAULT: '#f7f6f2', alt: '#edecea', card: '#ffffff' },
         primary: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          200: '#bfdbfe',
-          300: '#93c5fd',
-          400: '#60a5fa',
-          500: '#3b82f6',
-          600: '#2563eb',
-          700: '#1d4ed8',
-          800: '#1e40af',
-          900: '#1e3a8a',
+          50:'#e8edf4', 100:'#c8d4e5', 200:'#a0b4d1', 300:'#6e8fb8',
+          400:'#4a72a3', 500:'#1a3a6b', 600:'#0f2340', 700:'#0b1c33',
+          800:'#071426', 900:'#040d19',
         },
+      },
+      fontFamily: {
+        sans:  ['"DM Sans"', 'system-ui', 'sans-serif'],
+        serif: ['"DM Serif Display"', 'Georgia', 'serif'],
       },
     },
   },
   plugins: [],
-}
+};

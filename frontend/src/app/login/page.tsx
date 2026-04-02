@@ -1,11 +1,10 @@
 'use client';
-
 export const dynamic = 'force-dynamic';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Shield, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 
 export default function LoginPage() {
@@ -18,110 +17,85 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
+    setError(''); setLoading(true);
     try {
       const result = await login(email, password);
-      if (result.mustChangePassword) {
-        router.push('/change-password');
-      } else {
-        router.push('/dashboard');
-      }
+      router.push(result.mustChangePassword ? '/change-password' : '/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please try again.');
-    } finally {
-      setLoading(false);
-    }
+      setError(err.response?.data?.detail || 'Incorrect email or password.');
+    } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <Link href="/" className="flex justify-center items-center">
-          <Shield className="h-12 w-12 text-primary-600" />
-        </Link>
-        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
-          Sign in to Heradyne
-        </h2>
-        <p className="mt-2 text-center text-sm text-gray-600">
-          Or{' '}
-          <Link href="/register" className="text-primary-600 hover:text-primary-500">
-            create a borrower account
-          </Link>
-        </p>
-      </div>
+    <div style={{minHeight:'100vh',background:'var(--surface)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'3rem 1.5rem'}}>
+      {/* Logo */}
+      <Link href="/" style={{fontFamily:'"DM Serif Display",serif',fontSize:'1.3rem',color:'var(--navy)',letterSpacing:'0.06em',textDecoration:'none',marginBottom:'2.5rem',display:'block',textAlign:'center'}}>
+        HERADYNE
+      </Link>
 
-      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
-                {error}
-              </div>
-            )}
+      <div style={{width:'100%',maxWidth:'400px'}}>
+        <div className="card" style={{padding:'2.5rem'}}>
+          <h1 style={{fontFamily:'"DM Serif Display",serif',fontSize:'1.5rem',color:'var(--navy)',marginBottom:'0.4rem',fontWeight:400}}>
+            Sign in
+          </h1>
+          <p style={{fontSize:'0.83rem',color:'var(--ink-muted)',marginBottom:'2rem'}}>
+            Don&apos;t have an account?{' '}
+            <Link href="/register" style={{color:'var(--gold-dark)',textDecoration:'underline',textUnderlineOffset:'3px'}}>Create one</Link>
+          </p>
 
-            <div>
-              <label htmlFor="email" className="label">
-                Email address
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="input"
-                placeholder="you@example.com"
-              />
+          {error && (
+            <div className="callout callout-red" style={{marginBottom:'1.25rem'}}>
+              {error}
             </div>
+          )}
 
+          <form onSubmit={handleSubmit} style={{display:'flex',flexDirection:'column',gap:'1.125rem'}}>
             <div>
-              <label htmlFor="password" className="label">
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="input"
-                placeholder="••••••••"
-              />
+              <label className="label">Email</label>
+              <input className="input" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="email"/>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn btn-primary flex justify-center items-center"
-            >
-              {loading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : (
-                'Sign in'
-              )}
+            <div>
+              <label className="label">Password</label>
+              <input className="input" type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="••••••••" required autoComplete="current-password"/>
+            </div>
+            <button type="submit" disabled={loading} className="btn btn-primary btn-lg" style={{width:'100%',marginTop:'0.5rem'}}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin"/> : 'Sign In'}
             </button>
           </form>
+        </div>
 
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Test accounts</span>
-              </div>
-            </div>
-            <div className="mt-4 text-xs text-gray-500 space-y-1">
-              <p><strong>Borrower:</strong> borrower@example.com / password123</p>
-              <p><strong>Lender:</strong> lender1@example.com / password123</p>
-              <p><strong>Insurer:</strong> insurer@example.com / password123</p>
-              <p><strong>Admin:</strong> admin@example.com / password123</p>
-            </div>
+        {/* Demo accounts */}
+        <div className="card" style={{marginTop:'1rem',padding:'1.25rem'}}>
+          <p style={{fontSize:'0.68rem',fontWeight:500,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--ink-muted)',marginBottom:'0.75rem'}}>Demo accounts</p>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0.5rem'}}>
+            {[
+              {label:'Borrower',   email:'borrower@example.com'},
+              {label:'Lender',     email:'lender1@example.com'},
+              {label:'Insurer',    email:'insurer@example.com'},
+              {label:'Admin',      email:'admin@example.com'},
+            ].map(d => (
+              <button key={d.email} type="button"
+                onClick={() => { setEmail(d.email); setPassword('password123'); }}
+                style={{
+                  padding:'0.5rem',border:'1px solid var(--border-mid)',borderRadius:'4px',
+                  fontSize:'0.75rem',color:'var(--ink-muted)',background:'var(--surface)',
+                  cursor:'pointer',textAlign:'left',fontFamily:'"DM Sans",sans-serif',
+                  transition:'border-color 0.15s,color 0.15s',
+                }}
+                onMouseEnter={e=>{(e.currentTarget as HTMLElement).style.borderColor='var(--navy)';(e.currentTarget as HTMLElement).style.color='var(--navy)'}}
+                onMouseLeave={e=>{(e.currentTarget as HTMLElement).style.borderColor='var(--border-mid)';(e.currentTarget as HTMLElement).style.color='var(--ink-muted)'}}>
+                <span style={{display:'block',fontWeight:500}}>{d.label}</span>
+                <span style={{fontSize:'0.68rem',opacity:0.7}}>{d.email}</span>
+              </button>
+            ))}
           </div>
+          <p style={{fontSize:'0.7rem',color:'var(--ink-faint)',marginTop:'0.6rem'}}>All demo passwords: <code style={{fontFamily:'monospace'}}>password123</code></p>
         </div>
       </div>
+
+      <p style={{marginTop:'2rem',fontSize:'0.72rem',color:'var(--ink-faint)'}}>
+        © 2025 Heradyne · <Link href="/" style={{color:'var(--ink-faint)'}}>Back to home</Link>
+      </p>
     </div>
   );
 }
