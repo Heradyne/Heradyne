@@ -184,6 +184,9 @@ function GetStartedContent() {
         body: JSON.stringify({ deal_id: dealData.id, tier, amount: tierInfo.price }),
       }).catch(() => {}); // non-blocking if endpoint not ready
 
+      // Store tier so results page knows what to show
+      localStorage.setItem(`deal_tier_${dealData.id}`, tier);
+
       setStep('done');
     } catch (e) {
       setError('Something went wrong. Please try again.');
