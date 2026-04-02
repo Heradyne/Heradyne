@@ -544,3 +544,270 @@ def update_origination_settings(
         require_insurer_for_origination=get_origination_setting(db, "require_insurer_for_origination", False)
     )
 
+
+
+# ── Term Sheet endpoints ──────────────────────────────────────────────────────
+
+from pydantic import BaseModel as PydanticBase
+from typing import Optional as Opt
+import json as _json
+
+class TermSheetCreate(PydanticBase):
+    match_id: int
+    deal_id: int
+    loan_amount: float
+    interest_rate: float
+    term_months: int
+    sba_loan: bool = True
+    sba_guarantee_pct: float = 75.0
+    origination_fee_pct: float = 2.0
+    prepayment_penalty: bool = True
+    covenants: str = ""
+    conditions: str = ""
+    expiry_days: int = 30
+    notes: str = ""
+
+class TermSheetUpdate(PydanticBase):
+    loan_amount: Opt[float] = None
+    interest_rate: Opt[float] = None
+    term_months: Opt[int] = None
+    sba_loan: Opt[bool] = None
+    sba_guarantee_pct: Opt[float] = None
+    origination_fee_pct: Opt[float] = None
+    prepayment_penalty: Opt[bool] = None
+    covenants: Opt[str] = None
+    conditions: Opt[str] = None
+    expiry_days: Opt[int] = None
+    notes: Opt[str] = None
+    status: Opt[str] = None  # draft, submitted, accepted, rejected
+
+class TermSheetSubmitRequest(PydanticBase):
+    match_id: int
+
+
+@router.get("/term-sheets")
+def list_term_sheets(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get all term sheets created by this lender."""
+    from app.models.deal import DealMatch
+    # Fetch from match extra_data JSON store
+    matches = db.query(DealMatch).filter(
+        DealMatch.lender_id == current_user.company_id or
+        DealMatch.lender_policy_id.isnot(None)
+    ).all()
+
+    sheets = []
+    for match in matches:
+    extra = dict(match.counter_offer or {})
+    if extra.get("term_sheet"):
+        ts = extra["term_sheet"]
+            ts["match_id"] = match.id
+            ts["deal_id"] = match.deal_id
+            ts["match_status"] = match.status
+            sheets.append(ts)
+    return sheets
+
+
+@router.get("/term-sheets/accepted-matches")
+def get_accepted_matches_for_term_sheets(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get accepted matches that need or have term sheets."""
+    from app.models.deal import DealMatch, Deal, DealRiskReport
+    if current_user.role.value not in ["lender","credit_committee","admin"]:
+        raise HTTPException(status_code=403, detail="Lenders only")
+
+    matches = db.query(DealMatch).filter(
+        DealMatch.status == "accepted"
+    ).order_by(DealMatch.updated_at.desc()).all()
+
+    results = []
+    for match in matches:
+        deal = db.query(Deal).filter(Deal.id == match.deal_id).first()
+        if not deal:
+            continue
+        report = db.query(DealRiskReport).filter(
+            DealRiskReport.deal_id == match.deal_id
+        ).order_by(DealRiskReport.version.desc()).first()
+
+        extra = dict(match.counter_offer or {})
+        ts = extra.get("term_sheet")
+
+        # Build AI-suggested terms from UW report
+        suggested = {}
+        if report:
+            loan = deal.loan_amount_requested or 0
+            rate = 10.75
+            term = deal.loan_term_months or 120
+            if report.dscr_base and report.dscr_base < 1.30:
+                rate += 0.50  # higher rate for tighter DSCR
+            if not report.sba_eligible:
+                rate += 0.25
+            suggested = {
+                "loan_amount": loan,
+                "interest_rate": round(rate, 2),
+                "term_months": term,
+                "sba_loan": bool(report.sba_eligible),
+                "sba_guarantee_pct": 75.0,
+                "origination_fee_pct": 2.0,
+                "prepayment_penalty": True,
+                "covenants": f"Maintain DSCR ≥ {max(1.20, round((report.dscr_base or 1.25)*0.9, 2))}x quarterly. Provide annual CPA-prepared financials. No additional debt without lender consent.",
+                "conditions": "Subject to satisfactory appraisal and environmental review. Personal guarantee of all owners ≥ 20%. Evidence of equity injection prior to closing.",
+            }
+            if report.deal_killer_verdict == "renegotiate":
+                suggested["covenants"] += f"\nNote: AI suggests renegotiating price — max supportable: ${(report.max_supportable_price or 0):,.0f}"
+
+        results.append({
+            "match_id": match.id,
+            "deal_id": deal.id,
+            "deal_name": deal.name,
+            "industry": deal.industry,
+            "borrower_name": deal.borrower_name if hasattr(deal, 'borrower_name') else "",
+            "loan_amount_requested": deal.loan_amount_requested,
+            "purchase_price": deal.purchase_price,
+            "annual_revenue": deal.annual_revenue,
+            "ebitda": deal.ebitda,
+            "match_status": match.status,
+            "term_sheet": ts,
+            "term_sheet_status": ts.get("status","none") if ts else "none",
+            "ai_suggested": suggested,
+            "uw": {
+                "health_score": report.health_score if report else None,
+                "dscr_base": report.dscr_base if report else None,
+                "verdict": report.deal_killer_verdict if report else None,
+                "sba_eligible": report.sba_eligible if report else None,
+            },
+        })
+    return results
+
+
+@router.post("/term-sheets/save")
+def save_term_sheet(
+    data: TermSheetCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Save or update a term sheet on an accepted match."""
+    from app.models.deal import DealMatch
+    if current_user.role.value not in ["lender","credit_committee","admin"]:
+        raise HTTPException(status_code=403, detail="Lenders only")
+
+    match = db.query(DealMatch).filter(DealMatch.id == data.match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if match.status != "accepted":
+        raise HTTPException(status_code=400, detail="Match must be accepted before creating term sheet")
+
+    ts = {
+        "status": "draft",
+        "loan_amount": data.loan_amount,
+        "interest_rate": data.interest_rate,
+        "term_months": data.term_months,
+        "sba_loan": data.sba_loan,
+        "sba_guarantee_pct": data.sba_guarantee_pct,
+        "origination_fee_pct": data.origination_fee_pct,
+        "prepayment_penalty": data.prepayment_penalty,
+        "covenants": data.covenants,
+        "conditions": data.conditions,
+        "expiry_days": data.expiry_days,
+        "notes": data.notes,
+        "saved_by": current_user.id,
+        "saved_at": __import__("datetime").datetime.utcnow().isoformat(),
+    }
+
+    extra = dict(match.counter_offer or {})
+    extra["term_sheet"] = ts
+    match.counter_offer = extra
+    db.commit()
+
+    audit_service.log(db=db, action="term_sheet_saved", entity_type="deal_match",
+                      entity_id=match.id, user_id=current_user.id,
+                      details={"deal_id": data.deal_id, "loan_amount": data.loan_amount})
+    return {"status": "saved", "match_id": match.id, "term_sheet": ts}
+
+
+@router.post("/term-sheets/{match_id}/submit-to-origination")
+def submit_term_sheet_to_origination(
+    match_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Mark a term sheet as submitted — moves deal into origination queue."""
+    from app.models.deal import DealMatch, Deal, DealStatus
+    if current_user.role.value not in ["lender","credit_committee","admin"]:
+        raise HTTPException(status_code=403, detail="Lenders only")
+
+    match = db.query(DealMatch).filter(DealMatch.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    extra = dict(match.counter_offer or {})
+    if not extra.get("term_sheet"):
+        raise HTTPException(status_code=400, detail="No term sheet saved. Save terms first.")
+
+    extra["term_sheet"]["status"] = "submitted_to_origination"
+    extra["term_sheet"]["submitted_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    match.counter_offer = extra
+
+    # Update deal status to reflect it's in origination
+    deal = db.query(Deal).filter(Deal.id == match.deal_id).first()
+    if deal and deal.status == DealStatus.APPROVED:
+        # Keep approved but flag in origination
+        pass
+
+    db.commit()
+
+    audit_service.log(db=db, action="term_sheet_submitted_origination", entity_type="deal_match",
+                      entity_id=match.id, user_id=current_user.id,
+                      details={"deal_id": match.deal_id})
+
+    return {"status": "submitted", "match_id": match_id, "message": "Term sheet moved to origination queue"}
+
+
+@router.get("/origination-queue")
+def get_origination_queue(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get deals with submitted term sheets ready for final origination review."""
+    from app.models.deal import DealMatch, Deal, DealRiskReport
+    if current_user.role.value not in ["lender","credit_committee","admin"]:
+        raise HTTPException(status_code=403, detail="Lenders only")
+
+    matches = db.query(DealMatch).filter(
+        DealMatch.status == "accepted"
+    ).all()
+
+    queue = []
+    for match in matches:
+        extra = dict(match.counter_offer or {})
+        ts = extra.get("term_sheet", {})
+        if ts.get("status") != "submitted_to_origination":
+            continue
+
+        deal = db.query(Deal).filter(Deal.id == match.deal_id).first()
+        report = db.query(DealRiskReport).filter(
+            DealRiskReport.deal_id == match.deal_id
+        ).order_by(DealRiskReport.version.desc()).first()
+
+        queue.append({
+            "match_id": match.id,
+            "deal_id": deal.id if deal else match.deal_id,
+            "deal_name": deal.name if deal else f"Deal {match.deal_id}",
+            "industry": deal.industry if deal else "",
+            "loan_amount_requested": deal.loan_amount_requested if deal else 0,
+            "annual_revenue": deal.annual_revenue if deal else 0,
+            "term_sheet": ts,
+            "submitted_at": ts.get("submitted_at"),
+            "uw": {
+                "health_score": report.health_score if report else None,
+                "dscr_base": report.dscr_base if report else None,
+                "verdict": report.deal_killer_verdict if report else None,
+                "sba_eligible": report.sba_eligible if report else None,
+            },
+            "can_originate": True,
+        })
+    return queue
