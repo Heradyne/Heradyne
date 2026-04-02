@@ -192,6 +192,8 @@ function LenderReviewContent() {
             <button onClick={() => setNdaStep('accepted')} className="w-full border-2 border-dashed border-gray-300 text-gray-500 py-3 rounded-xl font-semibold text-sm hover:border-gray-400 hover:text-gray-700 transition-colors mt-2">
               Skip — Demo mode (accept NDA instantly)
             </button>
+          </div>
+        )}
 
         {ndaStep === 'nda' && (
           <div className="bg-white rounded-xl border-2 border-indigo-200 p-6">
