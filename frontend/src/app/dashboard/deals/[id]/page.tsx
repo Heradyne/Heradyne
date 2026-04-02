@@ -370,10 +370,10 @@ export default function DealDetailPage() {
                       Risk Flags ({aiAnalysis.risk_flags.length})
                     </h4>
                     <ul className="space-y-1">
-                      {aiAnalysis.risk_flags.map((flag, i) => (
+                      {aiAnalysis.risk_flags.map((flag: any, i: number) => (
                         <li key={i} className="text-sm text-orange-700 flex items-start">
                           <span className="mr-2">•</span>
-                          <span>{flag}</span>
+                          <span>{typeof flag === 'object' ? `${flag.flag}${flag.value ? ` (${flag.value})` : ''}` : flag}</span>
                         </li>
                       ))}
                     </ul>
@@ -386,10 +386,10 @@ export default function DealDetailPage() {
                       Positive Factors ({aiAnalysis.positive_factors.length})
                     </h4>
                     <ul className="space-y-1">
-                      {aiAnalysis.positive_factors.map((factor, i) => (
+                      {aiAnalysis.positive_factors.map((factor: any, i: number) => (
                         <li key={i} className="text-sm text-green-700 flex items-start">
                           <span className="mr-2">•</span>
-                          <span>{factor}</span>
+                          <span>{typeof factor === 'object' ? `${factor.factor}${factor.value ? ` (${factor.value})` : ''}` : factor}</span>
                         </li>
                       ))}
                     </ul>

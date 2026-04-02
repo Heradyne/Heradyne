@@ -52,7 +52,13 @@ export default function ValuationResultsPage() {
 
   const loadData = async () => {
     try {
-      const token = localStorage.getItem('token');
+      // Small delay on first load to ensure token is set after redirect from funnel
+      let token = localStorage.getItem('token');
+      if (!token) {
+        await new Promise(r => setTimeout(r, 500));
+        token = localStorage.getItem('token');
+      }
+      if (!token) { setLoading(false); return; }
       const h = { Authorization: `Bearer ${token}` };
       const [dRes, uRes] = await Promise.all([
         fetch(`${API}/api/v1/deals/${dealId}`, { headers: h }),

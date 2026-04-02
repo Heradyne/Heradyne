@@ -797,9 +797,10 @@ export default function MatchesPage() {
                             <div className="mb-3">
                               <p className="text-xs font-medium text-gray-700 mb-1">Risk Flags:</p>
                               <div className="space-y-1">
-                                {aiAnalyses[match.deal_id].risk_flags.slice(0, 3).map((flag: string, i: number) => (
+                                {aiAnalyses[match.deal_id].risk_flags.slice(0, 3).map((flag: any, i: number) => (
                                   <p key={i} className="text-xs text-orange-700 flex items-start">
-                                    <AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />{flag}
+                                    <AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                                    {typeof flag === 'object' ? `${flag.flag}${flag.value ? ` (${flag.value})` : ''}` : flag}
                                   </p>
                                 ))}
                               </div>
@@ -810,9 +811,10 @@ export default function MatchesPage() {
                             <div>
                               <p className="text-xs font-medium text-gray-700 mb-1">Positive Factors:</p>
                               <div className="space-y-1">
-                                {aiAnalyses[match.deal_id].positive_factors.slice(0, 3).map((factor: string, i: number) => (
+                                {aiAnalyses[match.deal_id].positive_factors.slice(0, 3).map((factor: any, i: number) => (
                                   <p key={i} className="text-xs text-green-700 flex items-start">
-                                    <CheckCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />{factor}
+                                    <CheckCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
+                                    {typeof factor === 'object' ? `${factor.factor}${factor.value ? ` (${factor.value})` : ''}` : factor}
                                   </p>
                                 ))}
                               </div>
