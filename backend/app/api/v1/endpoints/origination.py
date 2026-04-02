@@ -592,10 +592,9 @@ def list_term_sheets(
 ):
     """Get all term sheets created by this lender."""
     from app.models.deal import DealMatch
-    # Fetch from match extra_data JSON store
     matches = db.query(DealMatch).filter(
-        DealMatch.lender_id == current_user.company_id or
-        DealMatch.lender_policy_id.isnot(None)
+        DealMatch.lender_policy_id.isnot(None),
+        DealMatch.status == "accepted"
     ).all()
 
     sheets = []
@@ -721,6 +720,8 @@ def save_term_sheet(
     extra = dict(match.counter_offer or {})
     extra["term_sheet"] = ts
     match.counter_offer = extra
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(match, "counter_offer")
     db.commit()
 
     audit_service.log(db=db, action="term_sheet_saved", entity_type="deal_match",
@@ -748,9 +749,13 @@ def submit_term_sheet_to_origination(
     if not extra.get("term_sheet"):
         raise HTTPException(status_code=400, detail="No term sheet saved. Save terms first.")
 
-    extra["term_sheet"]["status"] = "submitted_to_origination"
-    extra["term_sheet"]["submitted_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    ts = dict(extra["term_sheet"])
+    ts["status"] = "submitted_to_origination"
+    ts["submitted_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    extra["term_sheet"] = ts
     match.counter_offer = extra
+    from sqlalchemy.orm.attributes import flag_modified
+    flag_modified(match, "counter_offer")
 
     # Update deal status to reflect it's in origination
     deal = db.query(Deal).filter(Deal.id == match.deal_id).first()
