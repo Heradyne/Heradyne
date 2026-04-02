@@ -600,9 +600,9 @@ def list_term_sheets(
 
     sheets = []
     for match in matches:
-    extra = dict(match.counter_offer or {})
-    if extra.get("term_sheet"):
-        ts = extra["term_sheet"]
+        extra = dict(match.counter_offer or {})
+        if extra.get("term_sheet"):
+            ts = extra["term_sheet"]
             ts["match_id"] = match.id
             ts["deal_id"] = match.deal_id
             ts["match_status"] = match.status
