@@ -373,6 +373,16 @@ function GetStartedContent() {
               Pay ${tierInfo.price} — Get My Report
             </button>
 
+            <div className="relative flex items-center gap-3 my-1">
+              <div className="flex-1 h-px bg-gray-200"/>
+              <span className="text-xs text-gray-400">or</span>
+              <div className="flex-1 h-px bg-gray-200"/>
+            </div>
+
+            <button onClick={processPayment} className="w-full border-2 border-dashed border-gray-300 text-gray-500 py-3 rounded-xl font-semibold text-sm hover:border-gray-400 hover:text-gray-700 transition-colors">
+              Skip payment — Demo mode
+            </button>
+
             <p className="text-center text-xs text-gray-400">Your report will be available immediately after payment.</p>
           </div>
         )}
