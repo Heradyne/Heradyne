@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { XCircle, AlertTriangle, TrendingUp, Shield, ArrowRight, Lock, ChevronDown, ChevronUp, Brain, CheckCircle } from 'lucide-react';
+import DiligenceUpload from '@/components/DiligenceUpload';
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
@@ -302,6 +303,9 @@ export default function ValuationResultsPage() {
       {/* Full package sections */}
       {isFull ? (
         <>
+          {/* Document Upload + AI Diligence Analysis — Section 2 core feature */}
+          <DiligenceUpload dealId={dealId} />
+
           {/* Borrower next steps from AI */}
           {analysis?.borrower_next_steps?.length > 0 && (
             <div className="bg-white rounded-xl border p-6">
@@ -417,15 +421,7 @@ export default function ValuationResultsPage() {
             </div>
           </div>
 
-          {/* Shareable link */}
-          <div className="bg-white rounded-xl border p-6">
-            <h2 className="text-lg font-semibold mb-2">Share with Lenders</h2>
-            <p className="text-xs text-gray-400 mb-4">Send this link to lenders — they can view your diligence package and sign up to make an offer.</p>
-            <div className="flex gap-2">
-              <input readOnly value={`${typeof window!=='undefined'?window.location.origin:''}/lender/review/${dealId}`} className="flex-1 text-sm border border-gray-200 rounded-lg px-4 py-2 bg-gray-50 text-gray-600"/>
-              <button onClick={()=>navigator.clipboard.writeText(`${window.location.origin}/lender/review/${dealId}`)} className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium hover:bg-gray-50">Copy</button>
-            </div>
-          </div>
+          {/* Shareable link — handled by DiligenceUpload component above */}
         </>
       ):(
         <>
