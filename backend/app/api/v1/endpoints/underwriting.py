@@ -210,3 +210,46 @@ def get_sba_eligibility(
         "ltv": report.sba_ltv,
         "disclaimer": DISCLAIMER,
     }
+
+
+@router.post("/deals/{deal_id}/analyze")
+def run_analysis_sync(
+    deal_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Run UnderwriteOS engines synchronously and save results immediately.
+    Used by the pre-deal funnel for instant results without waiting for Celery.
+    """
+    deal = _check_deal_access(deal_id, current_user, db)
+
+    try:
+        from app.services.uw_engines import run_uw_engines
+        result = run_uw_engines(deal, {})  # empty heradyne_report_data — uses deal fields directly
+
+        # Save to risk report
+        report = _latest_report_or_create(deal_id, db)
+        for key, value in result.items():
+            if hasattr(report, key):
+                setattr(report, key, value)
+        db.commit()
+        db.refresh(report)
+
+        audit_service.log(db=db, action="uw_analysis_sync", entity_type="deal",
+                          entity_id=deal_id, user_id=current_user.id)
+        return {"status": "complete", "deal_id": deal_id, "health_score": result.get("health_score")}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+def _latest_report_or_create(deal_id: int, db):
+    """Get latest report or create a new one."""
+    report = db.query(DealRiskReport).filter(
+        DealRiskReport.deal_id == deal_id
+    ).order_by(DealRiskReport.version.desc()).first()
+    if not report:
+        report = DealRiskReport(deal_id=deal_id, version=1)
+        db.add(report)
+        db.flush()
+    return report

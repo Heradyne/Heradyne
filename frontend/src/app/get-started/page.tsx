@@ -168,6 +168,15 @@ function GetStartedContent() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Run UnderwriteOS engines synchronously so results are instant
+      await fetch(`${API}/api/v1/underwriting/deals/${dealData.id}/analyze`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      }).catch(() => {});
+
+      // Small wait to let analysis complete
+      await new Promise(r => setTimeout(r, 3000));
+
       // Record pre-deal purchase (simulated)
       await fetch(`${API}/api/v1/predeal/purchase`, {
         method: 'POST',
@@ -407,7 +416,7 @@ function GetStartedContent() {
             <div className="space-y-3">
               <button
                 onClick={() => {
-                  if (dealId) router.push(`/dashboard/deals/${dealId}`);
+                  if (dealId) router.push(`/dashboard/valuation/${dealId}`);
                   else router.push('/dashboard/deals');
                 }}
                 className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 transition-colors"

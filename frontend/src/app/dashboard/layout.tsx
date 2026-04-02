@@ -17,7 +17,7 @@ const navigation = {
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'My Deals', href: '/dashboard/deals', icon: FileText },
     { name: 'Business Dashboard', href: '/dashboard/loan-health', icon: Activity },
-    { name: 'Get a Valuation', href: '/pre-deal', icon: DollarSign },
+    { name: 'Get a Valuation', href: '/dashboard/get-valuation', icon: DollarSign },
     { name: 'Collateral', href: '/dashboard/collateral', icon: Building2 },
     { name: 'Signatures', href: '/dashboard/signatures', icon: FileSignature },
     { name: 'Default Protection', href: '/dashboard/protection', icon: ShieldAlert },
