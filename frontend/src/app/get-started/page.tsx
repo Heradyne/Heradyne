@@ -114,8 +114,8 @@ function GetStartedContent() {
       // Login
       const loginRes = await fetch(`${API}/api/v1/auth/login`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `username=${encodeURIComponent(account.email)}&password=${encodeURIComponent(account.password)}`,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: account.email, password: account.password }),
       });
       if (!loginRes.ok) { setError('Login after registration failed'); return; }
       const loginData = await loginRes.json();
