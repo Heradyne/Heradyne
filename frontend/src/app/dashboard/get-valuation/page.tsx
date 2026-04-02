@@ -109,6 +109,14 @@ export default function GetValuationPage() {
                       <span>DSCR: <strong className={(uw.dscr_pdscr?.dscr_base||0)>=1.25?'text-green-700':'text-red-600'}>{uw.dscr_pdscr?.dscr_base?.toFixed(2)}x</strong></span>
                       <span>SBA: <strong className={uw.sba_eligibility?.eligible?'text-green-700':'text-red-600'}>{uw.sba_eligibility?.eligible?'Eligible':'Not Eligible'}</strong></span>
                       {uw.deal_killer?.max_supportable_price && <span>Max Price: <strong className="text-gray-800">{fmt(uw.deal_killer.max_supportable_price)}</strong></span>}
+                      {tier !== 'diligence' && (
+                        <button
+                          onClick={e => { e.stopPropagation(); router.push(`/get-started?tier=diligence&deal_id=${deal.id}`); }}
+                          className="ml-auto text-xs font-semibold text-indigo-600 hover:text-indigo-800 border border-indigo-200 bg-indigo-50 px-3 py-1 rounded-full"
+                        >
+                          Upgrade to Full Package →
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

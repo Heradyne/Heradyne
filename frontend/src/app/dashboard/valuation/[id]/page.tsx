@@ -106,7 +106,7 @@ export default function ValuationResultsPage() {
   const val = uw?.valuation||{}; const dscr = uw?.dscr_pdscr||{}; const sba = uw?.sba_eligibility||{};
   const pbs = uw?.playbooks||[]; const cf = uw?.cash_flow_forecast||{};
   const isFull = tier==='diligence';
-  const upgrade = () => router.push('/get-started?tier=diligence');
+  const upgrade = () => router.push(`/get-started?tier=diligence&deal_id=${dealId}`);
 
   // Category score config
   const catConfig: Record<string, {label:string;weight:string}> = {
