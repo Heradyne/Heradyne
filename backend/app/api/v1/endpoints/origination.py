@@ -1,18 +1,20 @@
 from typing import List, Optional
-from datetime import date
+from datetime import date, datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from app.core.database import get_db
 from app.core.deps import get_current_active_user, require_lender_decision
 from app.models.user import User, UserRole, LENDER_ROLES, LENDER_DECISION_ROLES
-from app.models.deal import Deal, DealMatch
+from app.models.deal import Deal, DealMatch, DealStatus, DealRiskReport
 from app.models.executed_loan import ExecutedLoan
 from app.models.policy import LenderPolicy, InsurerPolicy
 from app.models.assumption import SystemAssumption
 from app.services.loan_origination import loan_origination_service, get_origination_setting
 from app.schemas.financial import ExecutedLoanResponse
+from app.services.audit import audit_service
 
 router = APIRouter()
 
@@ -548,11 +550,7 @@ def update_origination_settings(
 
 # ── Term Sheet endpoints ──────────────────────────────────────────────────────
 
-from pydantic import BaseModel as PydanticBase
-from typing import Optional as Opt
-import json as _json
-
-class TermSheetCreate(PydanticBase):
+class TermSheetCreate(BaseModel):
     match_id: int
     deal_id: int
     loan_amount: float
@@ -567,7 +565,7 @@ class TermSheetCreate(PydanticBase):
     expiry_days: int = 30
     notes: str = ""
 
-class TermSheetUpdate(PydanticBase):
+class TermSheetUpdate(BaseModel):
     loan_amount: Opt[float] = None
     interest_rate: Opt[float] = None
     term_months: Opt[int] = None
@@ -581,7 +579,7 @@ class TermSheetUpdate(PydanticBase):
     notes: Opt[str] = None
     status: Opt[str] = None  # draft, submitted, accepted, rejected
 
-class TermSheetSubmitRequest(PydanticBase):
+class TermSheetSubmitRequest(BaseModel):
     match_id: int
 
 
@@ -591,7 +589,6 @@ def list_term_sheets(
     db: Session = Depends(get_db),
 ):
     """Get all term sheets created by this lender."""
-    from app.models.deal import DealMatch
     matches = db.query(DealMatch).filter(
         DealMatch.lender_policy_id.isnot(None),
         DealMatch.status == "accepted"
@@ -615,7 +612,6 @@ def get_accepted_matches_for_term_sheets(
     db: Session = Depends(get_db),
 ):
     """Get accepted matches that need or have term sheets."""
-    from app.models.deal import DealMatch, Deal, DealRiskReport
     if current_user.role.value not in ["lender","credit_committee","admin"]:
         raise HTTPException(status_code=403, detail="Lenders only")
 
@@ -690,7 +686,6 @@ def save_term_sheet(
     db: Session = Depends(get_db),
 ):
     """Save or update a term sheet on an accepted match."""
-    from app.models.deal import DealMatch
     if current_user.role.value not in ["lender","credit_committee","admin"]:
         raise HTTPException(status_code=403, detail="Lenders only")
 
@@ -714,13 +709,12 @@ def save_term_sheet(
         "expiry_days": data.expiry_days,
         "notes": data.notes,
         "saved_by": current_user.id,
-        "saved_at": __import__("datetime").datetime.utcnow().isoformat(),
+        "saved_at": datetime.utcnow().isoformat(),
     }
 
     extra = dict(match.counter_offer or {})
     extra["term_sheet"] = ts
     match.counter_offer = extra
-    from sqlalchemy.orm.attributes import flag_modified
     flag_modified(match, "counter_offer")
     db.commit()
 
@@ -737,7 +731,6 @@ def submit_term_sheet_to_origination(
     db: Session = Depends(get_db),
 ):
     """Mark a term sheet as submitted — moves deal into origination queue."""
-    from app.models.deal import DealMatch, Deal, DealStatus
     if current_user.role.value not in ["lender","credit_committee","admin"]:
         raise HTTPException(status_code=403, detail="Lenders only")
 
@@ -751,10 +744,9 @@ def submit_term_sheet_to_origination(
 
     ts = dict(extra["term_sheet"])
     ts["status"] = "submitted_to_origination"
-    ts["submitted_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    ts["submitted_at"] = datetime.utcnow().isoformat()
     extra["term_sheet"] = ts
     match.counter_offer = extra
-    from sqlalchemy.orm.attributes import flag_modified
     flag_modified(match, "counter_offer")
 
     # Update deal status to reflect it's in origination
@@ -778,7 +770,6 @@ def get_origination_queue(
     db: Session = Depends(get_db),
 ):
     """Get deals with submitted term sheets ready for final origination review."""
-    from app.models.deal import DealMatch, Deal, DealRiskReport
     if current_user.role.value not in ["lender","credit_committee","admin"]:
         raise HTTPException(status_code=403, detail="Lenders only")
 
