@@ -566,18 +566,18 @@ class TermSheetCreate(BaseModel):
     notes: str = ""
 
 class TermSheetUpdate(BaseModel):
-    loan_amount: Opt[float] = None
-    interest_rate: Opt[float] = None
-    term_months: Opt[int] = None
-    sba_loan: Opt[bool] = None
-    sba_guarantee_pct: Opt[float] = None
-    origination_fee_pct: Opt[float] = None
-    prepayment_penalty: Opt[bool] = None
-    covenants: Opt[str] = None
-    conditions: Opt[str] = None
-    expiry_days: Opt[int] = None
-    notes: Opt[str] = None
-    status: Opt[str] = None  # draft, submitted, accepted, rejected
+    loan_amount: Optional[float] = None
+    interest_rate: Optional[float] = None
+    term_months: Optional[int] = None
+    sba_loan: Optional[bool] = None
+    sba_guarantee_pct: Optional[float] = None
+    origination_fee_pct: Optional[float] = None
+    prepayment_penalty: Optional[bool] = None
+    covenants: Optional[str] = None
+    conditions: Optional[str] = None
+    expiry_days: Optional[int] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None  # draft, submitted, accepted, rejected
 
 class TermSheetSubmitRequest(BaseModel):
     match_id: int
