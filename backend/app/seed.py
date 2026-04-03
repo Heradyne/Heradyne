@@ -632,8 +632,8 @@ def main():
             from app.models.executed_loan import LoanPayment, InsuranceClaim, ExecutedLoan
             from app.models.deal import MonthlyCashflow, FeeLedger, DealMatch, DealRiskReport, Deal
             from app.models.audit import AuditLog
-            from app.models.verification import VerificationStatus
-            from app.models.collateral import CollateralItem
+            from app.models.verification import DealVerificationStatus as VerificationStatus
+            from app.models.collateral import PreQualifiedAsset as CollateralItem
             from app.models.signature_document import SignatureDocument
             from sqlalchemy import text
             # Use CASCADE truncate to avoid FK ordering issues
