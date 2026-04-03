@@ -7,8 +7,8 @@ Create Date: 2026-04-03
 from alembic import op
 import sqlalchemy as sa
 
-revision = '003'
-down_revision = '002'
+revision = '003_missing_columns'
+down_revision = '002_underwriteos'
 branch_labels = None
 depends_on = None
 
