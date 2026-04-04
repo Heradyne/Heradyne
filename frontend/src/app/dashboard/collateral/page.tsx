@@ -191,10 +191,13 @@ export default function CollateralPage() {
   const showVehicleFields = ['vehicle', 'vehicles_fleet'].includes(form.category);
   const showEquipmentFields = ['equipment', 'inventory', 'furniture_fixtures'].includes(form.category);
 
-  if (user?.role !== 'borrower') {
-    return (<div className="text-center py-12"><Package className="h-12 w-12 mx-auto text-gray-400 mb-4" /><h2 className="text-xl font-semibold text-gray-700">Access Denied</h2></div>);
+  const isLender = user?.role && ['lender','credit_committee','loan_officer','insurer','admin'].includes(user.role);
+
+  if (isLender) {
+    return <LenderCollateralView />;
   }
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary-600" /></div>;
+
+  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="h-8 w-8 animate-spin" style={{color:'var(--navy)'}}/></div>;
 
   return (
     <div>
@@ -383,6 +386,178 @@ export default function CollateralPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Lender / Insurer collateral view ────────────────────────────────────────
+
+const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
+
+function LenderCollateralView() {
+  const [deals, setDeals] = useState<any[]>([]);
+  const [collateral, setCollateral] = useState<Record<number, any>>({});
+  const [uw, setUw] = useState<Record<number, any>>({});
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const h = { Authorization: `Bearer ${token}` };
+      const res = await fetch(`${API}/api/v1/deals/`, { headers: h });
+      if (!res.ok) return;
+      const allDeals = await res.json();
+      const active = allDeals.filter((d: any) =>
+        ['analyzed','matched','funded','approved','pending_lender','pending_insurer'].includes(d.status)
+      );
+      setDeals(active);
+
+      // Load collateral and UW for each deal
+      active.forEach(async (deal: any) => {
+        try {
+          const [colRes, uwRes] = await Promise.all([
+            fetch(`${API}/api/v1/collateral/for-deal/${deal.id}`, { headers: h }),
+            fetch(`${API}/api/v1/underwriting/deals/${deal.id}/full-underwriting`, { headers: h }),
+          ]);
+          if (colRes.ok) setCollateral(p => ({ ...p, [deal.id]: await colRes.json() }));
+          if (uwRes.ok) setUw(p => ({ ...p, [deal.id]: await uwRes.json() }));
+        } catch {}
+      });
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <Loader2 style={{ width: '28px', color: 'var(--gold)', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+        <p style={{ fontSize: '0.67rem', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '0.3rem' }}>
+          Collateral Analysis
+        </p>
+        <h1 style={{ fontFamily: '"DM Serif Display",serif', fontSize: '1.8rem', color: 'var(--navy)', fontWeight: 400, marginBottom: '0.25rem' }}>
+          Collateral & LTV
+        </h1>
+        <p style={{ fontSize: '0.84rem', color: 'var(--ink-muted)', fontWeight: 300 }}>
+          Asset coverage, net orderly liquidation value, and LTV ratios across active deals.
+        </p>
+      </div>
+
+      {deals.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem' }}>
+          <Package style={{ width: '36px', height: '36px', color: 'var(--border-strong)', margin: '0 auto 1rem' }} />
+          <p style={{ color: 'var(--ink-muted)' }}>No active deals with collateral data yet.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {deals.map(deal => {
+            const col = collateral[deal.id];
+            const uwDeal = uw[deal.id];
+            const personal = col?.personal_assets || [];
+            const business = col?.business_assets || [];
+            const allAssets = [...personal, ...business];
+            const totalStated = allAssets.reduce((s: number, a: any) => s + (a.stated_value || 0), 0);
+            const loan = deal.loan_amount_requested || 0;
+            const ltv = loan > 0 && totalStated > 0 ? (loan / totalStated * 100).toFixed(1) : null;
+            const nolv = uwDeal?.dscr_pdscr ? null : null; // from UW report if available
+            const collateralCoverage = uwDeal ? null : null;
+
+            return (
+              <div key={deal.id} className="card" style={{ borderTop: '2px solid var(--gold)' }}>
+                {/* Deal header */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <div>
+                    <h2 style={{ fontFamily: '"DM Serif Display",serif', fontSize: '1.1rem', color: 'var(--navy)', fontWeight: 400, marginBottom: '0.2rem' }}>
+                      {deal.name}
+                    </h2>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--ink-faint)', textTransform: 'capitalize' }}>
+                      {deal.industry} · {fmt(loan)} loan requested
+                    </p>
+                  </div>
+                  <span className="badge badge-navy" style={{ textTransform: 'capitalize' }}>{deal.status}</span>
+                </div>
+
+                {/* Key metrics */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                  {[
+                    { label: 'Loan Amount', value: fmt(loan) },
+                    { label: 'Total Stated Assets', value: totalStated > 0 ? fmt(totalStated) : 'Not provided' },
+                    { label: 'LTV (Stated)', value: ltv ? `${ltv}%` : 'N/A', flag: ltv && parseFloat(ltv) > 80 },
+                    { label: 'Assets on File', value: `${allAssets.length} item${allAssets.length !== 1 ? 's' : ''}` },
+                  ].map(m => (
+                    <div key={m.label} style={{
+                      padding: '0.75rem', borderRadius: '3px', border: '1px solid var(--border)',
+                      background: (m as any).flag ? 'var(--yellow-bg)' : 'var(--surface)',
+                    }}>
+                      <p style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-muted)', marginBottom: '0.25rem' }}>{m.label}</p>
+                      <p style={{
+                        fontFamily: '"DM Mono",monospace', fontSize: '0.95rem', fontWeight: 500,
+                        color: (m as any).flag ? 'var(--yellow)' : 'var(--navy)',
+                      }}>{m.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Asset list */}
+                {allAssets.length > 0 ? (
+                  <div>
+                    <p style={{ fontSize: '0.67rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-muted)', marginBottom: '0.5rem' }}>
+                      Pledged Assets
+                    </p>
+                    <table className="h-table">
+                      <thead>
+                        <tr>
+                          <th>Asset</th>
+                          <th>Type</th>
+                          <th>Stated Value</th>
+                          <th>Collateral Value</th>
+                          <th>Lien</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allAssets.map((asset: any, i: number) => (
+                          <tr key={i}>
+                            <td style={{ fontWeight: 500 }}>{asset.name || asset.asset_type}</td>
+                            <td style={{ textTransform: 'capitalize', color: 'var(--ink-muted)', fontSize: '0.78rem' }}>{asset.category?.replace(/_/g, ' ')}</td>
+                            <td style={{ fontFamily: '"DM Mono",monospace' }}>{fmt(asset.stated_value || 0)}</td>
+                            <td style={{ fontFamily: '"DM Mono",monospace', color: 'var(--green)' }}>
+                              {asset.collateral_value ? fmt(asset.collateral_value) : '—'}
+                            </td>
+                            <td style={{ color: asset.has_lien ? 'var(--yellow)' : 'var(--ink-faint)', fontSize: '0.78rem' }}>
+                              {asset.has_lien ? `${fmt(asset.lien_amount || 0)} lien` : 'None'}
+                            </td>
+                            <td>
+                              <span className={`badge ${asset.verification_status === 'verified' ? 'badge-green' : asset.verification_status === 'rejected' ? 'badge-red' : 'badge-yellow'}`}>
+                                {asset.verification_status || 'pending'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--surface)', borderRadius: '3px', border: '1px dashed var(--border-mid)' }}>
+                    <p style={{ fontSize: '0.82rem', color: 'var(--ink-faint)' }}>
+                      No collateral assets on file for this deal yet. Borrower has not submitted asset documentation.
+                    </p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

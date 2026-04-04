@@ -141,22 +141,6 @@ export default function Home() {
           <p className="hl-signin">Already have an account? <Link href="/login">Sign in →</Link></p>
         </section>
 
-        {/* STATS */}
-        <div className="hl-stats">
-          <div className="hl-stat">
-            <div className="hl-stat-num">~1M</div>
-            <div className="hl-stat-desc">Businesses coming to market annually as Baby Boomers retire</div>
-          </div>
-          <div className="hl-stat">
-            <div className="hl-stat-num">94%</div>
-            <div className="hl-stat-desc">Of deals go unfunded — only 50–70K SBA loans close each year</div>
-          </div>
-          <div className="hl-stat">
-            <div className="hl-stat-num">$10T</div>
-            <div className="hl-stat-desc">In value locked by unmanaged, unpriced acquisition risk</div>
-          </div>
-        </div>
-
         {/* PROBLEM */}
         <section className="hl-problem" id="problem">
           <div className="hl-sec-hdr lt">

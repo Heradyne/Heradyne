@@ -266,16 +266,23 @@ def get_collateral_summary(
     db: Session = Depends(get_db)
 ):
     """Get summary of borrower's pre-qualified collateral."""
-    if current_user.role != UserRole.BORROWER:
+    if current_user.role not in [UserRole.BORROWER, UserRole.LENDER,
+                                  UserRole.CREDIT_COMMITTEE, UserRole.INSURER, UserRole.ADMIN]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only borrowers can view their collateral summary"
+            detail="Access denied"
         )
-    
-    assets = db.query(PreQualifiedAsset).filter(
-        PreQualifiedAsset.borrower_id == current_user.id,
-        PreQualifiedAsset.is_active == True
-    ).all()
+
+    # Lenders/insurers see aggregate summary across all active deals
+    if current_user.role == UserRole.BORROWER:
+        assets = db.query(PreQualifiedAsset).filter(
+            PreQualifiedAsset.borrower_id == current_user.id,
+            PreQualifiedAsset.is_active == True
+        ).all()
+    else:
+        assets = db.query(PreQualifiedAsset).filter(
+            PreQualifiedAsset.is_active == True
+        ).all()
     
     totals = collateral_pricing_engine.get_total_collateral_value(assets)
     
@@ -578,7 +585,12 @@ def get_assets_for_deal(
     if not deal:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
     
-    if current_user.role != UserRole.ADMIN and deal.borrower_id != current_user.id:
+    if current_user.role == UserRole.ADMIN:
+        pass  # admin sees all
+    elif current_user.role in [UserRole.LENDER, UserRole.CREDIT_COMMITTEE,
+                                UserRole.LOAN_OFFICER, UserRole.INSURER]:
+        pass  # lenders/insurers can read deal collateral
+    elif deal.borrower_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
     
     return {
