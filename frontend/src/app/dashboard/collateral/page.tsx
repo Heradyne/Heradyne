@@ -191,7 +191,12 @@ export default function CollateralPage() {
   const showVehicleFields = ['vehicle', 'vehicles_fleet'].includes(form.category);
   const showEquipmentFields = ['equipment', 'inventory', 'furniture_fixtures'].includes(form.category);
 
-  const isLender = user?.role && ['lender','credit_committee','loan_officer','insurer','admin'].includes(user.role);
+  const isLender = user?.role && ['lender','credit_committee','loan_officer','admin'].includes(user.role);
+  const isInsurer = user?.role === 'insurer';
+
+  if (isInsurer) {
+    return <InsurerCollateralView />;
+  }
 
   if (isLender) {
     return <LenderCollateralView />;
@@ -392,7 +397,248 @@ export default function CollateralPage() {
   );
 }
 
-// ── Lender / Insurer collateral view ────────────────────────────────────────
+// ── Insurer recovery / collateral view ──────────────────────────────────────
+
+function InsurerCollateralView() {
+  const [deals, setDeals] = useState<any[]>([]);
+  const [collateral, setCollateral] = useState<Record<number, any>>({});
+  const [uw, setUw] = useState<Record<number, any>>({});
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const h = { Authorization: `Bearer ${token}` };
+      const res = await fetch(`${API}/api/v1/deals/`, { headers: h });
+      if (!res.ok) return;
+      const allDeals = await res.json();
+      const active = allDeals.filter((d: any) =>
+        ['analyzed','matched','funded','approved','pending_lender','pending_insurer'].includes(d.status)
+      );
+      setDeals(active);
+      active.forEach(async (deal: any) => {
+        try {
+          const [colRes, uwRes] = await Promise.all([
+            fetch(`${API}/api/v1/collateral/for-deal/${deal.id}`, { headers: h }),
+            fetch(`${API}/api/v1/underwriting/deals/${deal.id}/full-underwriting`, { headers: h }),
+          ]);
+          if (colRes.ok) setCollateral(p => ({ ...p, [deal.id]: await colRes.json() }));
+          if (uwRes.ok) setUw(p => ({ ...p, [deal.id]: await uwRes.json() }));
+        } catch {}
+      });
+    } catch (e) { console.error(e); }
+    finally { setLoading(false); }
+  };
+
+  const toggle = (id: number) => setExpanded(p => ({ ...p, [id]: !p[id] }));
+
+  if (loading) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh' }}>
+      <Loader2 style={{ width: '28px', color: 'var(--gold)', animation: 'spin 0.8s linear infinite' }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+    </div>
+  );
+
+  return (
+    <div style={{ maxWidth: '960px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border)' }}>
+        <p style={{ fontSize: '0.67rem', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: '0.3rem' }}>
+          Recovery Analysis
+        </p>
+        <h1 style={{ fontFamily: '"DM Serif Display",serif', fontSize: '1.8rem', color: 'var(--navy)', fontWeight: 400, marginBottom: '0.25rem' }}>
+          Collateral & Recovery
+        </h1>
+        <p style={{ fontSize: '0.84rem', color: 'var(--ink-muted)', fontWeight: 300 }}>
+          Asset recovery waterfall per deal. Business assets are primary recovery. Personal assets are triggered only on premium default.
+        </p>
+      </div>
+
+      {/* Recovery legend */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '2rem' }}>
+        <div style={{ padding: '1rem 1.25rem', borderRadius: '4px', background: 'var(--navy-faint)', border: '1px solid var(--navy-light)', borderLeft: '3px solid var(--navy)' }}>
+          <p style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--navy)', marginBottom: '0.3rem' }}>
+            Primary Recovery — Business Assets
+          </p>
+          <p style={{ fontSize: '0.81rem', color: 'var(--ink-muted)', lineHeight: 1.5 }}>
+            Equipment, inventory, receivables, and commercial real estate pledged to the loan. Seized first in any default event, regardless of premium payment status.
+          </p>
+        </div>
+        <div style={{ padding: '1rem 1.25rem', borderRadius: '4px', background: 'var(--yellow-bg)', border: '1px solid var(--yellow-border)', borderLeft: '3px solid var(--yellow-mid)' }}>
+          <p style={{ fontSize: '0.72rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: '0.3rem' }}>
+            Secondary Recovery — Personal Assets
+          </p>
+          <p style={{ fontSize: '0.81rem', color: 'var(--ink-muted)', lineHeight: 1.5 }}>
+            Personal real estate, vehicles, and financial assets. Protected while premiums are current. Triggered <strong>only</strong> on premium default — borrower forfeits personal guarantee protection.
+          </p>
+        </div>
+      </div>
+
+      {deals.length === 0 ? (
+        <div className="card" style={{ textAlign: 'center', padding: '4rem' }}>
+          <Package style={{ width: '36px', height: '36px', color: 'var(--border-strong)', margin: '0 auto 1rem' }} />
+          <p style={{ color: 'var(--ink-muted)' }}>No active deals to review.</p>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          {deals.map(deal => {
+            const col = collateral[deal.id];
+            const uwDeal = uw[deal.id];
+            const business = col?.business_assets || [];
+            const personal = col?.personal_assets || [];
+            const loan = deal.loan_amount_requested || 0;
+
+            const bizStated = business.reduce((s: number, a: any) => s + (a.stated_value || 0), 0);
+            const bizCollateral = business.reduce((s: number, a: any) => s + (a.collateral_value || a.stated_value * 0.6 || 0), 0);
+            const persStated = personal.reduce((s: number, a: any) => s + (a.stated_value || 0), 0);
+            const persCollateral = personal.reduce((s: number, a: any) => s + (a.collateral_value || a.stated_value * 0.7 || 0), 0);
+            const totalRecovery = bizCollateral + persCollateral;
+            const recoveryPct = loan > 0 ? Math.min((totalRecovery / loan) * 100, 100) : 0;
+            const bizOnlyPct = loan > 0 ? Math.min((bizCollateral / loan) * 100, 100) : 0;
+            const isExpanded = expanded[deal.id];
+
+            const verdict = uwDeal?.deal_killer?.verdict;
+            const health = uwDeal?.health_score?.score || 0;
+
+            return (
+              <div key={deal.id} className="card" style={{ borderTop: `2px solid ${health >= 70 ? 'var(--green-mid)' : health >= 50 ? 'var(--yellow-mid)' : 'var(--red-mid)'}` }}>
+                {/* Deal summary row */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <div>
+                    <h2 style={{ fontFamily: '"DM Serif Display",serif', fontSize: '1.1rem', color: 'var(--navy)', fontWeight: 400, marginBottom: '0.2rem' }}>{deal.name}</h2>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--ink-faint)', textTransform: 'capitalize' }}>
+                      {deal.industry} · {fmt(loan)} loan · Health {health.toFixed(0)}/100
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <span className={`badge ${verdict === 'buy' ? 'badge-green' : verdict === 'renegotiate' ? 'badge-yellow' : 'badge-red'}`}>
+                      {verdict?.toUpperCase() || 'PENDING'}
+                    </span>
+                    <button onClick={() => toggle(deal.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-muted)', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.78rem' }}>
+                      {isExpanded ? <ChevronUp style={{ width: '14px' }} /> : <ChevronDown style={{ width: '14px' }} />}
+                      {isExpanded ? 'Collapse' : 'Details'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Recovery waterfall visual */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                    <p style={{ fontSize: '0.67rem', fontWeight: 500, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-muted)' }}>
+                      Recovery Coverage
+                    </p>
+                    <p style={{ fontSize: '0.78rem', fontFamily: '"DM Mono",monospace', color: 'var(--navy)' }}>
+                      {fmt(totalRecovery)} / {fmt(loan)} ({recoveryPct.toFixed(0)}%)
+                    </p>
+                  </div>
+                  {/* Stacked bar: business + personal */}
+                  <div style={{ height: '10px', background: 'var(--surface-alt)', borderRadius: '99px', overflow: 'hidden', display: 'flex' }}>
+                    <div style={{ width: `${bizOnlyPct}%`, background: 'var(--navy)', borderRadius: '99px 0 0 99px', transition: 'width 0.4s' }} />
+                    <div style={{ width: `${Math.min(recoveryPct - bizOnlyPct, 100 - bizOnlyPct)}%`, background: 'var(--yellow-mid)', transition: 'width 0.4s' }} />
+                  </div>
+                  <div style={{ display: 'flex', gap: '1.25rem', marginTop: '0.4rem' }}>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--navy)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--navy)', display: 'inline-block' }} />
+                      Business assets {fmt(bizCollateral)} ({bizOnlyPct.toFixed(0)}%)
+                    </span>
+                    <span style={{ fontSize: '0.68rem', color: 'var(--yellow)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--yellow-mid)', display: 'inline-block' }} />
+                      Personal assets {fmt(persCollateral)} (on premium default)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Key recovery metrics */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.625rem', marginBottom: isExpanded ? '1.25rem' : 0 }}>
+                  {[
+                    { label: 'Loan Exposure', value: fmt(loan), color: 'var(--navy)' },
+                    { label: 'Biz Asset Recovery', value: bizCollateral > 0 ? fmt(bizCollateral) : 'Not filed', color: bizCollateral >= loan * 0.5 ? 'var(--green)' : 'var(--red)' },
+                    { label: 'Personal Recovery', value: persCollateral > 0 ? fmt(persCollateral) : 'Not filed', color: 'var(--yellow)' },
+                    { label: 'Net LGD Est.', value: totalRecovery >= loan ? '~0%' : `~${((1 - totalRecovery / loan) * 100).toFixed(0)}%`, color: totalRecovery >= loan ? 'var(--green)' : 'var(--red)' },
+                  ].map(m => (
+                    <div key={m.label} style={{ padding: '0.625rem', borderRadius: '3px', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                      <p style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-muted)', marginBottom: '0.2rem' }}>{m.label}</p>
+                      <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.9rem', fontWeight: 500, color: m.color }}>{m.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Expanded asset detail */}
+                {isExpanded && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    {/* Business assets */}
+                    <div>
+                      <p style={{ fontSize: '0.67rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--navy)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--navy)', display: 'inline-block' }} />
+                        Business Assets — Primary Recovery
+                      </p>
+                      {business.length === 0 ? (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--ink-faint)', padding: '0.75rem', background: 'var(--surface)', borderRadius: '3px' }}>
+                          No business assets on file
+                        </p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {business.map((a: any, i: number) => (
+                            <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--navy-faint)', border: '1px solid var(--navy-light)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--navy)' }}>{a.name || a.category?.replace(/_/g,' ')}</p>
+                                <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.82rem', color: 'var(--navy)' }}>{fmt(a.collateral_value || a.stated_value || 0)}</p>
+                              </div>
+                              <p style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', marginTop: '0.15rem' }}>
+                                Stated: {fmt(a.stated_value || 0)} · {a.has_lien ? `Lien: ${fmt(a.lien_amount || 0)}` : 'No lien'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Personal assets */}
+                    <div>
+                      <p style={{ fontSize: '0.67rem', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--yellow)', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '2px', background: 'var(--yellow-mid)', display: 'inline-block' }} />
+                        Personal Assets — Premium Default Only
+                      </p>
+                      <div style={{ padding: '0.5rem 0.75rem', borderRadius: '3px', background: 'var(--yellow-bg)', border: '1px solid var(--yellow-border)', marginBottom: '0.5rem' }}>
+                        <p style={{ fontSize: '0.72rem', color: 'var(--yellow)' }}>
+                          Protected while premiums are current. Available for recovery only if borrower defaults on insurance premiums.
+                        </p>
+                      </div>
+                      {personal.length === 0 ? (
+                        <p style={{ fontSize: '0.78rem', color: 'var(--ink-faint)', padding: '0.75rem', background: 'var(--surface)', borderRadius: '3px' }}>
+                          No personal assets on file
+                        </p>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                          {personal.map((a: any, i: number) => (
+                            <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--yellow-bg)', border: '1px solid var(--yellow-border)' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--yellow)' }}>{a.name || a.category?.replace(/_/g,' ')}</p>
+                                <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.82rem', color: 'var(--yellow)' }}>{fmt(a.collateral_value || a.stated_value || 0)}</p>
+                              </div>
+                              <p style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', marginTop: '0.15rem' }}>
+                                Stated: {fmt(a.stated_value || 0)} · {a.has_lien ? `Lien: ${fmt(a.lien_amount || 0)}` : 'No lien'}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Lender / admin collateral view ───────────────────────────────────────────
 
 const API = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 const fmt = (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(n);
