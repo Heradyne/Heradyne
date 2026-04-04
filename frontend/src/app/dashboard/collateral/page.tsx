@@ -425,8 +425,8 @@ function InsurerCollateralView() {
             fetch(`${API}/api/v1/collateral/for-deal/${deal.id}`, { headers: h }),
             fetch(`${API}/api/v1/underwriting/deals/${deal.id}/full-underwriting`, { headers: h }),
           ]);
-          if (colRes.ok) setCollateral(p => ({ ...p, [deal.id]: await colRes.json() }));
-          if (uwRes.ok) setUw(p => ({ ...p, [deal.id]: await uwRes.json() }));
+          if (colRes.ok) { const data = await colRes.json(); setCollateral(p => ({ ...p, [deal.id]: data })); }
+          if (uwRes.ok)  { const data = await uwRes.json();  setUw(p => ({ ...p, [deal.id]: data })); }
         } catch {}
       });
     } catch (e) { console.error(e); }
@@ -670,8 +670,8 @@ function LenderCollateralView() {
             fetch(`${API}/api/v1/collateral/for-deal/${deal.id}`, { headers: h }),
             fetch(`${API}/api/v1/underwriting/deals/${deal.id}/full-underwriting`, { headers: h }),
           ]);
-          if (colRes.ok) setCollateral(p => ({ ...p, [deal.id]: await colRes.json() }));
-          if (uwRes.ok) setUw(p => ({ ...p, [deal.id]: await uwRes.json() }));
+          if (colRes.ok) { const data = await colRes.json(); setCollateral(p => ({ ...p, [deal.id]: data })); }
+          if (uwRes.ok)  { const data = await uwRes.json();  setUw(p => ({ ...p, [deal.id]: data })); }
         } catch {}
       });
     } catch (e) { console.error(e); }
