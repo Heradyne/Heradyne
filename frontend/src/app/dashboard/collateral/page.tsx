@@ -713,8 +713,8 @@ function LenderCollateralView() {
             const personal = col?.personal_assets || [];
             const business = col?.business_assets || [];
             const allAssets = [...business, ...personal];
+            const loan = deal.loan_amount_requested || 0;
 
-            // Assets use {type, value, description} from the deal JSON fields
             // Pull NOLV from UW report first — used in LTV calculation
             const bizNOLV   = uwDeal?.business_nolv   || null;
             const persNOLV  = uwDeal?.personal_nolv   || null;
