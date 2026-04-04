@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   Shield, Home, FileText, Users, Settings, LogOut,
-  Building2, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
+  Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
   ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
@@ -56,13 +56,15 @@ const NAV_DEFINITIONS = {
   insurer: [
     { id: 'home',               name: 'Dashboard',          href: '/dashboard',                    icon: Home,        always: true },
     { id: 'matches',            name: 'Deal Pipeline',       href: '/dashboard/matches',             icon: FileText,    always: true },
+    { id: 'policies',           name: 'My Policies',         href: '/dashboard/policies',            icon: ShieldCheck, always: true },
     { id: 'actuarial-pricing',  name: 'Actuarial Pricing',   href: '/dashboard/actuarial-pricing',   icon: Calculator,  always: false },
     { id: 'portfolio-exposure', name: 'Portfolio Exposure',  href: '/dashboard/portfolio-exposure',  icon: PieChart,    always: false },
+    { id: 'collateral',         name: 'Collateral & Recovery',href: '/dashboard/collateral',         icon: Building2,   always: false },
     { id: 'monitoring',         name: 'Claims & Monitoring', href: '/dashboard/monitoring',          icon: Activity,    always: false },
     { id: 'ai-agent',           name: 'AI Actuary Advisor',  href: '/dashboard/ai-agent',            icon: Brain,       always: false },
     { id: 'financials',         name: 'Financials',          href: '/dashboard/financials',          icon: DollarSign,  always: false },
-    { id: 'secondary-market',   name: 'Reinsurance',         href: '/dashboard/secondary-market',    icon: TrendingUp,  always: false },
-    { id: 'signatures',         name: 'Signatures',          href: '/dashboard/signatures',          icon: FileSignature,always: false },
+    { id: 'secondary-market',   name: 'Reinsurance',         href: '/dashboard/secondary-market',   icon: TrendingUp,  always: false },
+    { id: 'signatures',         name: 'Signatures',          href: '/dashboard/signatures',         icon: FileSignature,always: false },
     { id: 'appetite',           name: 'My Preferences',      href: '/dashboard/appetite',            icon: Settings,    always: true },
   ],
   admin: [
