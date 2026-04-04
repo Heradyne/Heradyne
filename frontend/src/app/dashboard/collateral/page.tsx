@@ -491,10 +491,10 @@ function InsurerCollateralView() {
             const personal = col?.personal_assets || [];
             const loan = deal.loan_amount_requested || 0;
 
-            const bizStated = business.reduce((s: number, a: any) => s + (a.stated_value || 0), 0);
-            const bizCollateral = business.reduce((s: number, a: any) => s + (a.collateral_value || a.stated_value * 0.6 || 0), 0);
-            const persStated = personal.reduce((s: number, a: any) => s + (a.stated_value || 0), 0);
-            const persCollateral = personal.reduce((s: number, a: any) => s + (a.collateral_value || a.stated_value * 0.7 || 0), 0);
+            const bizStated = business.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+            const bizCollateral = uwDeal?.business_nolv || business.reduce((s: number, a: any) => s + (a.collateral_value || (a.value || a.stated_value || 0) * 0.6), 0);
+            const persStated = personal.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+            const persCollateral = uwDeal?.personal_nolv || personal.reduce((s: number, a: any) => s + (a.collateral_value || (a.value || a.stated_value || 0) * 0.7), 0);
             const totalRecovery = bizCollateral + persCollateral;
             const recoveryPct = loan > 0 ? Math.min((totalRecovery / loan) * 100, 100) : 0;
             const bizOnlyPct = loan > 0 ? Math.min((bizCollateral / loan) * 100, 100) : 0;
@@ -584,11 +584,11 @@ function InsurerCollateralView() {
                           {business.map((a: any, i: number) => (
                             <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--navy-faint)', border: '1px solid var(--navy-light)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--navy)' }}>{a.name || a.category?.replace(/_/g,' ')}</p>
-                                <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.82rem', color: 'var(--navy)' }}>{fmt(a.collateral_value || a.stated_value || 0)}</p>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--navy)', textTransform: 'capitalize' }}>{a.description || a.name || a.type?.replace(/_/g,' ')}</p>
+                                <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.82rem', color: 'var(--navy)' }}>{fmt(a.collateral_value || (a.value || a.stated_value || 0) * 0.6)}</p>
                               </div>
                               <p style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', marginTop: '0.15rem' }}>
-                                Stated: {fmt(a.stated_value || 0)} · {a.has_lien ? `Lien: ${fmt(a.lien_amount || 0)}` : 'No lien'}
+                                Stated: {fmt(a.value || a.stated_value || 0)} · {a.has_lien ? `Lien: ${fmt(a.lien_amount || 0)}` : 'No lien'}
                               </p>
                             </div>
                           ))}
@@ -616,11 +616,11 @@ function InsurerCollateralView() {
                           {personal.map((a: any, i: number) => (
                             <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--yellow-bg)', border: '1px solid var(--yellow-border)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--yellow)' }}>{a.name || a.category?.replace(/_/g,' ')}</p>
-                                <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.82rem', color: 'var(--yellow)' }}>{fmt(a.collateral_value || a.stated_value || 0)}</p>
+                                <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--yellow)', textTransform: 'capitalize' }}>{a.description || a.name || a.type?.replace(/_/g,' ')}</p>
+                                <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.82rem', color: 'var(--yellow)' }}>{fmt(a.collateral_value || (a.value || a.stated_value || 0) * 0.7)}</p>
                               </div>
                               <p style={{ fontSize: '0.7rem', color: 'var(--ink-muted)', marginTop: '0.15rem' }}>
-                                Stated: {fmt(a.stated_value || 0)} · {a.has_lien ? `Lien: ${fmt(a.lien_amount || 0)}` : 'No lien'}
+                                Stated: {fmt(a.value || a.stated_value || 0)} · {a.has_lien ? `Lien: ${fmt(a.lien_amount || 0)}` : 'No lien'}
                               </p>
                             </div>
                           ))}
@@ -712,12 +712,19 @@ function LenderCollateralView() {
             const uwDeal = uw[deal.id];
             const personal = col?.personal_assets || [];
             const business = col?.business_assets || [];
-            const allAssets = [...personal, ...business];
-            const totalStated = allAssets.reduce((s: number, a: any) => s + (a.stated_value || 0), 0);
+            const allAssets = [...business, ...personal];
+
+            // Assets use {type, value, description} from the deal JSON fields
+            // "value" is stated_value; collateral value comes from UW report
+            const totalStated = allAssets.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
             const loan = deal.loan_amount_requested || 0;
             const ltv = loan > 0 && totalStated > 0 ? (loan / totalStated * 100).toFixed(1) : null;
-            const nolv = uwDeal?.dscr_pdscr ? null : null; // from UW report if available
-            const collateralCoverage = uwDeal ? null : null;
+
+            // Pull real collateral metrics from UW report
+            const bizNOLV   = uwDeal?.business_nolv   || uwDeal?.dscr_pdscr?.business_nolv   || null;
+            const persNOLV  = uwDeal?.personal_nolv   || uwDeal?.dscr_pdscr?.personal_nolv   || null;
+            const totalNOLV = uwDeal?.total_nolv      || uwDeal?.dscr_pdscr?.total_nolv      || null;
+            const coverage  = uwDeal?.collateral_coverage || null;
 
             return (
               <div key={deal.id} className="card" style={{ borderTop: '2px solid var(--gold)' }}>
@@ -734,26 +741,42 @@ function LenderCollateralView() {
                   <span className="badge badge-navy" style={{ textTransform: 'capitalize' }}>{deal.status}</span>
                 </div>
 
-                {/* Key metrics */}
+                {/* Key metrics — now showing real UW data */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {[
-                    { label: 'Loan Amount', value: fmt(loan) },
+                    { label: 'Loan Amount',       value: fmt(loan) },
                     { label: 'Total Stated Assets', value: totalStated > 0 ? fmt(totalStated) : 'Not provided' },
-                    { label: 'LTV (Stated)', value: ltv ? `${ltv}%` : 'N/A', flag: ltv && parseFloat(ltv) > 80 },
-                    { label: 'Assets on File', value: `${allAssets.length} item${allAssets.length !== 1 ? 's' : ''}` },
+                    { label: 'LTV (Stated)',        value: ltv ? `${ltv}%` : 'N/A', flag: ltv && parseFloat(ltv) > 80 },
+                    { label: 'Total NOLV',          value: totalNOLV ? fmt(totalNOLV) : allAssets.length > 0 ? 'Pending UW' : 'No assets', ok: totalNOLV && totalNOLV >= loan * 0.5 },
                   ].map(m => (
                     <div key={m.label} style={{
                       padding: '0.75rem', borderRadius: '3px', border: '1px solid var(--border)',
-                      background: (m as any).flag ? 'var(--yellow-bg)' : 'var(--surface)',
+                      background: (m as any).flag ? 'var(--yellow-bg)' : (m as any).ok === false ? 'var(--red-bg)' : 'var(--surface)',
                     }}>
                       <p style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-muted)', marginBottom: '0.25rem' }}>{m.label}</p>
                       <p style={{
                         fontFamily: '"DM Mono",monospace', fontSize: '0.95rem', fontWeight: 500,
-                        color: (m as any).flag ? 'var(--yellow)' : 'var(--navy)',
+                        color: (m as any).flag ? 'var(--yellow)' : (m as any).ok === false ? 'var(--red)' : 'var(--navy)',
                       }}>{m.value}</p>
                     </div>
                   ))}
                 </div>
+
+                {/* UW NOLV breakdown if available */}
+                {(bizNOLV || persNOLV) && (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.625rem', marginBottom: '1.25rem' }}>
+                    {[
+                      { label: 'Business NOLV',  value: bizNOLV  ? fmt(bizNOLV)  : '—' },
+                      { label: 'Personal NOLV',  value: persNOLV ? fmt(persNOLV) : '—' },
+                      { label: 'Coverage Ratio', value: coverage ? `${(coverage * 100).toFixed(0)}%` : '—', flag: coverage !== null && coverage < 0.5 },
+                    ].map(m => (
+                      <div key={m.label} style={{ padding: '0.625rem 0.875rem', borderRadius: '3px', background: 'var(--navy-faint)', border: '1px solid var(--navy-light)' }}>
+                        <p style={{ fontSize: '0.6rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-muted)', marginBottom: '0.2rem' }}>{m.label}</p>
+                        <p style={{ fontFamily: '"DM Mono",monospace', fontSize: '0.88rem', fontWeight: 500, color: (m as any).flag ? 'var(--red)' : 'var(--navy)' }}>{m.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Asset list */}
                 {allAssets.length > 0 ? (
@@ -764,40 +787,39 @@ function LenderCollateralView() {
                     <table className="h-table">
                       <thead>
                         <tr>
-                          <th>Asset</th>
+                          <th>Description</th>
                           <th>Type</th>
                           <th>Stated Value</th>
-                          <th>Collateral Value</th>
-                          <th>Lien</th>
-                          <th>Status</th>
+                          <th>Category</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {allAssets.map((asset: any, i: number) => (
-                          <tr key={i}>
-                            <td style={{ fontWeight: 500 }}>{asset.name || asset.asset_type}</td>
-                            <td style={{ textTransform: 'capitalize', color: 'var(--ink-muted)', fontSize: '0.78rem' }}>{asset.category?.replace(/_/g, ' ')}</td>
-                            <td style={{ fontFamily: '"DM Mono",monospace' }}>{fmt(asset.stated_value || 0)}</td>
-                            <td style={{ fontFamily: '"DM Mono",monospace', color: 'var(--green)' }}>
-                              {asset.collateral_value ? fmt(asset.collateral_value) : '—'}
-                            </td>
-                            <td style={{ color: asset.has_lien ? 'var(--yellow)' : 'var(--ink-faint)', fontSize: '0.78rem' }}>
-                              {asset.has_lien ? `${fmt(asset.lien_amount || 0)} lien` : 'None'}
-                            </td>
-                            <td>
-                              <span className={`badge ${asset.verification_status === 'verified' ? 'badge-green' : asset.verification_status === 'rejected' ? 'badge-red' : 'badge-yellow'}`}>
-                                {asset.verification_status || 'pending'}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
+                        {allAssets.map((asset: any, i: number) => {
+                          // Handle both {type,value,description} and full PreQualifiedAsset shapes
+                          const name   = asset.description || asset.name || asset.type?.replace(/_/g,' ') || '—';
+                          const type   = asset.type || asset.asset_type || asset.category || '—';
+                          const stated = asset.value || asset.stated_value || 0;
+                          const isBiz  = business.includes(asset);
+                          return (
+                            <tr key={i}>
+                              <td style={{ fontWeight: 500, textTransform: 'capitalize' }}>{name}</td>
+                              <td style={{ textTransform: 'capitalize', color: 'var(--ink-muted)', fontSize: '0.78rem' }}>{type.replace(/_/g,' ')}</td>
+                              <td style={{ fontFamily: '"DM Mono",monospace' }}>{fmt(stated)}</td>
+                              <td>
+                                <span className={`badge ${isBiz ? 'badge-navy' : 'badge-yellow'}`}>
+                                  {isBiz ? 'Business' : 'Personal'}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 ) : (
                   <div style={{ padding: '1.5rem', textAlign: 'center', background: 'var(--surface)', borderRadius: '3px', border: '1px dashed var(--border-mid)' }}>
                     <p style={{ fontSize: '0.82rem', color: 'var(--ink-faint)' }}>
-                      No collateral assets on file for this deal yet. Borrower has not submitted asset documentation.
+                      No collateral assets on file for this deal yet.
                     </p>
                   </div>
                 )}
