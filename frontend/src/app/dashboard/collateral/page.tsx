@@ -715,16 +715,25 @@ function LenderCollateralView() {
             const allAssets = [...business, ...personal];
 
             // Assets use {type, value, description} from the deal JSON fields
-            // "value" is stated_value; collateral value comes from UW report
-            const totalStated = allAssets.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
-            const loan = deal.loan_amount_requested || 0;
-            const ltv = loan > 0 && totalStated > 0 ? (loan / totalStated * 100).toFixed(1) : null;
-
-            // Pull real collateral metrics from UW report
-            const bizNOLV   = uwDeal?.business_nolv   || uwDeal?.dscr_pdscr?.business_nolv   || null;
-            const persNOLV  = uwDeal?.personal_nolv   || uwDeal?.dscr_pdscr?.personal_nolv   || null;
-            const totalNOLV = uwDeal?.total_nolv      || uwDeal?.dscr_pdscr?.total_nolv      || null;
+            // Pull NOLV from UW report first — used in LTV calculation
+            const bizNOLV   = uwDeal?.business_nolv   || null;
+            const persNOLV  = uwDeal?.personal_nolv   || null;
+            const totalNOLV = uwDeal?.total_nolv      || null;
             const coverage  = uwDeal?.collateral_coverage || null;
+
+            // Exclude cash/liquid assets from LTV denominator — they aren't pledged collateral
+            const NON_COLLATERAL_TYPES = ['cash', 'checking', 'savings', 'liquid'];
+            const pledgedAssets = allAssets.filter((a: any) => {
+              const t = (a.type || a.category || '').toLowerCase();
+              return !NON_COLLATERAL_TYPES.some(nc => t.includes(nc));
+            });
+            const totalStated    = pledgedAssets.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+            const totalStatedAll = allAssets.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+
+            // Prefer NOLV from UW report for LTV denominator; fall back to stated pledged assets
+            const ltvDenominator = totalNOLV || totalStated;
+            const ltv = loan > 0 && ltvDenominator > 0 ? (loan / ltvDenominator * 100).toFixed(1) : null;
+            const ltvLabel = totalNOLV ? 'LTV (NOLV)' : 'LTV (Stated)';
 
             return (
               <div key={deal.id} className="card" style={{ borderTop: '2px solid var(--gold)' }}>
@@ -744,10 +753,14 @@ function LenderCollateralView() {
                 {/* Key metrics — now showing real UW data */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem', marginBottom: '1.25rem' }}>
                   {[
-                    { label: 'Loan Amount',       value: fmt(loan) },
-                    { label: 'Total Stated Assets', value: totalStated > 0 ? fmt(totalStated) : 'Not provided' },
-                    { label: 'LTV (Stated)',        value: ltv ? `${ltv}%` : 'N/A', flag: ltv && parseFloat(ltv) > 80 },
-                    { label: 'Total NOLV',          value: totalNOLV ? fmt(totalNOLV) : allAssets.length > 0 ? 'Pending UW' : 'No assets', ok: totalNOLV && totalNOLV >= loan * 0.5 },
+                    { label: 'Loan Amount',        value: fmt(loan) },
+                    { label: 'Pledged Assets',     value: totalStated > 0 ? fmt(totalStated) : 'Not provided',
+                      sub: totalStatedAll !== totalStated ? `${fmt(totalStatedAll)} total incl. cash` : undefined },
+                    { label: ltvLabel,             value: ltv ? `${ltv}%` : 'N/A',
+                      flag: ltv && parseFloat(ltv) > 80,
+                      ok:   ltv && parseFloat(ltv) <= 80 },
+                    { label: 'Total NOLV',         value: totalNOLV ? fmt(totalNOLV) : allAssets.length > 0 ? 'Pending UW' : 'No assets',
+                      ok: totalNOLV ? totalNOLV >= loan * 0.5 : undefined },
                   ].map(m => (
                     <div key={m.label} style={{
                       padding: '0.75rem', borderRadius: '3px', border: '1px solid var(--border)',
@@ -756,8 +769,9 @@ function LenderCollateralView() {
                       <p style={{ fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--ink-muted)', marginBottom: '0.25rem' }}>{m.label}</p>
                       <p style={{
                         fontFamily: '"DM Mono",monospace', fontSize: '0.95rem', fontWeight: 500,
-                        color: (m as any).flag ? 'var(--yellow)' : (m as any).ok === false ? 'var(--red)' : 'var(--navy)',
+                        color: (m as any).flag ? 'var(--yellow)' : (m as any).ok === false ? 'var(--red)' : (m as any).ok === true ? 'var(--green)' : 'var(--navy)',
                       }}>{m.value}</p>
+                      {(m as any).sub && <p style={{ fontSize: '0.65rem', color: 'var(--ink-faint)', marginTop: '0.2rem' }}>{(m as any).sub}</p>}
                     </div>
                   ))}
                 </div>
