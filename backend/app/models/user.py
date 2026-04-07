@@ -22,7 +22,7 @@ LENDER_DECISION_ROLES = {UserRole.LENDER, UserRole.CREDIT_COMMITTEE}  # Can acce
 
 class User(Base, TimestampMixin):
     __tablename__ = "users"
-    
+
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String(255), unique=True, index=True, nullable=False)
     hashed_password = Column(String(255), nullable=False)
@@ -30,9 +30,23 @@ class User(Base, TimestampMixin):
     company_name = Column(String(255), nullable=True)
     role = Column(Enum(UserRole, native_enum=False), nullable=False, default=UserRole.BORROWER)
     is_active = Column(Boolean, default=True)
-    must_change_password = Column(Boolean, default=False)  # True for admin-created accounts
-    
-    # Organization linking - loan officers and credit committee belong to same org
+    must_change_password = Column(Boolean, default=False)
+
+    # MFA
+    totp_secret = Column(String(64), nullable=True)
+    mfa_enabled = Column(Boolean, default=False)
+
+    # Security tracking
+    failed_login_count = Column(Integer, default=0)
+    last_failed_login = Column(DateTime, nullable=True)
+    last_login_at = Column(DateTime, nullable=True)
+    last_login_ip = Column(String(50), nullable=True)
+
+    # Soft delete / PII
+    deleted_at = Column(DateTime, nullable=True)
+    pii_redacted_at = Column(DateTime, nullable=True)
+
+    # Organization linking
     organization_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
     # Relationships

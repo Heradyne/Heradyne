@@ -5,8 +5,7 @@ from app.models.audit import AuditLog
 
 
 class AuditService:
-    """Service for creating audit log entries."""
-    
+
     @staticmethod
     def log(
         db: Session,
@@ -16,9 +15,8 @@ class AuditService:
         user_id: Optional[int] = None,
         details: Optional[Any] = None,
         ip_address: Optional[str] = None,
-        user_agent: Optional[str] = None
+        user_agent: Optional[str] = None,
     ) -> AuditLog:
-        """Create an audit log entry."""
         log_entry = AuditLog(
             user_id=user_id,
             action=action,
@@ -26,11 +24,26 @@ class AuditService:
             entity_id=entity_id,
             details=details,
             ip_address=ip_address,
-            user_agent=user_agent
+            user_agent=user_agent,
         )
         db.add(log_entry)
         db.commit()
         db.refresh(log_entry)
+
+        # Fire security alerts for high-risk actions (non-blocking)
+        try:
+            from app.services.security_alerts import check_and_alert
+            check_and_alert(
+                action=action,
+                entity_id=entity_id,
+                user_id=user_id,
+                ip_address=ip_address,
+                details=details if isinstance(details, dict) else None,
+                db=db,
+            )
+        except Exception:
+            pass
+
         return log_entry
     
     @staticmethod

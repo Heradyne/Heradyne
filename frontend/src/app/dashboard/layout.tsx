@@ -7,10 +7,11 @@ import { usePathname } from 'next/navigation';
 import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
-  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send
+  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn, getRoleLabel, DISCLAIMER } from '@/lib/utils';
+import IdleWarning from '@/components/IdleWarning';
 
 const NAV_DEFINITIONS = {
   borrower: [
@@ -21,6 +22,7 @@ const NAV_DEFINITIONS = {
     { id: 'collateral',    name: 'Collateral',         href: '/dashboard/collateral',   icon: Building2,   always: false },
     { id: 'signatures',    name: 'Signatures',         href: '/dashboard/signatures',   icon: FileSignature,always: false },
     { id: 'protection',    name: 'Default Protection', href: '/dashboard/protection',   icon: ShieldAlert, always: false },
+    { id: 'security',      name: 'Security',             href: '/dashboard/security',     icon: Lock,        always: true  },
   ],
   lender: [
     { id: 'home',            name: 'Dashboard',        href: '/dashboard',                  icon: Home,        always: true },
@@ -35,6 +37,7 @@ const NAV_DEFINITIONS = {
     { id: 'secondary-market',name: 'Secondary Market', href: '/dashboard/secondary-market',  icon: TrendingUp,  always: false },
     { id: 'signatures',      name: 'Signatures',       href: '/dashboard/signatures',        icon: FileSignature,always: false },
     { id: 'appetite',        name: 'My Preferences',   href: '/dashboard/appetite',          icon: Settings,    always: true },
+    { id: 'security',        name: 'Security',          href: '/dashboard/security',          icon: Lock,        always: true },
   ],
   loan_officer: [
     { id: 'home',          name: 'Dashboard',      href: '/dashboard',              icon: Home,         always: true },
@@ -42,6 +45,7 @@ const NAV_DEFINITIONS = {
     { id: 'sba-compliance',name: 'SBA Compliance', href: '/dashboard/sba-compliance',icon: Scale,       always: false },
     { id: 'verification',  name: 'Verification',   href: '/dashboard/verification', icon: ClipboardCheck,always: false },
     { id: 'signatures',    name: 'Signatures',     href: '/dashboard/signatures',   icon: FileSignature, always: false },
+    { id: 'security',      name: 'Security',        href: '/dashboard/security',     icon: Lock,         always: true },
   ],
   credit_committee: [
     { id: 'home',          name: 'Dashboard',      href: '/dashboard',               icon: Home,         always: true },
@@ -52,6 +56,7 @@ const NAV_DEFINITIONS = {
     { id: 'ai-agent',      name: 'AI Underwriter', href: '/dashboard/ai-agent',      icon: Brain,        always: false },
     { id: 'financials',    name: 'Financials',     href: '/dashboard/financials',    icon: DollarSign,   always: false },
     { id: 'signatures',    name: 'Signatures',     href: '/dashboard/signatures',    icon: FileSignature, always: false },
+    { id: 'security',      name: 'Security',        href: '/dashboard/security',      icon: Lock,         always: true },
   ],
   insurer: [
     { id: 'home',               name: 'Dashboard',          href: '/dashboard',                    icon: Home,        always: true },
@@ -66,6 +71,7 @@ const NAV_DEFINITIONS = {
     { id: 'secondary-market',   name: 'Reinsurance',         href: '/dashboard/secondary-market',   icon: TrendingUp,  always: false },
     { id: 'signatures',         name: 'Signatures',          href: '/dashboard/signatures',         icon: FileSignature,always: false },
     { id: 'appetite',           name: 'My Preferences',      href: '/dashboard/appetite',            icon: Settings,    always: true },
+    { id: 'security',           name: 'Security',             href: '/dashboard/security',           icon: Lock,        always: true },
   ],
   admin: [
     { id: 'home',            name: 'Dashboard',      href: '/dashboard',               icon: Home,        always: true },
@@ -78,6 +84,7 @@ const NAV_DEFINITIONS = {
     { id: 'users',           name: 'Users',          href: '/dashboard/users',         icon: Users,       always: true },
     { id: 'assumptions',     name: 'Assumptions',    href: '/dashboard/assumptions',   icon: Settings,    always: false },
     { id: 'audit',           name: 'Audit Logs',     href: '/dashboard/audit',         icon: BarChart3,   always: false },
+    { id: 'security',        name: 'Security',        href: '/dashboard/security',      icon: Lock,        always: true },
   ],
 };
 
@@ -208,6 +215,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {DISCLAIMER}
         </footer>
       </div>
+
+      {/* Idle session timeout warning */}
+      <IdleWarning />
     </div>
   );
 }
