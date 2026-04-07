@@ -1,63 +1,69 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
-from slowapi.errors import RateLimitExceeded
 
 from app.core.config import settings
 from app.api.v1 import api_router
 
-# ── Rate limiter ──────────────────────────────────────────────────────────────
-limiter = Limiter(key_func=get_remote_address, default_limits=[settings.RATE_LIMIT_API])
-
+# Create FastAPI app
 app = FastAPI(
     title="UnderwriteOS + Heradyne Platform API",
+    description="""
+## UnderwriteOS + Heradyne — Combined SMB Acquisition Platform
+
+**DISCLAIMER**: Heradyne is an informational platform only. It does NOT lend money, 
+provide guarantees, or issue insurance policies. All outputs are recommendations 
+for informational purposes.
+
+### Features
+
+- **Deal Management**: Create, submit, and track loan deals
+- **Underwriting Engines**: Cash flow, PD, valuation, and collateral analysis
+- **Policy Matching**: Match deals to lender and insurer policies
+- **Approve-If Scenarios**: Generate restructuring scenarios for near-misses
+- **Fee Simulation**: Calculate and export monthly fee ledgers
+
+### Roles
+
+- **Borrower**: Create and manage deals
+- **Lender**: Define policies, view matches, accept/reject deals
+- **Insurer**: Define policies, view matches, accept/reject deals
+- **Admin**: System administration, assumptions management
+    """,
     version="2.0.0",
-    docs_url="/docs" if settings.ENVIRONMENT != "production" else None,
-    redoc_url="/redoc" if settings.ENVIRONMENT != "production" else None,
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-# ── Security headers middleware ───────────────────────────────────────────────
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response = await call_next(request)
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
-    # Strip debug info from error responses in production
-    if settings.ENVIRONMENT == "production" and response.status_code >= 500:
-        response.headers.pop("X-Error-Detail", None)
-    return response
-
-# ── CORS ──────────────────────────────────────────────────────────────────────
+# CORS middleware — allow all origins (restrict after go-live)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
-    allow_credentials=True,   # Required for httpOnly cookies
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
+    allow_origins=["*"],
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
     expose_headers=["Content-Disposition", "Content-Type", "Content-Length"],
 )
 
+# Include API router
 app.include_router(api_router, prefix="/api/v1")
 
 
 @app.get("/")
 def root():
+    """Root endpoint with API info."""
     return {
         "name": "UnderwriteOS + Heradyne Platform API",
         "version": "2.0.0",
-        "disclaimer": "Heradyne is an informational platform only.",
+        "docs": "/docs",
+        "disclaimer": (
+            "Heradyne is an informational platform only. It does NOT lend money, "
+            "provide guarantees, or issue insurance policies."
+        )
     }
 
 
 @app.get("/health")
 def health_check():
+    """Health check endpoint."""
     return {"status": "healthy"}

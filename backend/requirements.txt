@@ -31,12 +31,3 @@ pytest==7.4.4
 pytest-asyncio==0.23.3
 httpx==0.26.0
 reportlab==4.2.5
-
-# Security additions
-slowapi==0.1.9
-pyotp==2.9.0
-qrcode[pil]==7.4.2
-python-magic==0.4.27
-secure==0.3.0
-sqlalchemy-utils==0.41.1
-cryptography==41.0.7

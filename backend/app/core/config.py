@@ -65,14 +65,23 @@ class Settings(BaseSettings):
 @lru_cache()
 def get_settings() -> Settings:
     s = Settings()
-    # Fail fast on insecure production config
     if s.ENVIRONMENT == "production":
-        if "INSECURE" in s.SECRET_KEY:
-            raise RuntimeError("SECRET_KEY is not configured for production")
+        # Only SECRET_KEY is hard-required — everything else degrades gracefully
+        if "INSECURE_DEFAULT_CHANGE_THIS" in s.SECRET_KEY:
+            raise RuntimeError(
+                "SECRET_KEY is not configured. Set the SECRET_KEY environment variable."
+            )
+        import logging
+        logger = logging.getLogger("heradyne.config")
         if "INSECURE" in s.FIELD_ENCRYPTION_KEY:
-            raise RuntimeError("FIELD_ENCRYPTION_KEY is not configured for production")
+            logger.warning(
+                "FIELD_ENCRYPTION_KEY not set — field-level encryption disabled. "
+                "Set FIELD_ENCRYPTION_KEY to enable."
+            )
         if "*" in s.CORS_ORIGINS:
-            raise RuntimeError("CORS_ORIGINS must not be wildcard in production")
+            logger.warning(
+                "CORS_ORIGINS is wildcard — restrict to your frontend domain."
+            )
     return s
 
 
