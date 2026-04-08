@@ -33,7 +33,7 @@ class LenderPolicyBase(BaseModel):
     counter_offer_max: Optional[float] = Field(None, ge=0, le=100)
     auto_decision_enabled: bool = False
     
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
     
     @model_validator(mode='after')
     def validate_thresholds(self):
@@ -85,7 +85,7 @@ class LenderPolicyUpdate(BaseModel):
     counter_offer_max: Optional[float] = Field(None, ge=0, le=100)
     auto_decision_enabled: Optional[bool] = None
     
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class LenderPolicyResponse(LenderPolicyBase):
@@ -124,7 +124,7 @@ class InsurerPolicyBase(BaseModel):
     counter_offer_max: Optional[float] = Field(None, ge=0, le=100)
     auto_decision_enabled: bool = False
     
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
     
     @model_validator(mode='after')
     def validate_thresholds(self):
@@ -171,7 +171,7 @@ class InsurerPolicyUpdate(BaseModel):
     counter_offer_max: Optional[float] = Field(None, ge=0, le=100)
     auto_decision_enabled: Optional[bool] = None
     
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class InsurerPolicyResponse(InsurerPolicyBase):

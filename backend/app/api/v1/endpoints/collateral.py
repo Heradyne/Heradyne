@@ -1,3 +1,4 @@
+import logging
 from typing import List, Optional
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -324,7 +325,7 @@ def create_asset(
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Invalid asset type or category: {str(e)}"
+            detail="Invalid asset type or category"
         )
     
     # Create asset

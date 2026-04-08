@@ -6,11 +6,11 @@ from pydantic import BaseModel
 class AuditLogResponse(BaseModel):
     id: int
     user_id: Optional[int]
-    action: str
-    entity_type: str
+    action: str = Field(..., max_length=100)
+    entity_type: str = Field(..., max_length=100)
     entity_id: Optional[int]
     details: Optional[Any]
-    ip_address: Optional[str]
+    ip_address: Optional[str] = Field(..., max_length=500)
     created_at: datetime
     
     class Config:

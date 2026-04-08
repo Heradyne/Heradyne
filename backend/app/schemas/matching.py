@@ -4,16 +4,16 @@ from pydantic import BaseModel, Field
 
 
 class ConstraintResult(BaseModel):
-    constraint: str
+    constraint: str = Field(..., max_length=500)
     required: Any
     actual: Any
     met: bool
-    reason: str
+    reason: str = Field(..., max_length=2000)
 
 
 class MatchResult(BaseModel):
     policy_id: int
-    policy_name: str
+    policy_name: str = Field(..., max_length=255)
     policy_type: str  # "lender" or "insurer"
     match_score: float
     constraints_met: List[ConstraintResult]
@@ -23,7 +23,7 @@ class MatchResult(BaseModel):
 
 class ApproveIfScenario(BaseModel):
     scenario_id: int
-    description: str
+    description: str = Field(..., max_length=2000)
     adjustments: dict  # What changes
     new_constraints_met: List[str]
     constraints_still_failed: List[str]
@@ -42,7 +42,7 @@ class CounterOffer(BaseModel):
 
 class MatchResponse(BaseModel):
     deal_id: int
-    deal_name: str
+    deal_name: str = Field(..., max_length=255)
     total_lender_matches: int
     total_insurer_matches: int
     lender_matches: List[MatchResult]
@@ -61,22 +61,22 @@ class DealMatchResponse(BaseModel):
     match_reasons: Optional[Any]
     constraints_met: Optional[Any]
     constraints_failed: Optional[Any]
-    status: str
-    decision_notes: Optional[str]
+    status: str = Field(..., max_length=100)
+    decision_notes: Optional[str] = Field(..., max_length=5000)
     decision_at: Optional[datetime]
     scenarios: Optional[Any]
     
     # Auto-decision fields
     auto_decision: bool = False
-    auto_decision_reason: Optional[str] = None
+    auto_decision_reason: Optional[str] = Field(None, max_length=2000)
     
     # Counter-offer fields
     counter_offer: Optional[Any] = None
     counter_offer_at: Optional[datetime] = None
     counter_offer_expires_at: Optional[datetime] = None
-    borrower_response: Optional[str] = None
+    borrower_response: Optional[str] = Field(None, max_length=500)
     borrower_response_at: Optional[datetime] = None
-    borrower_response_notes: Optional[str] = None
+    borrower_response_notes: Optional[str] = Field(None, max_length=5000)
     
     created_at: datetime
     
@@ -86,13 +86,13 @@ class DealMatchResponse(BaseModel):
 
 class DealMatchDecision(BaseModel):
     status: str = Field(..., pattern="^(accepted|rejected|info_requested)$")
-    decision_notes: Optional[str] = None
+    decision_notes: Optional[str] = Field(None, max_length=5000)
 
 
 class CounterOfferResponse(BaseModel):
     """Borrower's response to a counter-offer"""
     response: str = Field(..., pattern="^(accepted|rejected)$")
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class RunMatchRequest(BaseModel):

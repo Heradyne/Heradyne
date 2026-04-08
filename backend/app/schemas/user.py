@@ -36,12 +36,12 @@ class UserResponse(UserBase):
 
 class UserLogin(BaseModel):
     email: EmailStr
-    password: str
+    password: str = Field(..., max_length=128)
 
 
 class Token(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+    access_token: str = Field(..., max_length=1024)
+    token_type: str = Field("bearer", max_length=1024)
 
 
 class TokenData(BaseModel):

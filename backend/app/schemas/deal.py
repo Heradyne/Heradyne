@@ -6,21 +6,21 @@ from app.models.deal import DealType, DealStatus
 
 
 class AddbackItem(BaseModel):
-    description: str
+    description: str = Field(..., max_length=2000)
     amount: float
 
 
 class AssetItem(BaseModel):
-    type: str
+    type: str = Field(..., max_length=100)
     value: float
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=2000)
 
 
 class DealBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     deal_type: DealType
     industry: str = Field(..., min_length=1, max_length=100)
-    business_description: Optional[str] = None
+    business_description: Optional[str] = Field(None, max_length=2000)
     
     loan_amount_requested: float = Field(..., gt=0)
     loan_term_months: int = Field(default=84, ge=12, le=180)
@@ -51,7 +51,7 @@ class DealUpdate(BaseModel):
     name: Optional[str] = Field(None, max_length=255)
     deal_type: Optional[DealType] = None
     industry: Optional[str] = Field(None, max_length=100)
-    business_description: Optional[str] = None
+    business_description: Optional[str] = Field(None, max_length=2000)
     
     loan_amount_requested: Optional[float] = Field(None, gt=0)
     loan_term_months: Optional[int] = Field(None, ge=12, le=180)
@@ -87,10 +87,10 @@ class DealResponse(DealBase):
 
 class DealListResponse(BaseModel):
     id: int
-    name: str
+    name: str = Field(..., max_length=255)
     deal_type: DealType
     status: DealStatus
-    industry: str
+    industry: str = Field(..., max_length=100)
     loan_amount_requested: float
     annual_revenue: float
     ebitda: float
@@ -102,11 +102,11 @@ class DealListResponse(BaseModel):
 
 class DealDocumentResponse(BaseModel):
     id: int
-    filename: str
-    original_filename: str
+    filename: str = Field(..., max_length=255)
+    original_filename: str = Field(..., max_length=255)
     file_size: int
-    mime_type: Optional[str]
-    document_type: Optional[str]
+    mime_type: Optional[str] = Field(..., max_length=100)
+    document_type: Optional[str] = Field(..., max_length=100)
     created_at: datetime
     
     class Config:
@@ -154,7 +154,7 @@ class DealRiskReportResponse(BaseModel):
 class DealSubmitResponse(BaseModel):
     deal_id: int
     status: DealStatus
-    message: str
+    message: str = Field(..., max_length=5000)
 
 
 class DealDetailResponse(DealResponse):

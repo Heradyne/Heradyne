@@ -53,6 +53,10 @@ class Settings(BaseSettings):
     LOCKOUT_MAX_ATTEMPTS: int = 5
     LOCKOUT_DURATION_SECONDS: int = 900
 
+    # Error tracking
+    SENTRY_DSN: str = ""
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.1  # 10% of transactions
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [o.strip() for o in self.CORS_ORIGINS.split(",")]

@@ -18,15 +18,15 @@ class ExecutedLoanCreate(BaseModel):
     maturity_date: date
     guarantee_percentage: Optional[float] = None
     premium_rate: Optional[float] = None
-    state: Optional[str] = None
-    city: Optional[str] = None
-    zip_code: Optional[str] = None
-    industry: str
-    notes: Optional[str] = None
+    state: Optional[str] = Field(None, max_length=500)
+    city: Optional[str] = Field(None, max_length=500)
+    zip_code: Optional[str] = Field(None, max_length=100)
+    industry: str = Field(..., max_length=100)
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class ExecutedLoanUpdate(BaseModel):
-    status: Optional[str] = None
+    status: Optional[str] = Field(None, max_length=100)
     current_principal_balance: Optional[float] = None
     days_past_due: Optional[int] = None
     last_payment_date: Optional[date] = None
@@ -34,7 +34,7 @@ class ExecutedLoanUpdate(BaseModel):
     default_amount: Optional[float] = None
     recovery_amount: Optional[float] = None
     loss_amount: Optional[float] = None
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class ExecutedLoanResponse(BaseModel):
@@ -44,22 +44,22 @@ class ExecutedLoanResponse(BaseModel):
     borrower_id: int
     lender_id: int
     insurer_id: Optional[int]
-    loan_number: str
+    loan_number: str = Field(..., max_length=500)
     principal_amount: float
     interest_rate: float
     term_months: int
     monthly_payment: float
     origination_date: date
     maturity_date: date
-    status: str
+    status: str = Field(..., max_length=100)
     current_principal_balance: float
     guarantee_percentage: Optional[float]
     premium_rate: Optional[float]
     premium_paid: float
-    state: Optional[str]
-    city: Optional[str]
-    zip_code: Optional[str]
-    industry: str
+    state: Optional[str] = Field(..., max_length=500)
+    city: Optional[str] = Field(..., max_length=500)
+    zip_code: Optional[str] = Field(..., max_length=100)
+    industry: str = Field(..., max_length=100)
     days_past_due: int
     last_payment_date: Optional[date]
     total_payments_made: int
@@ -69,15 +69,15 @@ class ExecutedLoanResponse(BaseModel):
     default_amount: Optional[float]
     recovery_amount: Optional[float]
     loss_amount: Optional[float]
-    notes: Optional[str]
+    notes: Optional[str] = Field(..., max_length=5000)
     created_at: datetime
     updated_at: datetime
     
     # Computed fields for display
-    borrower_name: Optional[str] = None
-    lender_name: Optional[str] = None
-    insurer_name: Optional[str] = None
-    deal_name: Optional[str] = None
+    borrower_name: Optional[str] = Field(None, max_length=255)
+    lender_name: Optional[str] = Field(None, max_length=255)
+    insurer_name: Optional[str] = Field(None, max_length=255)
+    deal_name: Optional[str] = Field(None, max_length=255)
     
     class Config:
         from_attributes = True
@@ -116,14 +116,14 @@ class LoanPaymentResponse(BaseModel):
 
 # Financial Dashboard Schemas
 class GeographicConcentration(BaseModel):
-    state: str
+    state: str = Field(..., max_length=500)
     loan_count: int
     total_principal: float
     percentage: float
 
 
 class IndustryConcentration(BaseModel):
-    industry: str
+    industry: str = Field(..., max_length=100)
     loan_count: int
     total_principal: float
     percentage: float
@@ -235,22 +235,22 @@ class InsuranceClaimCreate(BaseModel):
     insurer_id: int
     claim_date: date
     claim_amount: float
-    notes: Optional[str] = None
+    notes: Optional[str] = Field(None, max_length=5000)
 
 
 class InsuranceClaimResponse(BaseModel):
     id: int
     loan_id: int
     insurer_id: int
-    claim_number: str
+    claim_number: str = Field(..., max_length=500)
     claim_date: date
     claim_amount: float
     approved_amount: Optional[float]
     paid_amount: Optional[float]
-    status: str
+    status: str = Field(..., max_length=100)
     approved_date: Optional[date]
     paid_date: Optional[date]
-    notes: Optional[str]
+    notes: Optional[str] = Field(..., max_length=5000)
     created_at: datetime
     
     class Config:

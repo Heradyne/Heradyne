@@ -13,6 +13,7 @@ from app.core.security import (
     check_password_breached, record_failed_login, clear_failed_logins,
     is_account_locked, generate_totp_secret, get_totp_uri,
     generate_qr_code_base64, verify_totp,
+    create_refresh_token, rotate_refresh_token, revoke_refresh_token,
 )
 from app.core.config import settings
 from app.core.deps import get_current_active_user
@@ -39,6 +40,19 @@ def _set_auth_cookie(response: Response, token: str) -> None:
         samesite="lax",
         max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         path="/",
+    )
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    """Set refresh token as a separate httpOnly cookie (longer lived)."""
+    response.set_cookie(
+        key="heradyne_refresh",
+        value=refresh_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "production",
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        path="/api/v1/auth/refresh",  # Scoped to refresh endpoint only
     )
 
 
@@ -156,6 +170,7 @@ def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db
         ip_address=ip, user_agent=request.headers.get("User-Agent", "")[:500],
     )
 
+    refresh_token = create_refresh_token(user.id)
     response = JSONResponse({
         "token_type": "cookie",
         "must_change_password": user.must_change_password or False,
@@ -163,6 +178,7 @@ def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db
         "access_token": access_token,
     })
     _set_auth_cookie(response, access_token)
+    _set_refresh_cookie(response, refresh_token)
     return response
 
 
@@ -190,12 +206,14 @@ def mfa_verify(request: Request, body: MFAVerifyRequest, db: Session = Depends(g
     audit_service.log(db=db, action="mfa_verified", entity_type="user",
                       entity_id=user.id, ip_address=_get_client_ip(request))
 
+    refresh_token = create_refresh_token(user.id)
     response = JSONResponse({
         "token_type": "cookie",
         "must_change_password": user.must_change_password or False,
         "access_token": access_token,
     })
     _set_auth_cookie(response, access_token)
+    _set_refresh_cookie(response, refresh_token)
     return response
 
 
@@ -278,11 +296,17 @@ def logout(
             remaining = int(payload.get("exp", 0) - time.time())
             blacklist_token(payload["jti"], max(remaining, 1))
 
+    # Also revoke refresh token if present
+    refresh_token = request.cookies.get("heradyne_refresh")
+    if refresh_token:
+        revoke_refresh_token(refresh_token)
+
     audit_service.log(db=db, action="user_logout", entity_type="user",
                       entity_id=current_user.id, ip_address=_get_client_ip(request))
 
     response = JSONResponse({"message": "Logged out"})
     response.delete_cookie("heradyne_token", path="/")
+    response.delete_cookie("heradyne_refresh", path="/api/v1/auth/refresh")
     return response
 
 
@@ -326,3 +350,40 @@ def change_password(
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_active_user)):
     return current_user
+
+
+# ── Token refresh ─────────────────────────────────────────────────────────────
+
+@router.post("/refresh")
+def refresh_access_token(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Exchange a valid refresh token for a new access token + rotated refresh token.
+    Called automatically by the frontend when the access token expires.
+    """
+    refresh_token = request.cookies.get("heradyne_refresh")
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="No refresh token")
+
+    new_refresh, user_id = rotate_refresh_token(refresh_token)
+    if not new_refresh or not user_id:
+        raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
+
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user or not user.is_active:
+        raise HTTPException(status_code=401, detail="User not found or inactive")
+
+    access_token = create_access_token(
+        data={"sub": str(user.id), "role": user.role.value},
+        expires_delta=timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES),
+    )
+
+    response = JSONResponse({
+        "token_type": "cookie",
+        "access_token": access_token,
+    })
+    _set_auth_cookie(response, access_token)
+    _set_refresh_cookie(response, new_refresh)
+    return response

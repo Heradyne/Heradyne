@@ -226,7 +226,7 @@ async def upload_signature_document(
         traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
+            detail="An error occurred processing this document."
         )
 
 

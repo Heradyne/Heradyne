@@ -7,7 +7,7 @@ class AssumptionBase(BaseModel):
     category: str = Field(..., min_length=1, max_length=100)
     key: str = Field(..., min_length=1, max_length=100)
     value: Any
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=2000)
 
 
 class AssumptionCreate(AssumptionBase):
@@ -16,7 +16,7 @@ class AssumptionCreate(AssumptionBase):
 
 class AssumptionUpdate(BaseModel):
     value: Any
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=2000)
 
 
 class AssumptionResponse(AssumptionBase):
@@ -31,17 +31,17 @@ class AssumptionResponse(AssumptionBase):
 
 class AssumptionWithUserResponse(AssumptionResponse):
     """Response that includes user info for admin views"""
-    user_email: Optional[str] = None
-    user_name: Optional[str] = None
+    user_email: Optional[str] = Field(None, max_length=320)
+    user_name: Optional[str] = Field(None, max_length=255)
 
 
 class UserAssumptionOverride(BaseModel):
     """Request to create/update a user-specific override"""
     user_id: int
-    category: str
-    key: str
+    category: str = Field(..., max_length=500)
+    key: str = Field(..., max_length=500)
     value: Any
-    description: Optional[str] = None
+    description: Optional[str] = Field(None, max_length=2000)
 
 
 class BulkAssignAssumptions(BaseModel):

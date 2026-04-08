@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import date, datetime
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -17,6 +18,7 @@ from app.schemas.financial import ExecutedLoanResponse
 from app.services.audit import audit_service
 
 router = APIRouter()
+log = logging.getLogger("heradyne.origination")
 
 
 # Request schemas
@@ -167,10 +169,11 @@ def get_originatable_matches(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in get_originatable_matches: {e}")
+        log.error(f"Error in get_originatable_matches: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        log.error(f"Internal error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
 @router.post("/originate-loan", response_model=ExecutedLoanResponse)
@@ -253,7 +256,8 @@ def originate_loan(
             deal_name=deal.name if deal else None
         )
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        log.warning(f"Origination error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request. Please check your inputs.")
 
 
 @router.get("/guaranteeable-matches", response_model=List[GuaranteeableMatch])
@@ -322,7 +326,8 @@ def issue_guarantee(
         
         return GuaranteeResponse(**result)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        log.warning(f"Origination error: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid request. Please check your inputs.")
 
 
 @router.get("/my-originated-loans", response_model=List[ExecutedLoanResponse])

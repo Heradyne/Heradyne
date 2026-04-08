@@ -183,3 +183,52 @@ def decrypt_field(value: str) -> str:
         return f.decrypt(value.encode()).decode()
     except Exception:
         return value
+
+
+# ── Refresh token ─────────────────────────────────────────────────────────────
+
+def create_refresh_token(user_id: int) -> str:
+    """Create a long-lived refresh token stored in Redis."""
+    import secrets, json
+    token = secrets.token_urlsafe(48)
+    payload = {"user_id": user_id, "type": "refresh"}
+    ttl = settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400
+    try:
+        r = _get_redis()
+        r.setex(f"refresh:{token}", ttl, json.dumps(payload))
+    except Exception:
+        pass
+    return token
+
+
+def rotate_refresh_token(old_token: str) -> tuple[str | None, int | None]:
+    """
+    Validate and rotate a refresh token.
+    Returns (new_token, user_id) or (None, None) if invalid.
+    One-time use — old token is deleted immediately.
+    """
+    import json
+    try:
+        r = _get_redis()
+        raw = r.get(f"refresh:{old_token}")
+        if not raw:
+            return None, None
+        # Atomic delete — prevents replay attacks
+        r.delete(f"refresh:{old_token}")
+        payload = json.loads(raw)
+        user_id = payload.get("user_id")
+        if not user_id:
+            return None, None
+        new_token = create_refresh_token(user_id)
+        return new_token, user_id
+    except Exception:
+        return None, None
+
+
+def revoke_refresh_token(token: str) -> None:
+    """Revoke a refresh token on logout."""
+    try:
+        r = _get_redis()
+        r.delete(f"refresh:{token}")
+    except Exception:
+        pass

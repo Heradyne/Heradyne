@@ -42,3 +42,6 @@ sqlalchemy-utils==0.41.1
 cryptography==41.0.7
 
 # Cache bust: 2026-04-08 16:50
+
+# Error tracking
+sentry-sdk[fastapi]==1.45.0
