@@ -1,8 +1,58 @@
 import enum
-from sqlalchemy import Column, Integer, String, Float, Boolean, Enum, DateTime, ForeignKey, Text, JSON
+from sqlalchemy import Column, Integer, String, Float, Boolean, Enum, DateTime, ForeignKey, Text, JSON, event
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
 from app.models.base import Base, TimestampMixin
+
+
+def _get_fernet():
+    """Lazy-loaded Fernet instance for field encryption."""
+    try:
+        import base64
+        from cryptography.fernet import Fernet
+        from app.core.config import settings
+        if 'INSECURE' in settings.FIELD_ENCRYPTION_KEY:
+            return None
+        raw = settings.FIELD_ENCRYPTION_KEY.encode()
+        key = base64.urlsafe_b64encode(raw[:32].ljust(32, b'\x00'))
+        return Fernet(key)
+    except Exception:
+        return None
+
+
+def _encrypt_json(value) -> str:
+    """Encrypt a JSON-serializable value to a string."""
+    import json
+    if value is None:
+        return None
+    f = _get_fernet()
+    if f is None:
+        return json.dumps(value)  # no-op if encryption not configured
+    return f.encrypt(json.dumps(value).encode()).decode()
+
+
+def _decrypt_json(value) -> object:
+    """Decrypt an encrypted JSON string."""
+    import json
+    if value is None:
+        return None
+    f = _get_fernet()
+    if f is None:
+        # Try to parse as plain JSON (unencrypted)
+        try:
+            return json.loads(value) if isinstance(value, str) else value
+        except Exception:
+            return value
+    try:
+        decrypted = f.decrypt(value.encode() if isinstance(value, str) else value)
+        return json.loads(decrypted)
+    except Exception:
+        # Backward compat: return as-is if not encrypted
+        try:
+            return json.loads(value) if isinstance(value, str) else value
+        except Exception:
+            return value
 
 
 class DealType(str, enum.Enum):
@@ -55,12 +105,28 @@ class Deal(Base, TimestampMixin):
     purchase_price = Column(Float, nullable=True)
     equity_injection = Column(Float, nullable=True)
     
-    # Collateral info
-    business_assets = Column(JSON, nullable=True)  # List of {type, value, description}
-    personal_assets = Column(JSON, nullable=True)  # List of {type, value, description}
-    
+    # Collateral info — stored encrypted at rest
+    _business_assets_enc = Column("business_assets", Text, nullable=True)
+    _personal_assets_enc = Column("personal_assets", Text, nullable=True)
+
+    @hybrid_property
+    def business_assets(self):
+        return _decrypt_json(self._business_assets_enc)
+
+    @business_assets.setter
+    def business_assets(self, value):
+        self._business_assets_enc = _encrypt_json(value)
+
+    @hybrid_property
+    def personal_assets(self):
+        return _decrypt_json(self._personal_assets_enc)
+
+    @personal_assets.setter
+    def personal_assets(self, value):
+        self._personal_assets_enc = _encrypt_json(value)
+
     # Owner info
-    owner_credit_score = Column(Integer, nullable=True)
+    owner_credit_score = Column(Integer, nullable=True)  # numeric — not PII encrypted
     owner_experience_years = Column(Integer, nullable=True)
     
     # Relationships

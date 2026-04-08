@@ -1,0 +1,41 @@
+version: 2
+updates:
+  # Frontend
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+    open-pull-requests-limit: 10
+    groups:
+      security-patches:
+        applies-to: security-updates
+        update-types: [patch, minor]
+    labels:
+      - security
+      - dependencies
+
+  # Backend
+  - package-ecosystem: pip
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "08:00"
+    open-pull-requests-limit: 10
+    groups:
+      security-patches:
+        applies-to: security-updates
+        update-types: [patch, minor]
+    labels:
+      - security
+      - dependencies
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels:
+      - dependencies

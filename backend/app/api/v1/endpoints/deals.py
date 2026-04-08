@@ -15,6 +15,7 @@ from app.schemas.deal import (
     DealSubmitResponse
 )
 from app.services.audit import audit_service
+from app.services.file_crypto import encrypt_file, decrypt_file, validate_mime_type
 from app.services.uw_engines import run_uw_engines  # UnderwriteOS
 from app.tasks import analyze_deal_task
 
@@ -299,22 +300,30 @@ async def upload_document(
     
     content = await file.read()
     if len(content) > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, 
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                           detail=f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
-    
+
+    # Validate magic bytes (prevents malicious files hiding behind safe extensions)
+    is_valid, detected_type = validate_mime_type(content, file.filename, file.content_type or "")
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                          detail=f"File rejected: {detected_type}")
+
     ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
     if ext not in settings.ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                           detail=f"File type not allowed. Allowed: {settings.ALLOWED_EXTENSIONS}")
-    
+
     upload_dir = os.path.join(settings.UPLOAD_DIR, str(deal_id))
     os.makedirs(upload_dir, exist_ok=True)
-    
+
     unique_filename = f"{uuid.uuid4().hex}_{file.filename}"
     file_path = os.path.join(upload_dir, unique_filename)
-    
+
+    # Encrypt before writing to disk
+    encrypted_content = encrypt_file(content)
     with open(file_path, "wb") as f:
-        f.write(content)
+        f.write(encrypted_content)
     
     doc = DealDocument(
         deal_id=deal_id, filename=unique_filename, original_filename=file.filename,
@@ -426,11 +435,10 @@ def download_document(
             details={"deal_id": deal_id, "filename": doc.original_filename}
         )
         
-        # Read file content
-        print(f"Reading file: {doc.file_path}")
+        # Read and decrypt file content
         with open(doc.file_path, 'rb') as f:
-            file_content = f.read()
-        print(f"File read successfully, size: {len(file_content)} bytes")
+            raw_content = f.read()
+        file_content = decrypt_file(raw_content)
         
         return Response(
             content=file_content,

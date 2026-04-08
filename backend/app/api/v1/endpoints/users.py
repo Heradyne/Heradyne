@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
@@ -351,3 +351,73 @@ def reset_user_password(
     )
     
     return user
+
+
+# ── Right-to-erasure (CCPA / GDPR §17) ───────────────────────────────────────
+
+@router.post("/{user_id}/erase")
+def erase_user_data(
+    user_id: int,
+    request: Request,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """
+    Permanently erase a user's PII (CCPA/GDPR right-to-erasure).
+    Admin only. Anonymizes all personal data while preserving audit trail.
+    """
+    from app.services.data_retention import erase_user_data as _erase
+
+    target = db.query(User).filter(User.id == user_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if target.role == UserRole.ADMIN:
+        raise HTTPException(status_code=400, detail="Cannot erase admin accounts")
+
+    stats = _erase(target, db, requested_by_id=current_user.id)
+
+    return {
+        "message": f"User {user_id} PII erased successfully",
+        "user_id": user_id,
+        **stats,
+    }
+
+
+@router.get("/me/export-data")
+def export_my_data(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Export all personal data for the current user (CCPA/GDPR right-to-access).
+    """
+    from app.models.deal import Deal
+    from app.models.audit import AuditLog
+
+    deals = db.query(Deal).filter(Deal.borrower_id == current_user.id).all()
+    logs = db.query(AuditLog).filter(
+        AuditLog.user_id == current_user.id
+    ).order_by(AuditLog.created_at.desc()).limit(100).all()
+
+    return {
+        "user": {
+            "id": current_user.id,
+            "email": current_user.email,
+            "full_name": current_user.full_name,
+            "company_name": current_user.company_name,
+            "role": current_user.role.value,
+            "created_at": current_user.created_at.isoformat() if current_user.created_at else None,
+        },
+        "deals": [
+            {"id": d.id, "name": d.name, "status": d.status.value,
+             "created_at": d.created_at.isoformat() if d.created_at else None}
+            for d in deals
+        ],
+        "audit_trail": [
+            {"action": l.action, "entity_type": l.entity_type,
+             "created_at": l.created_at.isoformat() if l.created_at else None}
+            for l in logs
+        ],
+        "export_generated_at": __import__("datetime").datetime.utcnow().isoformat(),
+    }
