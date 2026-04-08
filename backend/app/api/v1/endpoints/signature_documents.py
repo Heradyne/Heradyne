@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, date
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -16,6 +17,7 @@ from app.models.signature_document import (
 from app.services.audit import audit_service
 
 router = APIRouter()
+log = logging.getLogger("heradyne.signature_documents")
 
 
 # Schemas
@@ -219,7 +221,7 @@ async def upload_signature_document(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error in upload_signature_document: {e}")
+        log.error(f"Error in upload_signature_document: {e}")
         import traceback
         traceback.print_exc()
         raise HTTPException(

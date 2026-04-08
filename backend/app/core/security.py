@@ -71,7 +71,15 @@ def decode_access_token(token: str) -> Optional[dict]:
 def _get_redis():
     import redis as redis_lib
     from app.core.config import settings
-    return redis_lib.from_url(settings.REDIS_URL, decode_responses=True)
+    # REDIS_URL may include auth: redis://:password@host:port/db
+    # from_url handles this automatically
+    return redis_lib.from_url(
+        settings.REDIS_URL,
+        decode_responses=True,
+        socket_connect_timeout=2,
+        socket_timeout=2,
+        retry_on_timeout=False,
+    )
 
 def blacklist_token(jti: str, expires_in_seconds: int) -> None:
     """Add a JTI to the Redis blacklist."""

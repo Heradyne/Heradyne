@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime, timedelta
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_, or_
@@ -20,6 +21,7 @@ from app.schemas.secondary_market import (
 from app.services.audit import audit_service
 
 router = APIRouter()
+log = logging.getLogger("heradyne.secondary_market")
 
 
 # ============ Listings ============
@@ -458,10 +460,11 @@ def create_offer(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error creating offer: {e}")
+        log.error(f"Error creating offer: {e}")
         import traceback
         traceback.print_exc()
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        log.error(f"Internal error: {e}")
+        raise HTTPException(status_code=500, detail="An internal error occurred. Please try again.")
 
 
 @router.post("/offers/{offer_id}/respond", response_model=SecondaryOfferResponse)
