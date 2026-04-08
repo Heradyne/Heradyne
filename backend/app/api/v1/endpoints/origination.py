@@ -807,3 +807,220 @@ def get_origination_queue(
             "can_originate": True,
         })
     return queue
+
+
+# ── Insurer Term Sheet endpoints ──────────────────────────────────────────────
+
+class InsurerTermSheetCreate(BaseModel):
+    match_id: int
+    deal_id: int
+    # Coverage structure
+    coverage_pct: float                      # % of loan covered (e.g. 85.0)
+    coverage_amount: float                   # Dollar amount covered
+    attachment_point_pct: float = 0.0        # First-loss retained by lender (%)
+    # Premium
+    annual_premium_rate: float               # % of coverage amount per year
+    premium_payment: str = "annual"          # annual, quarterly, monthly
+    # Policy terms
+    policy_term_months: int = 120
+    waiting_period_days: int = 90            # Days before coverage activates
+    # Exclusions and conditions
+    exclusions: str = ""
+    conditions: str = ""
+    # SBA
+    sba_eligible: bool = True
+    # Internal
+    expiry_days: int = 30
+    notes: str = ""
+
+
+class InsurerTermSheetUpdate(BaseModel):
+    coverage_pct: Optional[float] = None
+    coverage_amount: Optional[float] = None
+    attachment_point_pct: Optional[float] = None
+    annual_premium_rate: Optional[float] = None
+    premium_payment: Optional[str] = None
+    policy_term_months: Optional[int] = None
+    waiting_period_days: Optional[int] = None
+    exclusions: Optional[str] = None
+    conditions: Optional[str] = None
+    expiry_days: Optional[int] = None
+    notes: Optional[str] = None
+    status: Optional[str] = None
+
+
+@router.get("/insurer-term-sheets/accepted-matches")
+def get_insurer_accepted_matches(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Get accepted matches for the insurer to build term sheets on."""
+    if current_user.role.value not in ["insurer", "admin"]:
+        raise HTTPException(status_code=403, detail="Insurers only")
+
+    matches = db.query(DealMatch).filter(
+        DealMatch.status == "accepted",
+        DealMatch.insurer_policy_id.isnot(None),
+    ).order_by(DealMatch.updated_at.desc()).all()
+
+    results = []
+    for match in matches:
+        deal = db.query(Deal).filter(Deal.id == match.deal_id).first()
+        if not deal:
+            continue
+
+        report = db.query(DealRiskReport).filter(
+            DealRiskReport.deal_id == match.deal_id
+        ).order_by(DealRiskReport.version.desc()).first()
+
+        extra = dict(match.counter_offer or {})
+        ts = extra.get("insurer_term_sheet")
+
+        # Build AI-suggested insurer terms from UW report
+        suggested = {}
+        if report:
+            loan = deal.loan_amount_requested or 0
+            pd = report.annual_pd or 0.04
+            dscr = report.dscr_base or 1.25
+            lgd = 1 - min((report.total_nolv or 0) / max(loan, 1), 0.9)
+
+            # Coverage: 80-90% of loan depending on DSCR
+            coverage_pct = 85.0 if dscr >= 1.40 else 80.0 if dscr >= 1.25 else 75.0
+            coverage_amount = round(loan * coverage_pct / 100, -2)
+
+            # Pure premium = PD * LGD, loaded for expenses and profit
+            pure_premium = pd * max(lgd, 0.20)
+            indicated_rate = round(min(pure_premium * 2.5, 0.08) * 100, 2)  # cap at 8%
+
+            # Exclusions based on risk factors
+            exclusions = []
+            if dscr < 1.25:
+                exclusions.append("DSCR below 1.25x at origination")
+            if report.deal_killer_verdict == "renegotiate":
+                exclusions.append("Purchase price exceeds max supportable value")
+            exclusions.append("Intentional misrepresentation or fraud by borrower")
+            exclusions.append("Environmental liability pre-dating policy effective date")
+            exclusions.append("Change of business ownership without insurer consent")
+
+            conditions = [
+                f"Maintain DSCR ≥ {max(1.15, round(dscr * 0.85, 2))}x annually",
+                "Provide annual CPA-prepared financial statements within 120 days of fiscal year end",
+                "Notify insurer within 30 days of any material adverse change in business",
+                "No additional senior debt without insurer written consent",
+            ]
+            if report.sba_eligible:
+                conditions.append("SBA 7(a) guarantee must remain in force for coverage to remain active")
+
+            suggested = {
+                "coverage_pct": coverage_pct,
+                "coverage_amount": coverage_amount,
+                "attachment_point_pct": 10.0,
+                "annual_premium_rate": indicated_rate,
+                "premium_payment": "annual",
+                "policy_term_months": deal.loan_term_months or 120,
+                "waiting_period_days": 90,
+                "exclusions": "\n".join(f"• {e}" for e in exclusions),
+                "conditions": "\n".join(f"• {c}" for c in conditions),
+                "sba_eligible": bool(report.sba_eligible),
+            }
+
+        results.append({
+            "match_id": match.id,
+            "deal_id": deal.id,
+            "deal_name": deal.name,
+            "industry": deal.industry,
+            "loan_amount_requested": deal.loan_amount_requested,
+            "annual_revenue": deal.annual_revenue,
+            "ebitda": deal.ebitda,
+            "match_status": match.status,
+            "term_sheet": ts,
+            "term_sheet_status": ts.get("status", "none") if ts else "none",
+            "ai_suggested": suggested,
+            "uw": {
+                "health_score": report.health_score if report else None,
+                "dscr_base": report.dscr_base if report else None,
+                "annual_pd": report.annual_pd if report else None,
+                "total_nolv": report.total_nolv if report else None,
+                "verdict": report.deal_killer_verdict if report else None,
+                "sba_eligible": report.sba_eligible if report else None,
+            },
+        })
+    return results
+
+
+@router.post("/insurer-term-sheets/save")
+def save_insurer_term_sheet(
+    data: InsurerTermSheetCreate,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Save an insurer term sheet draft."""
+    if current_user.role.value not in ["insurer", "admin"]:
+        raise HTTPException(status_code=403, detail="Insurers only")
+
+    match = db.query(DealMatch).filter(DealMatch.id == data.match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if match.status != "accepted":
+        raise HTTPException(status_code=400, detail="Match must be accepted first")
+
+    ts = {
+        "status": "draft",
+        "coverage_pct": data.coverage_pct,
+        "coverage_amount": data.coverage_amount,
+        "attachment_point_pct": data.attachment_point_pct,
+        "annual_premium_rate": data.annual_premium_rate,
+        "premium_payment": data.premium_payment,
+        "policy_term_months": data.policy_term_months,
+        "waiting_period_days": data.waiting_period_days,
+        "exclusions": data.exclusions,
+        "conditions": data.conditions,
+        "sba_eligible": data.sba_eligible,
+        "expiry_days": data.expiry_days,
+        "notes": data.notes,
+        "saved_by": current_user.id,
+        "saved_at": datetime.utcnow().isoformat(),
+    }
+
+    extra = dict(match.counter_offer or {})
+    extra["insurer_term_sheet"] = ts
+    match.counter_offer = extra
+    flag_modified(match, "counter_offer")
+    db.commit()
+
+    audit_service.log(db=db, action="insurer_term_sheet_saved", entity_type="deal_match",
+                      entity_id=match.id, user_id=current_user.id,
+                      details={"deal_id": data.deal_id, "coverage_pct": data.coverage_pct})
+    return {"status": "saved", "match_id": match.id, "term_sheet": ts}
+
+
+@router.post("/insurer-term-sheets/{match_id}/submit")
+def submit_insurer_term_sheet(
+    match_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Submit insurer term sheet — moves to guarantee issuance queue."""
+    if current_user.role.value not in ["insurer", "admin"]:
+        raise HTTPException(status_code=403, detail="Insurers only")
+
+    match = db.query(DealMatch).filter(DealMatch.id == match_id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+
+    extra = dict(match.counter_offer or {})
+    if not extra.get("insurer_term_sheet"):
+        raise HTTPException(status_code=400, detail="No insurer term sheet saved yet")
+
+    ts = dict(extra["insurer_term_sheet"])
+    ts["status"] = "submitted"
+    ts["submitted_at"] = datetime.utcnow().isoformat()
+    extra["insurer_term_sheet"] = ts
+    match.counter_offer = extra
+    flag_modified(match, "counter_offer")
+    db.commit()
+
+    audit_service.log(db=db, action="insurer_term_sheet_submitted", entity_type="deal_match",
+                      entity_id=match.id, user_id=current_user.id,
+                      details={"deal_id": match.deal_id})
+    return {"status": "submitted", "match_id": match_id}
