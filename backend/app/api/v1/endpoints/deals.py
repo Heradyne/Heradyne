@@ -1,6 +1,5 @@
 import os
 import uuid
-import logging
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Query
 from sqlalchemy.orm import Session
@@ -16,24 +15,8 @@ from app.schemas.deal import (
     DealSubmitResponse
 )
 from app.services.audit import audit_service
-from app.services.file_crypto import encrypt_file, decrypt_file, validate_mime_type
 from app.services.uw_engines import run_uw_engines  # UnderwriteOS
 from app.tasks import analyze_deal_task
-
-log = logging.getLogger("heradyne.deals")
-
-
-def _secure_filename(filename: str) -> str:
-    """Sanitize a filename to prevent path traversal attacks."""
-    import re
-    # Strip directory components
-    filename = os.path.basename(filename)
-    # Replace dangerous characters
-    filename = re.sub(r'[^\w\s\-.]', '_', filename)
-    # Collapse multiple dots (prevents extension spoofing like file.php.pdf)
-    filename = re.sub(r'\.{2,}', '.', filename)
-    # Truncate to safe length
-    return filename[:200] or 'upload'
 
 router = APIRouter()
 
@@ -276,8 +259,7 @@ def _run_analysis_sync(deal_id: int, db: Session):
         db.rollback()
         deal.status = DealStatus.SUBMITTED
         db.commit()
-        log.error(f"Analysis failed for deal: {e}")
-        raise HTTPException(status_code=500, detail="Analysis failed. Please try again.")
+        raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 
 @router.post("/{deal_id}/analyze", response_model=DealSubmitResponse)
@@ -317,35 +299,22 @@ async def upload_document(
     
     content = await file.read()
     if len(content) > settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024:
-        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        raise HTTPException(status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE, 
                           detail=f"File too large. Max size: {settings.MAX_UPLOAD_SIZE_MB}MB")
-
-    # Validate magic bytes (prevents malicious files hiding behind safe extensions)
-    is_valid, detected_type = validate_mime_type(content, file.filename, file.content_type or "")
-    if not is_valid:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                          detail=f"File rejected: {detected_type}")
-
+    
     ext = file.filename.split(".")[-1].lower() if "." in file.filename else ""
     if ext not in settings.ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                           detail=f"File type not allowed. Allowed: {settings.ALLOWED_EXTENSIONS}")
-
+    
     upload_dir = os.path.join(settings.UPLOAD_DIR, str(deal_id))
     os.makedirs(upload_dir, exist_ok=True)
-
-    safe_name = _secure_filename(file.filename)
-    unique_filename = f"{uuid.uuid4().hex}_{safe_name}"
+    
+    unique_filename = f"{uuid.uuid4().hex}_{file.filename}"
     file_path = os.path.join(upload_dir, unique_filename)
-
-    # Final path traversal guard — ensure path stays inside upload_dir
-    if not os.path.abspath(file_path).startswith(os.path.abspath(upload_dir)):
-        raise HTTPException(status_code=400, detail="Invalid filename")
-
-    # Encrypt before writing to disk
-    encrypted_content = encrypt_file(content)
+    
     with open(file_path, "wb") as f:
-        f.write(encrypted_content)
+        f.write(content)
     
     doc = DealDocument(
         deal_id=deal_id, filename=unique_filename, original_filename=file.filename,
@@ -394,13 +363,13 @@ def download_document(
     import traceback
     
     try:
-        log.info(f"Document download request: deal_id={deal_id}, document_id={document_id}, user={current_user.email}")
+        print(f"Download request: deal_id={deal_id}, document_id={document_id}, user={current_user.email}")
         
         deal = db.query(Deal).filter(Deal.id == deal_id).first()
         if not deal:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Deal not found")
         
-        log.debug(f"Deal found: {deal.name}")
+        print(f"Deal found: {deal.name}")
         
         # Access control
         if current_user.role == UserRole.BORROWER:
@@ -414,7 +383,7 @@ def download_document(
             
             if current_user.role == UserRole.LENDER:
                 user_policies = db.query(LenderPolicy).filter(LenderPolicy.lender_id == current_user.id).all()
-                log.debug(f"Lender has {len(user_policies)} policies")
+                print(f"Lender has {len(user_policies)} policies")
                 if user_policies:
                     user_policy_ids = [p.id for p in user_policies]
                     has_match = db.query(DealMatch).filter(
@@ -423,7 +392,7 @@ def download_document(
                     ).first() is not None
             else:
                 user_policies = db.query(InsurerPolicy).filter(InsurerPolicy.insurer_id == current_user.id).all()
-                log.debug(f"Insurer has {len(user_policies)} policies")
+                print(f"Insurer has {len(user_policies)} policies")
                 if user_policies:
                     user_policy_ids = [p.id for p in user_policies]
                     has_match = db.query(DealMatch).filter(
@@ -431,7 +400,7 @@ def download_document(
                         DealMatch.insurer_policy_id.in_(user_policy_ids)
                     ).first() is not None
             
-            log.debug(f"Has match: {has_match}")
+            print(f"Has match: {has_match}")
             if not has_match:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied - no match with this deal")
         
@@ -444,38 +413,40 @@ def download_document(
         if not doc:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
         
-        log.debug(f"Document found: {doc.original_filename}, path: {doc.file_path}")
+        print(f"Document found: {doc.original_filename}, path: {doc.file_path}")
         
         if not os.path.exists(doc.file_path):
-            log.warning(f"File not found at path: {doc.file_path}")
+            print(f"File not found at path: {doc.file_path}")
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File not found on server")
         
         # Log the download
         audit_service.log(
             db=db, action="document_downloaded", entity_type="deal_document",
-            entity_id=document_id, user_id=current_user.id,
+            entity_id=document_id, user_id=current_user.id, 
             details={"deal_id": deal_id, "filename": doc.original_filename}
         )
-
-        # Read and decrypt file content
+        
+        # Read file content
+        print(f"Reading file: {doc.file_path}")
         with open(doc.file_path, 'rb') as f:
-            raw_content = f.read()
-        file_content = decrypt_file(raw_content)
-
+            file_content = f.read()
+        print(f"File read successfully, size: {len(file_content)} bytes")
+        
         return Response(
             content=file_content,
             media_type=doc.mime_type or "application/octet-stream",
             headers={
                 "Content-Disposition": f'attachment; filename="{doc.original_filename}"',
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Credentials": "true",
             }
         )
     except HTTPException:
         raise
     except Exception as e:
-        log.error(f"Error in download_document: {str(e)}")
+        print(f"Error in download_document: {str(e)}")
         traceback.print_exc()
-        log.error(f"Document download error: {e}")
-        raise HTTPException(status_code=500, detail="Unable to retrieve document. Please try again.")
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 @router.delete("/{deal_id}/documents/{document_id}", status_code=status.HTTP_204_NO_CONTENT)
