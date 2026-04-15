@@ -172,6 +172,16 @@ class ApiClient {
     return response.data;
   }
 
+  async getLatestRiskReport(dealId: number): Promise<DealRiskReport> {
+    const response = await this.client.get<DealRiskReport>(`/deals/${dealId}/risk-reports/latest`);
+    return response.data;
+  }
+
+  async getVerificationStatus(dealId: number): Promise<any> {
+    const response = await this.client.get(`/verification/status/${dealId}`);
+    return response.data;
+  }
+
   async uploadDocument(dealId: number, file: File, documentType: string): Promise<any> {
     const formData = new FormData();
     formData.append('file', file);
