@@ -331,7 +331,17 @@ class ApiClient {
 
   // ── AI Agent ──────────────────────────────────────────────────────────────────
   async getAIAgentDashboard(): Promise<any> {
-    const response = await this.client.get('/ai-agent/dashboard');
+    const response = await this.client.get('/ai-agent/dashboard/alerts');
+    return response.data;
+  }
+
+  async getAIAgentTiers(): Promise<any> {
+    const response = await this.client.get('/ai-agent/tiers');
+    return response.data;
+  }
+
+  async getAIAgentVariables(): Promise<any> {
+    const response = await this.client.get('/ai-agent/variables');
     return response.data;
   }
 
