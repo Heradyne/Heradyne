@@ -35,7 +35,7 @@ export default function ActuarialPricingPage() {
       const token = localStorage.getItem('token');
       const [uwRes, priceRes] = await Promise.all([
         fetch(`${API}/api/v1/underwriting/deals/${deal.id}/full-underwriting`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/api/v1/ai/price-deal/${deal.id}`, { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+        fetch(`${API}/api/v1/actuarial/price/deal/${deal.id}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
       ]);
       if (uwRes.ok) setUw(await uwRes.json());
       if (priceRes?.ok) setPricing(await priceRes.json());
