@@ -34,6 +34,7 @@ class LenderPolicyBase(BaseModel):
     auto_decision_enabled: bool = False
     
     notes: Optional[str] = Field(None, max_length=5000)
+    custom_criteria: Optional[List[dict]] = None
     
     @model_validator(mode='after')
     def validate_thresholds(self):
@@ -86,6 +87,7 @@ class LenderPolicyUpdate(BaseModel):
     auto_decision_enabled: Optional[bool] = None
     
     notes: Optional[str] = Field(None, max_length=5000)
+    custom_criteria: Optional[List[dict]] = None
 
 
 class LenderPolicyResponse(LenderPolicyBase):
@@ -125,6 +127,7 @@ class InsurerPolicyBase(BaseModel):
     auto_decision_enabled: bool = False
     
     notes: Optional[str] = Field(None, max_length=5000)
+    custom_criteria: Optional[List[dict]] = None
     
     @model_validator(mode='after')
     def validate_thresholds(self):
@@ -172,6 +175,7 @@ class InsurerPolicyUpdate(BaseModel):
     auto_decision_enabled: Optional[bool] = None
     
     notes: Optional[str] = Field(None, max_length=5000)
+    custom_criteria: Optional[List[dict]] = None
 
 
 class InsurerPolicyResponse(InsurerPolicyBase):

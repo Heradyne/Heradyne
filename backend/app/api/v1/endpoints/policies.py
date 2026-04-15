@@ -41,7 +41,8 @@ def create_lender_policy(
         target_rate_min=policy_data.target_rate_min,
         target_rate_max=policy_data.target_rate_max,
         allowed_deal_types=policy_data.allowed_deal_types,
-        notes=policy_data.notes
+        notes=policy_data.notes,
+        custom_criteria=policy_data.custom_criteria,
     )
     db.add(policy)
     db.commit()
@@ -163,7 +164,8 @@ def create_insurer_policy(
         allowed_industries=policy_data.allowed_industries,
         excluded_industries=policy_data.excluded_industries,
         allowed_deal_types=policy_data.allowed_deal_types,
-        notes=policy_data.notes
+        notes=policy_data.notes,
+        custom_criteria=policy_data.custom_criteria,
     )
     db.add(policy)
     db.commit()

@@ -54,6 +54,9 @@ class LenderPolicy(Base, TimestampMixin):
     min_deal_confidence_score = Column(Float, nullable=True)
     # ───────────────────────────────────────────────────────────────────────
     notes = Column(Text, nullable=True)
+
+    # Custom matching criteria — free-form list of {label, value} dicts
+    custom_criteria = Column(JSON, nullable=True)
     
     lender = relationship("User", back_populates="lender_policies")
     matches = relationship("DealMatch", back_populates="lender_policy")
@@ -100,7 +103,9 @@ class InsurerPolicy(Base, TimestampMixin):
     
     # Notes
     notes = Column(Text, nullable=True)
-    
+
+    # Custom matching criteria — free-form list of {label, value} dicts
+    custom_criteria = Column(JSON, nullable=True)
 
     # ── UnderwriteOS indication fields ─────────────────────────────────────
     min_health_score = Column(Float, nullable=True)
