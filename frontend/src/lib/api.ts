@@ -252,7 +252,10 @@ class ApiClient {
     return response.data;
   }
 
-  async makeMatchDecision(matchId: number, decision: { status: string; notes?: string }): Promise<DealMatch> {
+  async makeMatchDecision(matchId: number, statusOrDecision: string | { status: string; notes?: string }, notes?: string): Promise<DealMatch> {
+    const decision = typeof statusOrDecision === 'string'
+      ? { status: statusOrDecision, decision_notes: notes }
+      : statusOrDecision;
     const response = await this.client.put<DealMatch>(`/matching/matches/${matchId}/decision`, decision);
     return response.data;
   }
@@ -345,9 +348,28 @@ class ApiClient {
     return response.data;
   }
 
+  async scoreDealWithAIAgent(dealId: number): Promise<any> {
+    const response = await this.client.post(`/ai-agent/score/deal/${dealId}`);
+    return response.data;
+  }
+
   async getAIAgentDeals(): Promise<any[]> {
     const response = await this.client.get('/ai-agent/deals');
     return response.data;
+  }
+
+  async downloadDocument(dealId: number, documentId: number, filename: string): Promise<void> {
+    const response = await this.client.get(`/deals/${dealId}/documents/${documentId}/download`, {
+      responseType: 'blob',
+    });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   }
 
   async analyzeWithAI(dealId: number, analysisType?: string): Promise<any> {
