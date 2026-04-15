@@ -892,14 +892,14 @@ export default function MatchesPage() {
                 )}
 
                 {/* Verification Flags Section */}
-                {verification && verification.discrepancies.length > 0 && (
+                {verification && verification.discrepancies?.length > 0 && (
                   <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm font-medium text-yellow-800 mb-2 flex items-center">
                       <AlertTriangle className="h-4 w-4 mr-1" />
                       Document Verification Flags
                     </p>
                     <div className="space-y-2">
-                      {verification.discrepancies.map((d, i) => (
+                      {verification.discrepancies?.map((d, i) => (
                         <div key={i} className={`text-xs p-2 rounded ${
                           d.severity === 'critical' ? 'bg-red-100 text-red-800' :
                           d.severity === 'high' ? 'bg-orange-100 text-orange-800' :
