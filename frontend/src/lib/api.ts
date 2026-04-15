@@ -8,24 +8,21 @@ interface LoginResponse {
   must_change_password: boolean;
   mfa_required: boolean;
   mfa_token?: string;
-  access_token?: string; // still returned for API clients
+  access_token?: string;
 }
 
 class ApiClient {
   private client: AxiosInstance;
-  // Keep in-memory token for API clients; browser uses cookie
   private token: string | null = null;
 
   constructor() {
     this.client = axios.create({
       baseURL: `${API_URL}/api/v1`,
       headers: { 'Content-Type': 'application/json' },
-      withCredentials: true, // send httpOnly cookie on every request
+      withCredentials: true,
     });
 
     this.client.interceptors.request.use((config) => {
-      // Only set Authorization header if we have an explicit token
-      // (API clients / SSR — browser uses cookie automatically)
       if (this.token) {
         config.headers.Authorization = `Bearer ${this.token}`;
       }
@@ -48,7 +45,6 @@ class ApiClient {
             await this.client.post('/auth/refresh');
             return this.client(originalRequest);
           } catch {
-            // Refresh failed — clear local state, redirect to login
             this.setToken(null);
             if (typeof window !== 'undefined') {
               window.location.href = '/login?reason=session_expired';
@@ -59,7 +55,6 @@ class ApiClient {
       }
     );
 
-    // Load token for API clients (non-browser contexts)
     if (typeof window !== 'undefined') {
       this.token = localStorage.getItem('token');
     }
@@ -77,18 +72,15 @@ class ApiClient {
   }
 
   getToken(): string | null {
-    // For browser: check if we can reach the API (cookie will authenticate)
-    // For API clients: check explicit token
     if (typeof window !== 'undefined') {
       return this.token || localStorage.getItem('token') || 'cookie-auth';
     }
     return this.token;
   }
 
-  // Auth
+  // ── Auth ────────────────────────────────────────────────────────────────────
   async login(email: string, password: string): Promise<LoginResponse> {
     const response = await this.client.post<LoginResponse>('/auth/login', { email, password });
-    // Store token in memory too for API client compatibility
     if (response.data.access_token) {
       this.setToken(response.data.access_token);
     }
@@ -140,7 +132,7 @@ class ApiClient {
     });
   }
 
-  // Deals
+  // ── Deals ───────────────────────────────────────────────────────────────────
   async getDeals(params?: { status?: string; skip?: number; limit?: number }): Promise<Deal[]> {
     const response = await this.client.get<Deal[]>('/deals/', { params });
     return response.data;
@@ -195,7 +187,7 @@ class ApiClient {
     return response.data;
   }
 
-  // Policies
+  // ── Policies ─────────────────────────────────────────────────────────────────
   async getLenderPolicies(): Promise<LenderPolicy[]> {
     const response = await this.client.get<LenderPolicy[]>('/policies/lender');
     return response.data;
@@ -234,7 +226,7 @@ class ApiClient {
     await this.client.delete(`/policies/insurer/${id}`);
   }
 
-  // Matching
+  // ── Matching ─────────────────────────────────────────────────────────────────
   async runMatching(dealId: number): Promise<any> {
     const response = await this.client.post(`/matching/deals/${dealId}/run`);
     return response.data;
@@ -255,7 +247,7 @@ class ApiClient {
     return response.data;
   }
 
-  // Users (admin)
+  // ── Users (admin) ─────────────────────────────────────────────────────────────
   async getUsers(): Promise<User[]> {
     const response = await this.client.get<User[]>('/users/');
     return response.data;
@@ -275,7 +267,7 @@ class ApiClient {
     await this.client.delete(`/users/${id}`);
   }
 
-  // Assumptions
+  // ── Assumptions ──────────────────────────────────────────────────────────────
   async getAssumptions(): Promise<SystemAssumption[]> {
     const response = await this.client.get<SystemAssumption[]>('/assumptions/');
     return response.data;
@@ -286,13 +278,13 @@ class ApiClient {
     return response.data;
   }
 
-  // Audit logs
+  // ── Audit logs ────────────────────────────────────────────────────────────────
   async getAuditLogs(params?: { entity_type?: string; entity_id?: number; action?: string; skip?: number; limit?: number }): Promise<{ items: AuditLog[]; total: number }> {
     const response = await this.client.get('/audit/', { params });
     return response.data;
   }
 
-  // Collateral
+  // ── Collateral ────────────────────────────────────────────────────────────────
   async getAssetCategories(): Promise<any[]> {
     const response = await this.client.get('/collateral/categories');
     return response.data;
@@ -324,6 +316,78 @@ class ApiClient {
 
   async applyCollateralToDeal(dealId: number, assetIds: number[]): Promise<any> {
     const response = await this.client.post(`/collateral/apply-to-deal/${dealId}`, { asset_ids: assetIds });
+    return response.data;
+  }
+
+  // ── AI Agent ──────────────────────────────────────────────────────────────────
+  async getAIAgentDashboard(): Promise<any> {
+    const response = await this.client.get('/ai-agent/dashboard');
+    return response.data;
+  }
+
+  async getAIAgentDeals(): Promise<any[]> {
+    const response = await this.client.get('/ai-agent/deals');
+    return response.data;
+  }
+
+  async analyzeWithAI(dealId: number, analysisType?: string): Promise<any> {
+    const response = await this.client.post(`/ai-agent/analyze/${dealId}`, { analysis_type: analysisType });
+    return response.data;
+  }
+
+  async chatWithAI(message: string, dealId?: number, conversationHistory?: any[]): Promise<any> {
+    const response = await this.client.post('/chat/message', {
+      message,
+      deal_id: dealId,
+      conversation_history: conversationHistory || [],
+    });
+    return response.data;
+  }
+
+  async getAIAlerts(): Promise<any[]> {
+    const response = await this.client.get('/ai-agent/alerts');
+    return response.data;
+  }
+
+  async getPortfolioInsights(): Promise<any> {
+    const response = await this.client.get('/ai-agent/portfolio-insights');
+    return response.data;
+  }
+
+  // ── Dashboard stats ───────────────────────────────────────────────────────────
+  async getLenderDashboardStats(): Promise<LenderDashboardStats> {
+    const response = await this.client.get('/financial/lender-dashboard');
+    return response.data;
+  }
+
+  async getInsurerDashboardStats(): Promise<InsurerDashboardStats> {
+    const response = await this.client.get('/financial/insurer-dashboard');
+    return response.data;
+  }
+
+  async getAdminDashboardStats(): Promise<AdminDashboardStats> {
+    const response = await this.client.get('/financial/admin-dashboard');
+    return response.data;
+  }
+
+  // ── Financial ─────────────────────────────────────────────────────────────────
+  async getFeeLedger(): Promise<FeeLedgerEntry[]> {
+    const response = await this.client.get('/financial/fee-ledger');
+    return response.data;
+  }
+
+  async getMonthlyCashflow(): Promise<MonthlyCashflow[]> {
+    const response = await this.client.get('/cashflow/monthly');
+    return response.data;
+  }
+
+  async getExecutedLoans(): Promise<ExecutedLoan[]> {
+    const response = await this.client.get('/origination/executed-loans');
+    return response.data;
+  }
+
+  async getLoanPayments(loanId: number): Promise<LoanPayment[]> {
+    const response = await this.client.get(`/origination/loans/${loanId}/payments`);
     return response.data;
   }
 }
