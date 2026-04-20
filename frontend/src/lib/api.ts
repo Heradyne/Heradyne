@@ -359,9 +359,7 @@ class ApiClient {
   }
 
   async downloadDocument(dealId: number, documentId: number, filename: string): Promise<void> {
-    const response = await this.client.get(`/deals/${dealId}/documents/${documentId}/download`, {
-      responseType: 'blob',
-    });
+    const response = await this.client.get(`/deals/${dealId}/documents/${documentId}/download`, { responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
@@ -432,6 +430,243 @@ class ApiClient {
     const response = await this.client.get(`/origination/loans/${loanId}/payments`);
     return response.data;
   }
+
+  // ── SBA Compliance ────────────────────────────────────────────────────────
+  async getSBARequirements(): Promise<any> {
+    const response = await this.client.get('/sba-compliance/requirements');
+    return response.data;
+  }
+
+  async checkSBACompliance(dealId: number): Promise<any> {
+    const response = await this.client.get(`/sba-compliance/check/${dealId}`);
+    return response.data;
+  }
+
+  async getLenderChecklist(dealId: number): Promise<any> {
+    const response = await this.client.get(`/sba-compliance/lender-checklist/${dealId}`);
+    return response.data;
+  }
+
+  // ── Verification ──────────────────────────────────────────────────────────
+  async getDealVerificationStatus(dealId: number): Promise<any> {
+    const response = await this.client.get(`/verification/status/${dealId}`);
+    return response.data;
+  }
+
+  async createVerificationFlag(data: any): Promise<any> {
+    const response = await this.client.post('/verification/flags', data);
+    return response.data;
+  }
+
+  async markDealVerified(dealId: number): Promise<any> {
+    const response = await this.client.post('/verification/mark-verified', { deal_id: dealId });
+    return response.data;
+  }
+
+  async makeDecision(matchId: number, status: string, notes?: string): Promise<any> {
+    const response = await this.client.put(`/matching/matches/${matchId}/decision`, { status, decision_notes: notes });
+    return response.data;
+  }
+
+  // ── Signature Documents ───────────────────────────────────────────────────
+  async getPendingSignatures(): Promise<any[]> {
+    const response = await this.client.get('/signature-documents/pending');
+    return response.data;
+  }
+
+  async getMyUploadedDocuments(): Promise<any[]> {
+    const response = await this.client.get('/signature-documents/my-uploads');
+    return response.data;
+  }
+
+  async uploadSignatureDocument(formData: FormData): Promise<any> {
+    const response = await this.client.post('/signature-documents/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data;
+  }
+
+  async signDocument(documentId: number, data?: any): Promise<any> {
+    const response = await this.client.post(`/signature-documents/${documentId}/sign`, data || {});
+    return response.data;
+  }
+
+  async rejectDocument(documentId: number, reason?: string): Promise<any> {
+    const response = await this.client.post(`/signature-documents/${documentId}/reject`, { reason });
+    return response.data;
+  }
+
+  async withdrawDocument(documentId: number): Promise<any> {
+    const response = await this.client.delete(`/signature-documents/${documentId}`);
+    return response.data;
+  }
+
+  async downloadSignatureDocument(documentId: number, filename: string): Promise<void> {
+    const response = await this.client.get(`/signature-documents/${documentId}/download`, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  }
+
+  // ── Secondary Market ──────────────────────────────────────────────────────
+  async getSecondaryListings(): Promise<any[]> {
+    const response = await this.client.get('/secondary-market/listings');
+    return response.data;
+  }
+
+  async createSecondaryListing(data: any): Promise<any> {
+    const response = await this.client.post('/secondary-market/listings', data);
+    return response.data;
+  }
+
+  async cancelSecondaryListing(listingId: number): Promise<any> {
+    const response = await this.client.delete(`/secondary-market/listings/${listingId}`);
+    return response.data;
+  }
+
+  async getListingOffers(listingId: number): Promise<any[]> {
+    const response = await this.client.get(`/secondary-market/listings/${listingId}/offers`);
+    return response.data;
+  }
+
+  async createOffer(listingId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/secondary-market/listings/${listingId}/offers`, data);
+    return response.data;
+  }
+
+  async respondToOffer(offerId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/secondary-market/offers/${offerId}/respond`, data);
+    return response.data;
+  }
+
+  async withdrawOffer(offerId: number): Promise<any> {
+    const response = await this.client.delete(`/secondary-market/offers/${offerId}`);
+    return response.data;
+  }
+
+  async getMyOffers(): Promise<any[]> {
+    const response = await this.client.get('/secondary-market/my/offers');
+    return response.data;
+  }
+
+  async getSecondaryMarketStats(): Promise<any> {
+    const response = await this.client.get('/secondary-market/stats');
+    return response.data;
+  }
+
+  async getReinsurancePools(): Promise<any[]> {
+    const response = await this.client.get('/reinsurance/pools');
+    return response.data;
+  }
+
+  async createReinsurancePool(data: any): Promise<any> {
+    const response = await this.client.post('/reinsurance/pools', data);
+    return response.data;
+  }
+
+  async offerReinsurancePool(poolId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/reinsurance/pools/${poolId}/offer`, data);
+    return response.data;
+  }
+
+  async getInsurerDeals(): Promise<any[]> {
+    const response = await this.client.get('/reinsurance/insured-deals');
+    return response.data;
+  }
+
+  // ── Financials / Dashboard ────────────────────────────────────────────────
+  async getLenderDashboard(): Promise<any> {
+    const response = await this.client.get('/financial/dashboard/lender');
+    return response.data;
+  }
+
+  async getInsurerDashboard(): Promise<any> {
+    const response = await this.client.get('/financial/dashboard/insurer');
+    return response.data;
+  }
+
+  async getAdminDashboard(): Promise<any> {
+    const response = await this.client.get('/financial/dashboard/admin');
+    return response.data;
+  }
+
+  async getAllUsers(): Promise<any[]> {
+    const response = await this.client.get('/users/');
+    return response.data;
+  }
+
+  async getLenderOrganizations(): Promise<any[]> {
+    const response = await this.client.get('/users/lender-organizations');
+    return response.data;
+  }
+
+  async activateUser(userId: number): Promise<any> {
+    const response = await this.client.put(`/users/${userId}/activate`);
+    return response.data;
+  }
+
+  async deactivateUser(userId: number): Promise<any> {
+    const response = await this.client.put(`/users/${userId}/deactivate`);
+    return response.data;
+  }
+
+  async adminCreateUser(data: any): Promise<any> {
+    const response = await this.client.post('/users/', data);
+    return response.data;
+  }
+
+  async adminResetPassword(userId: number, newPassword: string): Promise<any> {
+    const response = await this.client.put(`/users/${userId}/reset-password`, { new_password: newPassword });
+    return response.data;
+  }
+
+  // ── Assumptions / Origination Settings ───────────────────────────────────
+  async getEffectiveAssumptions(): Promise<any[]> {
+    const response = await this.client.get('/assumptions/effective');
+    return response.data;
+  }
+
+  async getUsersWithOverrides(): Promise<any[]> {
+    const response = await this.client.get('/assumptions/users');
+    return response.data;
+  }
+
+  async createUserOverride(userId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/assumptions/users/${userId}/override`, data);
+    return response.data;
+  }
+
+  async deleteUserOverrides(userId: number): Promise<any> {
+    const response = await this.client.delete(`/assumptions/users/${userId}/overrides`);
+    return response.data;
+  }
+
+  async copyDefaultsToUser(userId: number): Promise<any> {
+    const response = await this.client.post(`/assumptions/users/${userId}/copy-defaults`);
+    return response.data;
+  }
+
+  async getOriginationSettings(): Promise<any> {
+    const response = await this.client.get('/origination/settings');
+    return response.data;
+  }
+
+  async updateOriginationSettings(data: any): Promise<any> {
+    const response = await this.client.put('/origination/settings', data);
+    return response.data;
+  }
+
+  // ── Collateral ────────────────────────────────────────────────────────────
+  async revalueAsset(assetId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/collateral/assets/${assetId}/revalue`, data);
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();
