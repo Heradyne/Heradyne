@@ -136,21 +136,21 @@ export default function BankerMemoPage() {
           {memo && !generating && (
             <div id="memo-content" className="space-y-0 print:text-sm">
               {/* Header */}
-              <div className="bg-navy-900 bg-gray-900 text-white rounded-t-xl px-6 py-5">
+              <div className="bg-white border-b-2 border-blue-600 rounded-t-xl px-6 py-5">
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="text-xs text-gray-400 uppercase tracking-widest mb-1">Credit Memorandum</p>
-                    <h2 className="text-xl font-bold">{selectedDeal?.name}</h2>
-                    <p className="text-gray-300 text-sm mt-1">{selectedDeal?.industry?.toUpperCase()}</p>
+                    <p className="text-xs text-blue-600 font-bold uppercase tracking-widest mb-1">Credit Memorandum</p>
+                    <h2 className="text-xl font-bold text-gray-900">{selectedDeal?.name}</h2>
+                    <p className="text-gray-500 text-sm mt-1">{selectedDeal?.industry?.toUpperCase()}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs text-gray-400">Memo Date</p>
-                    <p className="text-sm font-medium">{memo.memo_date || new Date().toLocaleDateString()}</p>
-                    <p className="text-xs text-gray-400 mt-2">Loan Ref</p>
-                    <p className="text-sm font-medium">{memo.loan_number_placeholder}</p>
+                    <p className="text-xs text-gray-500">Memo Date</p>
+                    <p className="text-sm font-medium text-gray-900">{memo.memo_date || new Date().toLocaleDateString()}</p>
+                    <p className="text-xs text-gray-500 mt-2">Loan Ref</p>
+                    <p className="text-sm font-medium text-gray-900">{memo.loan_number_placeholder}</p>
                   </div>
                 </div>
-                <div className="mt-4 pt-4 border-t border-gray-700 flex items-center justify-between">
+                <div className="mt-4 pt-4 border-t border-gray-200 flex items-center justify-between">
                   <span className={`px-3 py-1 rounded-full text-sm font-bold ${
                     memo.recommendation === 'Approve' ? 'bg-green-500 text-white' :
                     memo.recommendation === 'Approve with Conditions' ? 'bg-yellow-400 text-gray-900' :
@@ -158,7 +158,7 @@ export default function BankerMemoPage() {
                   }`}>
                     {memo.recommendation}
                   </span>
-                  <p className="text-gray-300 text-sm max-w-md text-right">{memo.recommendation_rationale}</p>
+                  <p className="text-gray-600 text-sm max-w-md text-right">{memo.recommendation_rationale}</p>
                 </div>
               </div>
 
