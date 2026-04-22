@@ -320,6 +320,7 @@ export default function AIAgentPage() {
       ]);
       setDemoData({
         loan_amount: deal.loan_amount_requested || 1500000,
+        loan_purpose: 'acquisition',
         naics_industry: deal.industry || '621',
         business_age: deal.owner_experience_years || 5,
         equity_injection: deal.equity_injection && deal.purchase_price
@@ -327,10 +328,6 @@ export default function AIAgentPage() {
           : 20,
         dscr: rpt?.dscr_base || 1.25,
         borrower_credit_score: deal.owner_credit_score || 700,
-        annual_revenue: deal.annual_revenue || 0,
-        ebitda: deal.ebitda || 0,
-        purchase_price: deal.purchase_price || 0,
-        owner_experience_years: deal.owner_experience_years || 5,
       });
     } catch {
       setError('Failed to load deal data');
@@ -341,11 +338,20 @@ export default function AIAgentPage() {
 
   const runScoringDemo = async () => {
     setScoringLoading(true);
+    setScoringResult(null);
     try {
       const result = await api.scoreWithAIAgent(demoData);
-      setScoringResult(result);
+      if (result && result.composite_score !== undefined) {
+        setScoringResult(result);
+      } else {
+        setError('Unexpected response from scoring engine');
+      }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Scoring failed');
+      const detail = err.response?.data?.detail;
+      const msg = Array.isArray(detail)
+        ? detail.map((d: any) => `${d.loc?.join('.')} — ${d.msg}`).join(', ')
+        : (typeof detail === 'string' ? detail : 'Scoring failed');
+      setError(msg);
     } finally {
       setScoringLoading(false);
     }

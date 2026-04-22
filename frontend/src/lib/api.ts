@@ -355,7 +355,18 @@ class ApiClient {
   }
 
   async scoreWithAIAgent(data: any): Promise<any> {
-    const response = await this.client.post('/ai-agent/score', data);
+    // Strip to only fields DealScoringRequest accepts and ensure required fields have values
+    const payload = {
+      loan_amount: Number(data.loan_amount) || 1500000,
+      loan_purpose: data.loan_purpose || 'acquisition',
+      naics_industry: String(data.naics_industry || '621'),
+      business_age: Math.round(Number(data.business_age) || 5),
+      loan_term: Math.round(Number(data.loan_term) || 120),
+      equity_injection: Number(data.equity_injection) || 10,
+      dscr: Number(data.dscr) || 1.25,
+      borrower_credit_score: Math.round(Number(data.borrower_credit_score) || 700),
+    };
+    const response = await this.client.post('/ai-agent/score', payload);
     const d = response.data;
     // Normalize category_scores: endpoint returns {percentage, raw_score...} but page expects {score, rationale}
     if (d.category_scores) {
