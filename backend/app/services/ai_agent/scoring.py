@@ -153,7 +153,7 @@ class RiskScoringEngine:
     def _score_variable(self, var: Variable, data: Dict) -> VariableScore:
         raw_value = data.get(var.id)
         if raw_value is None:
-            return VariableScore(var.id, var.name, var.category, None, var.max_points * 0.5, var.max_points, 0.5, None, "Data not provided")
+            return VariableScore(var.id, var.name, var.category, None, 0.0, var.max_points, 0.0, None, "Data not provided")
         
         score, flag, notes = self._apply_scoring_logic(var, raw_value, data)
         return VariableScore(var.id, var.name, var.category, raw_value, score, var.max_points, score / var.max_points if var.max_points > 0 else 0, flag, notes)
@@ -193,7 +193,7 @@ class RiskScoringEngine:
             else: return max_pts * 0.25, 'reject', f"NAICS {value} - Tier 4"
         
         # Default scoring
-        return max_pts * 0.5, None, str(value)
+        return max_pts * 0.5, "caution", str(value)
     
     def _get_industry_tier(self, naics_code: str) -> int:
         naics_str = str(naics_code)[:2]

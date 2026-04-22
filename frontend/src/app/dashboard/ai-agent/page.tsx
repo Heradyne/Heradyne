@@ -516,6 +516,11 @@ export default function AIAgentPage() {
                 <div>
                   <p className="text-3xl font-bold">{scoringResult.composite_score?.toFixed(1)}</p>
                   <p className="text-sm text-gray-500">Composite Score</p>
+                  {scoringResult.variables_missing?.length > 0 && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠ {scoringResult.variables_missing.length} of {(scoringResult.variables_evaluated || 0) + (scoringResult.variables_missing?.length || 0)} variables missing data — score reflects available inputs only
+                    </p>
+                  )}
                 </div>
                 <div className={`px-4 py-2 rounded-lg border ${getTierColor(scoringResult.tier)}`}>
                   <p className="font-semibold">{scoringResult.tier_display}</p>
