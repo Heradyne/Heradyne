@@ -27,6 +27,7 @@ from app.services.claude_ai import (
     claude_covenant_monitoring,
     claude_normalize_financials,
     claude_portfolio_insights,
+    claude_draft_sba_form,
 )
 from app.services.audit import audit_service
 
@@ -322,3 +323,102 @@ async def get_portfolio_insights(
     audit_service.log(db=db, action="portfolio_insights_generated", entity_type="portfolio",
                       entity_id=current_user.id, user_id=current_user.id)
     return result
+
+
+# ── SBA Document Drafts ───────────────────────────────────────────────────────
+
+SBA_FORMS = {
+    "form_1919": "SBA Form 1919 — Borrower Information Form",
+    "form_1920": "SBA Form 1920 — Lender's Application for Guaranty",
+    "form_912": "SBA Form 912 — Statement of Personal History",
+    "form_413": "SBA Form 413 — Personal Financial Statement",
+    "form_4506t": "IRS Form 4506-T — Request for Transcript of Tax Return",
+    "form_147": "SBA Form 147 — Note",
+    "credit_memo": "Credit Memorandum",
+    "equity_injection_cert": "Equity Injection Certification",
+    "credit_elsewhere": "Credit Elsewhere Certification",
+}
+
+
+class DraftFormRequest(BaseModel):
+    form_type: str  # key from SBA_FORMS
+    lender_data: Optional[dict] = None
+
+
+@router.post("/deals/{deal_id}/draft-sba-form")
+async def draft_sba_form(
+    deal_id: int,
+    request: DraftFormRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Generate a pre-filled draft of an SBA form with flagged missing fields."""
+    if current_user.role not in LENDER_ROLES and current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Lender access required")
+
+    deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    if request.form_type not in SBA_FORMS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown form type. Valid options: {list(SBA_FORMS.keys())}"
+        )
+
+    rpt = db.query(DealRiskReport).filter(
+        DealRiskReport.deal_id == deal_id
+    ).order_by(DealRiskReport.version.desc()).first()
+
+    deal_data = {
+        "name": deal.name,
+        "industry": deal.industry,
+        "state": deal.state,
+        "deal_type": str(deal.deal_type.value) if deal.deal_type else "acquisition",
+        "purchase_price": deal.purchase_price,
+        "loan_amount_requested": deal.loan_amount_requested,
+        "equity_injection": deal.equity_injection,
+        "annual_revenue": deal.annual_revenue,
+        "ebitda": deal.ebitda,
+        "owner_credit_score": deal.owner_credit_score,
+        "owner_experience_years": deal.owner_experience_years,
+        "years_in_business": deal.years_in_business,
+        "business_description": deal.business_description if hasattr(deal, "business_description") else None,
+        "addbacks": deal.addbacks,
+        "business_assets": deal.business_assets,
+        "personal_assets": deal.personal_assets,
+    }
+
+    risk_report = {}
+    if rpt:
+        risk_report = {
+            "dscr_base": rpt.dscr_base,
+            "annual_pd": rpt.annual_pd,
+            "collateral_coverage": rpt.collateral_coverage,
+            "nolv": rpt.nolv,
+            "sba_eligible": rpt.sba_eligible,
+            "sba_failed_checks": rpt.sba_failed_checks,
+            "health_score": rpt.health_score,
+            "deal_verdict": rpt.deal_verdict,
+        }
+
+    form_name = SBA_FORMS[request.form_type]
+    result = claude_draft_sba_form(form_name, deal_data, risk_report, request.lender_data or {})
+    if not result:
+        raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
+
+    result["form_type"] = request.form_type
+    result["deal_id"] = deal_id
+    result["deal_name"] = deal.name
+    result["available_forms"] = SBA_FORMS
+
+    audit_service.log(db=db, action="sba_form_drafted", entity_type="deal",
+                      entity_id=deal_id, user_id=current_user.id,
+                      details={"form_type": request.form_type})
+    return result
+
+
+@router.get("/sba-forms")
+async def list_sba_forms(current_user: User = Depends(get_current_active_user)):
+    """List available SBA forms that can be drafted."""
+    return {"forms": SBA_FORMS}

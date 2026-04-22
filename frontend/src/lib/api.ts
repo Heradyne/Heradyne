@@ -710,6 +710,20 @@ class ApiClient {
     return response.data;
   }
 
+
+  async draftSBAForm(dealId: number, formType: string, lenderData?: any): Promise<any> {
+    const response = await this.client.post(`/ai-features/deals/${dealId}/draft-sba-form`, {
+      form_type: formType,
+      lender_data: lenderData,
+    });
+    return response.data;
+  }
+
+  async listSBAForms(): Promise<any> {
+    const response = await this.client.get('/ai-features/sba-forms');
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();

@@ -896,3 +896,92 @@ Provide portfolio-level insights and specific actions. JSON only."""
     result["_powered_by"] = "claude"
     result["analyzed_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 13: SBA Document Drafts ───────────────────────────────────────────
+
+SBA_FORMS_SYSTEM = """You are an SBA 7(a) lending specialist generating draft content for SBA forms and compliance documents.
+
+You receive deal data and produce pre-filled draft content for a specific SBA form or document type.
+Flag every field you cannot populate due to missing data.
+
+Rules:
+1. Fill every field you have data for with the actual deal values
+2. Flag missing fields clearly — do not make up data
+3. Use the correct SBA field names and formatting
+4. Note any fields that require borrower signature or notarization
+5. Flag any compliance issues that would prevent the form from being accepted
+
+Respond with valid JSON only.
+
+{
+  "form_name": "<full form name and number>",
+  "form_purpose": "<one sentence on what this form does>",
+  "completion_pct": <0-100 integer based on how complete the draft is>,
+  "fields": [
+    {
+      "field_name": "<SBA field name>",
+      "field_label": "<display label>",
+      "value": "<filled value or null>",
+      "status": "<filled|missing|requires_borrower|requires_lender|requires_signature>",
+      "source": "<where this data comes from: deal_data|borrower_input|lender_input|computed>",
+      "missing_reason": "<why it is missing, if missing>"
+    }
+  ],
+  "missing_required_fields": ["<field name>"],
+  "blocking_issues": ["<issue that prevents SBA acceptance>"],
+  "warnings": ["<non-blocking compliance warnings>"],
+  "next_steps": ["<step 1 to complete this form>"],
+  "draft_narrative": "<pre-filled narrative sections of the form if applicable>"
+}"""
+
+
+def claude_draft_sba_form(form_type: str, deal_data: dict, risk_report: dict, lender_data: dict) -> Optional[dict]:
+    import datetime
+    rev = deal_data.get("annual_revenue", 0)
+    ebitda = deal_data.get("ebitda", 0)
+    price = deal_data.get("purchase_price", 0)
+    loan = deal_data.get("loan_amount_requested", 0)
+    equity = deal_data.get("equity_injection", 0)
+    credit = deal_data.get("owner_credit_score", "MISSING")
+    exp = deal_data.get("owner_experience_years", "MISSING")
+    industry = deal_data.get("industry", "MISSING")
+    state = deal_data.get("state", "MISSING")
+    dscr = risk_report.get("dscr_base", "MISSING")
+
+    user_msg = f"""Generate a pre-filled draft for: {form_type}
+
+DEAL DATA AVAILABLE:
+Business Name: {deal_data.get('name', 'MISSING')}
+Industry: {industry}
+State: {state}
+Purchase Price: ${price:,.0f}
+Loan Requested: ${loan:,.0f}
+Equity Injection: ${equity:,.0f} ({round(equity/price*100,1) if price else 'MISSING'}%)
+Annual Revenue: ${rev:,.0f}
+EBITDA: ${ebitda:,.0f}
+DSCR: {dscr}x
+Owner Credit Score: {credit}
+Owner Experience: {exp} years
+Business Age: {deal_data.get('years_in_business', 'MISSING')} years
+Deal Type: {deal_data.get('deal_type', 'acquisition')}
+
+LENDER DATA:
+{json.dumps(lender_data, indent=2) if lender_data else 'Not provided'}
+
+RISK REPORT:
+{json.dumps(risk_report, indent=2) if risk_report else 'Not available'}
+
+For each field:
+- If data is available, fill it with the actual value
+- If data is missing, set status to "missing" and explain what's needed
+- Flag anything that would cause SBA to reject the form
+
+JSON only. Today: {datetime.date.today().isoformat()}"""
+
+    text = _call_claude(SBA_FORMS_SYSTEM, user_msg, max_tokens=3000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["drafted_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
