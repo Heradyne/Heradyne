@@ -540,19 +540,19 @@ Respond with valid JSON only.
 
 def claude_generate_banker_memo(deal_data: dict, risk_report: dict, uw_data: dict) -> Optional[dict]:
     import datetime
-    health = uw_data.get("health_score", {})
-    dscr = uw_data.get("dscr_pdscr", {})
-    val = uw_data.get("valuation", {})
-    dk = uw_data.get("deal_killer", {})
-    sba = uw_data.get("sba_eligibility", {})
-    rev = deal_data.get("annual_revenue", 0)
-    ebitda = deal_data.get("ebitda", 0)
-    price = deal_data.get("purchase_price", 0)
-    loan = deal_data.get("loan_amount_requested", 0)
-    equity = deal_data.get("equity_injection", 0)
-    credit = deal_data.get("owner_credit_score", "N/A")
-    exp = deal_data.get("owner_experience_years", "N/A")
-    industry = deal_data.get("industry", "unknown")
+    health = uw_data.get("health_score", {}) or {}
+    dscr = uw_data.get("dscr_pdscr", {}) or {}
+    val = uw_data.get("valuation", {}) or {}
+    dk = uw_data.get("deal_killer", {}) or {}
+    sba = uw_data.get("sba_eligibility", {}) or {}
+    rev = deal_data.get("annual_revenue") or 0
+    ebitda = deal_data.get("ebitda") or 0
+    price = deal_data.get("purchase_price") or 0
+    loan = deal_data.get("loan_amount_requested") or 0
+    equity = deal_data.get("equity_injection") or 0
+    credit = deal_data.get("owner_credit_score") or "N/A"
+    exp = deal_data.get("owner_experience_years") or "N/A"
+    industry = deal_data.get("industry") or "unknown"
 
     user_msg = f"""Write a formal SBA 7(a) credit memo for loan committee review.
 
@@ -673,12 +673,12 @@ def claude_borrower_recommendations(deal_data: dict, uw_data: dict, risk_report:
     sba = uw_data.get("sba_eligibility", {})
     val = uw_data.get("valuation", {})
     pbs = uw_data.get("playbooks", [])
-    rev = deal_data.get("annual_revenue", 0)
-    ebitda = deal_data.get("ebitda", 0)
-    price = deal_data.get("purchase_price", 0)
-    loan = deal_data.get("loan_amount_requested", 0)
-    equity = deal_data.get("equity_injection", 0)
-    credit = deal_data.get("owner_credit_score", "N/A")
+    rev = deal_data.get("annual_revenue") or 0
+    ebitda = deal_data.get("ebitda") or 0
+    price = deal_data.get("purchase_price") or 0
+    loan = deal_data.get("loan_amount_requested") or 0
+    equity = deal_data.get("equity_injection") or 0
+    credit = deal_data.get("owner_credit_score") or "N/A"
 
     user_msg = f"""Generate personalized recommendations for this SBA acquisition buyer.
 
@@ -928,16 +928,16 @@ Rules:
 
 def claude_draft_sba_form(form_type: str, deal_data: dict, risk_report: dict, lender_data: dict) -> Optional[dict]:
     import datetime
-    rev = deal_data.get("annual_revenue", 0)
-    ebitda = deal_data.get("ebitda", 0)
-    price = deal_data.get("purchase_price", 0)
-    loan = deal_data.get("loan_amount_requested", 0)
-    equity = deal_data.get("equity_injection", 0)
-    credit = deal_data.get("owner_credit_score", "MISSING")
-    exp = deal_data.get("owner_experience_years", "MISSING")
-    industry = deal_data.get("industry", "MISSING")
-    state = deal_data.get("state", "MISSING")
-    dscr = risk_report.get("dscr_base", "MISSING")
+    rev = deal_data.get("annual_revenue") or 0
+    ebitda = deal_data.get("ebitda") or 0
+    price = deal_data.get("purchase_price") or 0
+    loan = deal_data.get("loan_amount_requested") or 0
+    equity = deal_data.get("equity_injection") or 0
+    credit = deal_data.get("owner_credit_score") or "MISSING"
+    exp = deal_data.get("owner_experience_years") or "MISSING"
+    industry = deal_data.get("industry") or "MISSING"
+    state = deal_data.get("state") or "MISSING"
+    dscr = risk_report.get("dscr_base") or "MISSING"
 
     user_msg = f"""Generate a pre-filled draft for: {form_type}
 
