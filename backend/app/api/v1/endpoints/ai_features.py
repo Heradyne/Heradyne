@@ -142,7 +142,7 @@ async def sba_compliance_qa(
                 "dscr": rpt.dscr_base if rpt else None,
             }
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     answer = await loop.run_in_executor(None, lambda: claude_sba_qa(request.question, deal_context))
     if not answer:
         raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
@@ -197,7 +197,7 @@ async def get_borrower_recommendations(
         "collateral_coverage": rpt.collateral_coverage,
     }
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, lambda: claude_borrower_recommendations(deal_data, uw_data, risk_report))
     if not result:
         raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
@@ -247,7 +247,7 @@ async def check_covenants(
         {"name": "Annual Financial Reporting", "required": "within 120 days of fiscal year end", "metric": "reporting"},
     ]
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, lambda: claude_covenant_monitoring(loan_data, request.financial_data, default_covenants))
     if not result:
         raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
@@ -273,7 +273,7 @@ async def normalize_financial_document(
     db: Session = Depends(get_db),
 ):
     """Extract and normalize financial data from uploaded documents for SBA underwriting."""
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, lambda: claude_normalize_financials(request.document_text, request.document_type, request.business_name))
     if not result:
         raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
@@ -321,7 +321,7 @@ async def get_portfolio_insights(
         "avg_loan_size": total_exposure / len(loans_data) if loans_data else 0,
     }
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, lambda: claude_portfolio_insights(portfolio_data, loans_data))
     if not result:
         raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
@@ -409,7 +409,7 @@ async def draft_sba_form(
         }
 
     form_name = SBA_FORMS[request.form_type]
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     result = await loop.run_in_executor(None, lambda: claude_draft_sba_form(form_name, deal_data, risk_report, request.lender_data or {}))
     if result is None:
         raise HTTPException(
