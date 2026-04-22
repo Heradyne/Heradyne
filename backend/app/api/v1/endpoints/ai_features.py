@@ -71,7 +71,7 @@ async def generate_banker_memo(
         "years_in_business": deal.owner_experience_years,
         "business_age_years": None,
         "state": getattr(deal, "state", None),
-        "deal_type": deal.deal_type,
+        "deal_type": str(deal.deal_type.value) if deal.deal_type else "acquisition",
     }
 
     risk_report = {}
@@ -102,7 +102,8 @@ async def generate_banker_memo(
                           "equity_value_high": rpt.equity_value_high},
         }
 
-    result = claude_generate_banker_memo(deal_data, risk_report, uw_data)
+    loop = asyncio.get_running_loop()
+    result = await loop.run_in_executor(None, lambda: claude_generate_banker_memo(deal_data, risk_report, uw_data))
     if not result:
         raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
 
