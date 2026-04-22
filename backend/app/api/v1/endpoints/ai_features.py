@@ -70,7 +70,7 @@ async def generate_banker_memo(
         "owner_experience_years": deal.owner_experience_years,
         "years_in_business": deal.owner_experience_years,
         "business_age_years": None,
-        "state": deal.state,
+        "state": getattr(deal, "state", None),
         "deal_type": deal.deal_type,
     }
 
@@ -379,7 +379,7 @@ async def draft_sba_form(
     deal_data = {
         "name": deal.name,
         "industry": deal.industry,
-        "state": deal.state,
+        "state": getattr(deal, "state", None),
         "deal_type": str(deal.deal_type.value) if deal.deal_type else "acquisition",
         "purchase_price": deal.purchase_price,
         "loan_amount_requested": deal.loan_amount_requested,
@@ -389,10 +389,10 @@ async def draft_sba_form(
         "owner_credit_score": deal.owner_credit_score,
         "owner_experience_years": deal.owner_experience_years,
         "years_in_business": deal.owner_experience_years,
-        "business_description": deal.business_description,
-        "addbacks": deal.addbacks,
-        "business_assets": deal.business_assets,
-        "personal_assets": deal.personal_assets,
+        "business_description": getattr(deal, "business_description", None),
+        "addbacks": getattr(deal, "addbacks", None),
+        "business_assets": getattr(deal, "business_assets", None),
+        "personal_assets": getattr(deal, "personal_assets", None),
     }
 
     risk_report = {}
