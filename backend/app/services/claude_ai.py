@@ -554,11 +554,15 @@ def claude_generate_banker_memo(deal_data: dict, risk_report: dict, uw_data: dic
     exp = deal_data.get("owner_experience_years") or "N/A"
     industry = deal_data.get("industry") or "unknown"
 
+    # Safely coerce all numeric values that go into format strings
+    _n = lambda v: v or 0  # None-safe number
+    _s = lambda v, d="N/A": v if v is not None else d  # None-safe string
+
     user_msg = f"""Write a formal SBA 7(a) credit memo for loan committee review.
 
 TRANSACTION:
 Business: {deal_data.get('name','Unknown')} | Industry: {industry}
-Purchase Price: ${price:,.0f} | Loan Requested: ${loan:,.0f} | Equity Injection: ${equity:,.0f} ({round(equity/price*100,1) if price else 0}%)
+Purchase Price: ${_n(price):,.0f} | Loan Requested: ${_n(loan):,.0f} | Equity Injection: ${_n(equity):,.0f} ({round(_n(equity)/_n(price)*100,1) if price else 0}%)
 Use of Proceeds: Acquisition financing
 
 BORROWER:
@@ -566,18 +570,18 @@ Owner Credit Score: {credit} | Industry Experience: {exp} years
 Business Age: {deal_data.get('business_age_years', deal_data.get('years_in_business', 'N/A'))} years
 
 FINANCIALS:
-Revenue: ${rev:,.0f} | Normalized EBITDA: ${ebitda:,.0f} ({round(ebitda/rev*100,1) if rev else 0}% margin)
-DSCR: {dscr.get('dscr_base','N/A')}x | Post-Draw DSCR: {dscr.get('pdscr','N/A')}x
-Stressed DSCR (-20% rev): {dscr.get('dscr_stress_20','N/A')}x
-Owner Draw: ${dscr.get('owner_draw_annual',0):,.0f}/yr
+Revenue: ${_n(rev):,.0f} | Normalized EBITDA: ${_n(ebitda):,.0f} ({round(_n(ebitda)/_n(rev)*100,1) if rev else 0}% margin)
+DSCR: {_s(dscr.get('dscr_base'))}x | Post-Draw DSCR: {_s(dscr.get('pdscr'))}x
+Stressed DSCR (-20% rev): {_s(dscr.get('dscr_stress_20'))}x
+Owner Draw: ${_n(dscr.get('owner_draw_annual')):,.0f}/yr
 
 UNDERWRITING:
-Health Score: {health.get('score','N/A')}/100
-Verdict: {dk.get('verdict','N/A').upper()} | Max Supportable Price: ${dk.get('max_supportable_price',0):,.0f}
+Health Score: {_s(health.get('score'))}/100
+Verdict: {(dk.get('verdict') or 'N/A').upper()} | Max Supportable Price: ${_n(dk.get('max_supportable_price')):,.0f}
 SBA Eligible: {'Yes' if sba.get('eligible') else 'No'}
-Collateral Coverage: {risk_report.get('collateral_coverage','N/A')}x | NOLV: ${risk_report.get('nolv',0):,.0f}
-Annual PD: {risk_report.get('annual_pd','N/A')}
-Equity Value (mid): ${val.get('equity_value_mid',0):,.0f}
+Collateral Coverage: {_s(risk_report.get('collateral_coverage'))}x | NOLV: ${_n(risk_report.get('nolv')):,.0f}
+Annual PD: {_s(risk_report.get('annual_pd'))}
+Equity Value (mid): ${_n(val.get('equity_value_mid')):,.0f}
 
 SBA ELIGIBILITY ISSUES: {', '.join(sba.get('failed_checks', [])) if sba.get('failed_checks') else 'None identified'}
 
