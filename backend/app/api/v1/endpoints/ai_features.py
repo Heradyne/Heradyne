@@ -68,8 +68,8 @@ async def generate_banker_memo(
         "ebitda": deal.ebitda,
         "owner_credit_score": deal.owner_credit_score,
         "owner_experience_years": deal.owner_experience_years,
-        "years_in_business": deal.years_in_business,
-        "business_age_years": deal.years_in_business,
+        "years_in_business": deal.owner_experience_years,
+        "business_age_years": None,
         "state": deal.state,
         "deal_type": deal.deal_type,
     }
@@ -81,21 +81,24 @@ async def generate_banker_memo(
             "dscr_base": rpt.dscr_base,
             "annual_pd": rpt.annual_pd,
             "collateral_coverage": rpt.collateral_coverage,
-            "nolv": rpt.nolv,
+            "nolv": rpt.total_nolv,
             "ev_mid": rpt.ev_mid,
         }
         uw_data = {
-            "health_score": {"score": rpt.health_score, "cashflow": rpt.health_cashflow,
-                             "stability": rpt.health_stability, "growth": rpt.health_growth,
-                             "liquidity": rpt.health_liquidity},
+            "health_score": {"score": rpt.health_score, "cashflow": rpt.health_score_cashflow,
+                             "stability": rpt.health_score_stability, "growth": rpt.health_score_growth,
+                             "liquidity": rpt.health_score_liquidity},
             "dscr_pdscr": {"dscr_base": rpt.dscr_base, "pdscr": rpt.pdscr,
-                           "dscr_stress_20": rpt.dscr_stress_20,
+                           "dscr_stress_20": rpt.dscr_stress,
                            "owner_draw_annual": rpt.owner_draw_annual,
                            "premium_capacity_monthly": rpt.premium_capacity_monthly},
-            "deal_killer": {"verdict": rpt.deal_verdict, "confidence_score": rpt.deal_confidence_score,
-                            "max_supportable_price": rpt.max_supportable_price},
-            "sba_eligibility": {"eligible": rpt.sba_eligible, "failed_checks": rpt.sba_failed_checks or []},
-            "valuation": {"equity_value_mid": rpt.equity_value_mid, "equity_value_low": rpt.equity_value_low,
+            "deal_killer": {"verdict": rpt.deal_killer_verdict or "unknown",
+                            "confidence_score": rpt.deal_confidence_score,
+                            "max_supportable_price": getattr(rpt, "max_supportable_price", None)},
+            "sba_eligibility": {"eligible": rpt.sba_eligible,
+                                "failed_checks": rpt.sba_eligibility_checklist or []},
+            "valuation": {"equity_value_mid": rpt.equity_value_mid,
+                          "equity_value_low": rpt.equity_value_low,
                           "equity_value_high": rpt.equity_value_high},
         }
 
@@ -182,10 +185,10 @@ async def get_borrower_recommendations(
     }
     uw_data = {
         "health_score": {"score": rpt.health_score},
-        "dscr_pdscr": {"dscr_base": rpt.dscr_base, "pdscr": rpt.pdscr, "dscr_stress_20": rpt.dscr_stress_20},
-        "deal_killer": {"verdict": rpt.deal_verdict, "confidence_score": rpt.deal_confidence_score,
+        "dscr_pdscr": {"dscr_base": rpt.dscr_base, "pdscr": rpt.pdscr, "dscr_stress_20": rpt.dscr_stress},
+        "deal_killer": {"verdict": rpt.deal_killer_verdict, "confidence_score": rpt.deal_confidence_score,
                         "max_supportable_price": rpt.max_supportable_price},
-        "sba_eligibility": {"eligible": rpt.sba_eligible, "failed_checks": rpt.sba_failed_checks or []},
+        "sba_eligibility": {"eligible": rpt.sba_eligible, "failed_checks": rpt.sba_eligibility_checklist or []},
         "valuation": {"equity_value_mid": rpt.equity_value_mid},
         "playbooks": rpt.playbooks or [],
     }
@@ -298,15 +301,16 @@ async def get_portfolio_insights(
 
     loans_data = [{
         "id": l.id,
-        "borrower_name": l.borrower_name,
-        "deal_name": l.deal_name if hasattr(l, "deal_name") else f"Loan #{l.id}",
+        "borrower_name": f"Loan #{l.loan_number}",
+        "deal_name": f"Loan #{l.loan_number}",
         "principal_amount": l.principal_amount,
         "current_principal_balance": l.current_principal_balance,
-        "industry": l.industry if hasattr(l, "industry") else "unknown",
-        "loan_status": l.loan_status.value if l.loan_status else "current",
-        "origination_dscr": l.origination_dscr if hasattr(l, "origination_dscr") else None,
-        "health_score": l.health_score if hasattr(l, "health_score") else None,
-        "originated_at": l.originated_at.isoformat() if l.originated_at else None,
+        "industry": l.industry or "unknown",
+        "loan_status": l.status.value if l.status else "active",
+        "origination_dscr": None,
+        "health_score": None,
+        "originated_at": l.origination_date.isoformat() if l.origination_date else None,
+        "days_past_due": l.days_past_due or 0,
     } for l in loans]
 
     total_exposure = sum(l.get("current_principal_balance") or l.get("principal_amount", 0) for l in loans_data)
@@ -384,8 +388,8 @@ async def draft_sba_form(
         "ebitda": deal.ebitda,
         "owner_credit_score": deal.owner_credit_score,
         "owner_experience_years": deal.owner_experience_years,
-        "years_in_business": deal.years_in_business,
-        "business_description": deal.business_description if hasattr(deal, "business_description") else None,
+        "years_in_business": deal.owner_experience_years,
+        "business_description": deal.business_description,
         "addbacks": deal.addbacks,
         "business_assets": deal.business_assets,
         "personal_assets": deal.personal_assets,
@@ -397,11 +401,11 @@ async def draft_sba_form(
             "dscr_base": rpt.dscr_base,
             "annual_pd": rpt.annual_pd,
             "collateral_coverage": rpt.collateral_coverage,
-            "nolv": rpt.nolv,
+            "nolv": rpt.total_nolv,
             "sba_eligible": rpt.sba_eligible,
-            "sba_failed_checks": rpt.sba_failed_checks,
+            "sba_failed_checks": rpt.sba_eligibility_checklist or [],
             "health_score": rpt.health_score,
-            "deal_verdict": rpt.deal_verdict,
+            "deal_verdict": rpt.deal_killer_verdict,
         }
 
     form_name = SBA_FORMS[request.form_type]
