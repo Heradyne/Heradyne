@@ -496,3 +496,403 @@ JSON only."""
     if not result: return None
     result["_powered_by"] = "claude"
     return result
+
+# ── ENGINE 7: Banker Memo Generator ──────────────────────────────────────────
+
+BANKER_MEMO_SYSTEM = """You are a senior SBA 7(a) lending officer writing a formal credit memo for a loan committee.
+
+Rules:
+1. Cite every specific number — DSCR, multiples, equity %, credit score, revenue
+2. Write in the formal style of an SBA PLP lender credit memo
+3. Structure as: Transaction Summary → Borrower Profile → Financial Analysis → Collateral → Risk Factors → Conditions → Recommendation
+4. Use exact dollar amounts, not approximations
+5. The recommendation must be specific: Approve / Approve with Conditions / Decline
+
+Respond with valid JSON only.
+
+{
+  "memo_date": "<ISO date>",
+  "loan_number_placeholder": "TBD-XXXXXX",
+  "transaction_summary": "<2-3 sentences: business name, type, purchase price, loan amount, equity, use of proceeds>",
+  "borrower_profile": "<3-4 sentences: owner background, experience, credit score, personal financial strength, management depth>",
+  "financial_analysis": {
+    "revenue_trend": "<describe with actual numbers>",
+    "ebitda_analysis": "<normalized EBITDA with addback detail>",
+    "dscr_analysis": "<DSCR calculation walk-through citing actual numbers>",
+    "working_capital": "<assessment>"
+  },
+  "collateral_analysis": "<collateral types, NOLV, coverage ratio, SBA guarantee coverage>",
+  "sba_eligibility": "<14-point eligibility summary>",
+  "risk_factors": ["<risk 1 citing specific metric and dollar impact>", "<risk 2>", "<risk 3>"],
+  "mitigants": ["<mitigant 1>", "<mitigant 2>"],
+  "conditions_precedent": ["<condition 1>", "<condition 2>", "<condition 3>"],
+  "recommendation": "<Approve | Approve with Conditions | Decline>",
+  "recommendation_rationale": "<2-3 sentences citing DSCR, equity, industry benchmarks — write for a loan committee>",
+  "proposed_structure": {
+    "loan_amount": "<$>",
+    "term_months": "<months>",
+    "interest_rate": "<suggested range>",
+    "sba_guarantee_pct": "<75% or 85%>",
+    "equity_injection_required": "<$>"
+  }
+}"""
+
+
+def claude_generate_banker_memo(deal_data: dict, risk_report: dict, uw_data: dict) -> Optional[dict]:
+    import datetime
+    health = uw_data.get("health_score", {})
+    dscr = uw_data.get("dscr_pdscr", {})
+    val = uw_data.get("valuation", {})
+    dk = uw_data.get("deal_killer", {})
+    sba = uw_data.get("sba_eligibility", {})
+    rev = deal_data.get("annual_revenue", 0)
+    ebitda = deal_data.get("ebitda", 0)
+    price = deal_data.get("purchase_price", 0)
+    loan = deal_data.get("loan_amount_requested", 0)
+    equity = deal_data.get("equity_injection", 0)
+    credit = deal_data.get("owner_credit_score", "N/A")
+    exp = deal_data.get("owner_experience_years", "N/A")
+    industry = deal_data.get("industry", "unknown")
+
+    user_msg = f"""Write a formal SBA 7(a) credit memo for loan committee review.
+
+TRANSACTION:
+Business: {deal_data.get('name','Unknown')} | Industry: {industry}
+Purchase Price: ${price:,.0f} | Loan Requested: ${loan:,.0f} | Equity Injection: ${equity:,.0f} ({round(equity/price*100,1) if price else 0}%)
+Use of Proceeds: Acquisition financing
+
+BORROWER:
+Owner Credit Score: {credit} | Industry Experience: {exp} years
+Business Age: {deal_data.get('business_age_years', deal_data.get('years_in_business', 'N/A'))} years
+
+FINANCIALS:
+Revenue: ${rev:,.0f} | Normalized EBITDA: ${ebitda:,.0f} ({round(ebitda/rev*100,1) if rev else 0}% margin)
+DSCR: {dscr.get('dscr_base','N/A')}x | Post-Draw DSCR: {dscr.get('pdscr','N/A')}x
+Stressed DSCR (-20% rev): {dscr.get('dscr_stress_20','N/A')}x
+Owner Draw: ${dscr.get('owner_draw_annual',0):,.0f}/yr
+
+UNDERWRITING:
+Health Score: {health.get('score','N/A')}/100
+Verdict: {dk.get('verdict','N/A').upper()} | Max Supportable Price: ${dk.get('max_supportable_price',0):,.0f}
+SBA Eligible: {'Yes' if sba.get('eligible') else 'No'}
+Collateral Coverage: {risk_report.get('collateral_coverage','N/A')}x | NOLV: ${risk_report.get('nolv',0):,.0f}
+Annual PD: {risk_report.get('annual_pd','N/A')}
+Equity Value (mid): ${val.get('equity_value_mid',0):,.0f}
+
+SBA ELIGIBILITY ISSUES: {', '.join(sba.get('failed_checks', [])) if sba.get('failed_checks') else 'None identified'}
+
+FULL DEAL DATA:
+{json.dumps(deal_data, indent=2)}
+
+Write a complete loan committee credit memo. JSON only. Memo date: {datetime.date.today().isoformat()}"""
+
+    text = _call_claude(BANKER_MEMO_SYSTEM, user_msg, max_tokens=3000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 8: SBA SOP Q&A ────────────────────────────────────────────────────
+
+SBA_QA_SYSTEM = """You are an expert on SBA Standard Operating Procedures (SOP 50 10 7.1) and SBA 7(a) lending rules.
+
+You answer compliance questions asked by SBA lenders, loan officers, and credit analysts.
+
+Rules:
+1. Always cite the specific SOP section number (e.g. "SOP 50 10 7.1, Chapter 2, Section B")
+2. Give the plain-English rule first, then the technical citation
+3. Flag any "it depends" situations with the key decision factors
+4. If a deal-specific question, apply the rule to their actual numbers
+5. End with a concrete compliance action item
+
+Respond in plain text (not JSON). Be concise but complete — 150-300 words."""
+
+
+def claude_sba_qa(question: str, deal_context: Optional[dict] = None) -> Optional[str]:
+    context_block = ""
+    if deal_context:
+        context_block = f"""
+DEAL CONTEXT (apply rules to these specific numbers):
+Business: {deal_context.get('name', 'N/A')} | Industry: {deal_context.get('industry', 'N/A')}
+Loan: ${deal_context.get('loan_amount_requested', 0):,.0f} | Price: ${deal_context.get('purchase_price', 0):,.0f}
+Equity: {deal_context.get('equity_injection', 0)} | DSCR: {deal_context.get('dscr', 'N/A')}x
+Owner Experience: {deal_context.get('owner_experience_years', 'N/A')} years
+"""
+
+    user_msg = f"""{context_block}
+COMPLIANCE QUESTION:
+{question}
+
+Answer citing specific SOP sections. Give the plain-English rule, the technical citation, and a concrete action item."""
+
+    return _call_claude(SBA_QA_SYSTEM, user_msg, max_tokens=600)
+
+
+# ── ENGINE 9: Borrower Recommendation Engine ─────────────────────────────────
+
+BORROWER_REC_SYSTEM = """You are an AI advisor helping a small business buyer maximize their acquisition success and loan approval odds.
+
+You see their full deal analysis and give specific, actionable recommendations tailored to their exact numbers.
+
+Rules:
+1. Reference their specific metrics (e.g. "your DSCR of 1.21x is 4bps above the SBA floor")
+2. Prioritize by impact — highest dollar/approval impact first
+3. Give specific vendors, forms, dollar amounts
+4. Flag anything that could kill the deal
+5. Write for a first-time buyer, not a banker
+
+Respond with valid JSON only.
+
+{
+  "approval_probability": <0-100 int>,
+  "approval_summary": "<one sentence on current odds citing key metrics>",
+  "deal_killers": ["<specific issue that could kill approval>"],
+  "top_recommendations": [
+    {
+      "priority": <1-5 int>,
+      "category": "<credit|equity|documents|business|negotiation|legal>",
+      "title": "<specific action title>",
+      "why_it_matters": "<cite specific metric and how this moves it>",
+      "action_steps": ["<step 1 with specific vendor/amount/timeline>", "<step 2>"],
+      "estimated_impact": "<what changes if they do this>",
+      "urgency": "<do_today|this_week|30_days|before_closing>"
+    }
+  ],
+  "strengths_to_highlight": ["<strength to emphasize to lenders, cite metric>"],
+  "next_30_days_checklist": ["<task 1>", "<task 2>", "<task 3>", "<task 4>", "<task 5>"]
+}"""
+
+
+def claude_borrower_recommendations(deal_data: dict, uw_data: dict, risk_report: dict) -> Optional[dict]:
+    health = uw_data.get("health_score", {})
+    dscr = uw_data.get("dscr_pdscr", {})
+    dk = uw_data.get("deal_killer", {})
+    sba = uw_data.get("sba_eligibility", {})
+    val = uw_data.get("valuation", {})
+    pbs = uw_data.get("playbooks", [])
+    rev = deal_data.get("annual_revenue", 0)
+    ebitda = deal_data.get("ebitda", 0)
+    price = deal_data.get("purchase_price", 0)
+    loan = deal_data.get("loan_amount_requested", 0)
+    equity = deal_data.get("equity_injection", 0)
+    credit = deal_data.get("owner_credit_score", "N/A")
+
+    user_msg = f"""Generate personalized recommendations for this SBA acquisition buyer.
+
+YOUR DEAL: {deal_data.get('name','Unknown')} | {deal_data.get('industry','unknown')}
+Purchase Price: ${price:,.0f} | Loan: ${loan:,.0f} | Equity: ${equity:,.0f} ({round(equity/price*100,1) if price else 0}%)
+Revenue: ${rev:,.0f} | EBITDA: ${ebitda:,.0f} | Credit Score: {credit}
+
+UNDERWRITING RESULTS:
+Health Score: {health.get('score','N/A')}/100
+DSCR: {dscr.get('dscr_base','N/A')}x (floor is 1.25x for most SBA lenders)
+Post-Draw DSCR: {dscr.get('pdscr','N/A')}x
+Verdict: {dk.get('verdict','N/A').upper()} | Confidence: {dk.get('confidence_score','N/A')}/100
+SBA Eligible: {'Yes' if sba.get('eligible') else 'No — ' + ', '.join(sba.get('failed_checks',[])[:2])}
+Equity Value (mid): ${val.get('equity_value_mid',0):,.0f} vs asking ${price:,.0f}
+
+ACTIVE RISKS FROM PLAYBOOKS:
+{chr(10).join([f"• [{p.get('severity','').upper()}] {p.get('title','')} — {p.get('impact_summary','')}" for p in pbs[:4]])}
+
+SBA FAILED CHECKS: {', '.join(sba.get('failed_checks', [])) or 'None'}
+
+Give specific recommendations this buyer should act on NOW to maximize approval odds. JSON only."""
+
+    text = _call_claude(BORROWER_REC_SYSTEM, user_msg, max_tokens=2500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    return result
+
+
+# ── ENGINE 10: Covenant Monitoring with Explanations ─────────────────────────
+
+COVENANT_SYSTEM = """You are an SBA loan covenant monitoring AI. You track financial covenants and explain breaches in plain English to borrowers.
+
+Rules:
+1. Compare actual vs. required covenant levels with exact numbers
+2. Explain what the breach means in plain English (not banker language)
+3. Give specific remediation steps with deadlines and dollar amounts
+4. Quantify the risk to the borrower if not remediated
+5. Rate urgency: green/yellow/red
+
+Respond with valid JSON only.
+
+{
+  "overall_covenant_health": "<green|yellow|red>",
+  "health_explanation": "<plain English summary for borrower>",
+  "covenants": [
+    {
+      "name": "<covenant name>",
+      "required": "<required level>",
+      "actual": "<actual level>",
+      "status": "<compliant|watch|breach>",
+      "plain_english": "<what this means for the borrower in one sentence>",
+      "breach_consequence": "<what happens if not fixed, in dollars/timeline>",
+      "remediation": "<specific steps to cure, with amounts and timeline>",
+      "urgency": "<green|yellow|red>"
+    }
+  ],
+  "summary_for_borrower": "<3-4 sentences plain English: overall health, biggest concern, most important action>",
+  "lender_notification_required": <true|false>,
+  "cure_period_days": <int or null>
+}"""
+
+
+def claude_covenant_monitoring(loan_data: dict, financial_data: dict, covenants: list) -> Optional[dict]:
+    balance = loan_data.get("current_principal_balance", loan_data.get("principal_amount", 0))
+    borrower = loan_data.get("borrower_name", "the borrower")
+
+    user_msg = f"""Monitor covenants for this active SBA loan.
+
+LOAN: {borrower} | Balance: ${balance:,.0f}
+Industry: {loan_data.get('industry', 'N/A')} | Origination DSCR: {loan_data.get('origination_dscr', 'N/A')}x
+
+REQUIRED COVENANTS:
+{json.dumps(covenants, indent=2)}
+
+CURRENT FINANCIALS:
+{json.dumps(financial_data, indent=2)}
+
+Assess each covenant. Explain breaches in plain English for a small business owner. JSON only."""
+
+    text = _call_claude(COVENANT_SYSTEM, user_msg, max_tokens=2000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["assessed_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 11: Financial Document Normalization ───────────────────────────────
+
+DOC_NORMALIZE_SYSTEM = """You are a financial document analyst. You extract and normalize financial data from uploaded business documents into a standardized format for SBA underwriting.
+
+Rules:
+1. Extract every financial metric you can find — revenue, EBITDA, addbacks, assets, liabilities
+2. Flag any inconsistencies between documents
+3. Calculate normalized EBITDA with itemized addbacks
+4. Note the document quality/completeness
+5. Flag anything that needs lender verification
+
+Respond with valid JSON only.
+
+{
+  "document_type": "<p_and_l|tax_return|balance_sheet|bank_statement|other>",
+  "period_covered": "<e.g. FY2023 or TTM Q3 2024>",
+  "extracted_financials": {
+    "gross_revenue": <number or null>,
+    "cost_of_goods": <number or null>,
+    "gross_profit": <number or null>,
+    "total_operating_expenses": <number or null>,
+    "net_income": <number or null>,
+    "owner_salary": <number or null>,
+    "depreciation_amortization": <number or null>,
+    "interest_expense": <number or null>,
+    "one_time_items": <number or null>,
+    "ebitda_reported": <number or null>
+  },
+  "addbacks": [
+    {"item": "<addback name>", "amount": <number>, "justification": "<why this is an addback>"}
+  ],
+  "normalized_ebitda": <number>,
+  "sde": <seller discretionary earnings number>,
+  "data_quality": "<excellent|good|fair|poor>",
+  "flags": ["<inconsistency or concern>"],
+  "verification_needed": ["<item needing lender verification>"],
+  "confidence": <0-100>
+}"""
+
+
+def claude_normalize_financials(document_text: str, document_type: str, business_name: str) -> Optional[dict]:
+    user_msg = f"""Extract and normalize financial data from this {document_type} for {business_name}.
+
+DOCUMENT CONTENT:
+{document_text[:6000]}
+
+Extract all financial metrics, calculate normalized EBITDA with addbacks, flag any issues. JSON only."""
+
+    text = _call_claude(DOC_NORMALIZE_SYSTEM, user_msg, max_tokens=2000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["normalized_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 12: Portfolio Insights for Lenders ────────────────────────────────
+
+PORTFOLIO_INSIGHTS_SYSTEM = """You are a senior SBA portfolio manager providing AI-driven portfolio insights for a lender.
+
+Analyze the portfolio and provide:
+1. Concentration risks (industry, geography, loan size)
+2. Early warning signals across the book
+3. Performance vs. SBA FOIA benchmarks
+4. Specific action items for the highest-risk loans
+5. Opportunities to deploy capital
+
+Respond with valid JSON only.
+
+{
+  "portfolio_health_score": <0-100>,
+  "health_narrative": "<2-3 sentences on overall portfolio health citing specific metrics>",
+  "concentration_risks": [
+    {"type": "<industry|geography|loan_size|borrower>", "detail": "<specific concentration>", "pct_of_portfolio": <float>, "risk_level": "<low|medium|high>", "action": "<recommendation>"}
+  ],
+  "early_warnings": [
+    {"loan_identifier": "<deal name or id>", "signal": "<specific concern citing metrics>", "recommended_action": "<specific step with timeline>", "urgency": "<green|yellow|red>"}
+  ],
+  "benchmark_comparison": {
+    "portfolio_expected_loss": <float>,
+    "sba_industry_benchmark": <float>,
+    "vs_benchmark": "<above|below|at> benchmark by X bps",
+    "interpretation": "<what this means>"
+  },
+  "deployment_opportunities": ["<opportunity 1>", "<opportunity 2>"],
+  "top_3_actions": ["<most important action 1>", "<action 2>", "<action 3>"],
+  "30_day_priorities": ["<priority 1>", "<priority 2>", "<priority 3>"]
+}"""
+
+
+def claude_portfolio_insights(portfolio_data: dict, loans: list) -> Optional[dict]:
+    total_exposure = sum(l.get("principal_amount", l.get("current_principal_balance", 0)) for l in loans)
+    loan_count = len(loans)
+    industries = {}
+    for l in loans:
+        ind = l.get("industry", "unknown")
+        industries[ind] = industries.get(ind, 0) + 1
+
+    user_msg = f"""Analyze this SBA loan portfolio and provide actionable insights.
+
+PORTFOLIO SUMMARY:
+Total Loans: {loan_count} | Total Exposure: ${total_exposure:,.0f}
+Industry Mix: {json.dumps(industries)}
+
+PORTFOLIO METRICS:
+{json.dumps(portfolio_data, indent=2)}
+
+INDIVIDUAL LOANS (summary):
+{json.dumps([{
+    'name': l.get('borrower_name', l.get('deal_name', 'Unknown')),
+    'balance': l.get('current_principal_balance', l.get('principal_amount', 0)),
+    'industry': l.get('industry', 'unknown'),
+    'status': l.get('loan_status', l.get('status', 'current')),
+    'dscr_orig': l.get('origination_dscr', 'N/A'),
+    'health': l.get('health_score', 'N/A')
+} for l in loans[:20]], indent=2)}
+
+Provide portfolio-level insights and specific actions. JSON only."""
+
+    text = _call_claude(PORTFOLIO_INSIGHTS_SYSTEM, user_msg, max_tokens=2500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["analyzed_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

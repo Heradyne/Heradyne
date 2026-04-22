@@ -421,8 +421,9 @@ class ApiClient {
     return response.data;
   }
 
-  async getExecutedLoans(): Promise<ExecutedLoan[]> {
-    const response = await this.client.get('/origination/executed-loans');
+  async getExecutedLoans(params?: { lender_id?: number; insurer_id?: number }): Promise<ExecutedLoan[]> {
+    const query = params ? '?' + Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => `${k}=${v}`).join('&') : '';
+    const response = await this.client.get(`/financial/loans${query}`);
     return response.data;
   }
 
@@ -580,13 +581,15 @@ class ApiClient {
   }
 
   // ── Financials / Dashboard ────────────────────────────────────────────────
-  async getLenderDashboard(): Promise<any> {
-    const response = await this.client.get('/financial/dashboard/lender');
+  async getLenderDashboard(lenderId?: number): Promise<any> {
+    const params = lenderId ? `?lender_id=${lenderId}` : '';
+    const response = await this.client.get(`/financial/dashboard/lender${params}`);
     return response.data;
   }
 
-  async getInsurerDashboard(): Promise<any> {
-    const response = await this.client.get('/financial/dashboard/insurer');
+  async getInsurerDashboard(insurerId?: number): Promise<any> {
+    const params = insurerId ? `?insurer_id=${insurerId}` : '';
+    const response = await this.client.get(`/financial/dashboard/insurer${params}`);
     return response.data;
   }
 
@@ -664,6 +667,46 @@ class ApiClient {
   // ── Collateral ────────────────────────────────────────────────────────────
   async revalueAsset(assetId: number, data: any): Promise<any> {
     const response = await this.client.post(`/collateral/assets/${assetId}/revalue`, data);
+    return response.data;
+  }
+
+
+  // ── AI Features ───────────────────────────────────────────────────────────
+  async generateBankerMemo(dealId: number): Promise<any> {
+    const response = await this.client.post(`/ai-features/deals/${dealId}/banker-memo`);
+    return response.data;
+  }
+
+  async askSBAQuestion(question: string, dealId?: number): Promise<any> {
+    const response = await this.client.post('/ai-features/sba-qa', { question, deal_id: dealId });
+    return response.data;
+  }
+
+  async getBorrowerRecommendations(dealId: number): Promise<any> {
+    const response = await this.client.post(`/ai-features/deals/${dealId}/recommendations`);
+    return response.data;
+  }
+
+  async checkCovenants(dealId: number, financialData: any, covenants?: any[]): Promise<any> {
+    const response = await this.client.post(`/ai-features/deals/${dealId}/covenant-check`, {
+      financial_data: financialData,
+      covenants,
+    });
+    return response.data;
+  }
+
+  async normalizeDocument(documentText: string, documentType: string, businessName: string, dealId?: number): Promise<any> {
+    const response = await this.client.post('/ai-features/normalize-document', {
+      document_text: documentText,
+      document_type: documentType,
+      business_name: businessName,
+      deal_id: dealId,
+    });
+    return response.data;
+  }
+
+  async getPortfolioInsights(): Promise<any> {
+    const response = await this.client.post('/ai-features/portfolio-insights');
     return response.data;
   }
 

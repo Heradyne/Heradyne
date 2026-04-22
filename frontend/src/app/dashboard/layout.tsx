@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
-  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock
+  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, BookOpen, Sparkles, FileSearch
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn, getRoleLabel, DISCLAIMER } from '@/lib/utils';
@@ -19,6 +19,7 @@ const NAV_DEFINITIONS = {
     { id: 'deals',         name: 'My Deals',           href: '/dashboard/deals',        icon: FileText,    always: true },
     { id: 'loan-health',   name: 'Business Dashboard', href: '/dashboard/loan-health',  icon: Activity,    always: false },
     { id: 'get-valuation', name: 'Get a Valuation',    href: '/dashboard/get-valuation',icon: DollarSign,  always: false },
+    { id: 'ai-advisor',      name: 'AI Advisor',         href: '/dashboard/ai-advisor',   icon: Sparkles,    always: false },
     { id: 'collateral',    name: 'Collateral',         href: '/dashboard/collateral',   icon: Building2,   always: false },
     { id: 'signatures',    name: 'Signatures',         href: '/dashboard/signatures',   icon: FileSignature,always: false },
     { id: 'protection',    name: 'Default Protection', href: '/dashboard/protection',   icon: ShieldAlert, always: false },
@@ -33,6 +34,10 @@ const NAV_DEFINITIONS = {
     { id: 'origination',     name: 'Origination',      href: '/dashboard/origination',       icon: CreditCard,  always: false },
     { id: 'sba-compliance',  name: 'SBA Compliance',   href: '/dashboard/sba-compliance',    icon: Scale,       always: false },
     { id: 'ai-agent',        name: 'AI Underwriter',   href: '/dashboard/ai-agent',          icon: Brain,       always: false },
+    { id: 'banker-memo',     name: 'Banker Memo',      href: '/dashboard/banker-memo',       icon: FileText,    always: false },
+    { id: 'sba-qa',          name: 'SBA SOP Q&A',      href: '/dashboard/sba-qa',            icon: BookOpen,    always: false },
+    { id: 'portfolio-insights', name: 'Portfolio Insights', href: '/dashboard/portfolio-insights', icon: BarChart3, always: false },
+    { id: 'doc-ingestion',   name: 'Doc Ingestion',    href: '/dashboard/doc-ingestion',     icon: FileSearch,  always: false },
     { id: 'financials',      name: 'Financials',       href: '/dashboard/financials',        icon: DollarSign,  always: false },
     { id: 'secondary-market',name: 'Secondary Market', href: '/dashboard/secondary-market',  icon: TrendingUp,  always: false },
     { id: 'signatures',      name: 'Signatures',       href: '/dashboard/signatures',        icon: FileSignature,always: false },
@@ -54,6 +59,8 @@ const NAV_DEFINITIONS = {
     { id: 'origination',   name: 'Origination',    href: '/dashboard/origination',   icon: CreditCard,   always: false },
     { id: 'sba-compliance',name: 'SBA Compliance', href: '/dashboard/sba-compliance',icon: Scale,       always: false },
     { id: 'ai-agent',      name: 'AI Underwriter', href: '/dashboard/ai-agent',      icon: Brain,        always: false },
+    { id: 'banker-memo',   name: 'Banker Memo',    href: '/dashboard/banker-memo',     icon: FileText,     always: false },
+    { id: 'sba-qa',        name: 'SBA SOP Q&A',    href: '/dashboard/sba-qa',          icon: BookOpen,     always: false },
     { id: 'financials',    name: 'Financials',     href: '/dashboard/financials',    icon: DollarSign,   always: false },
     { id: 'signatures',    name: 'Signatures',     href: '/dashboard/signatures',    icon: FileSignature, always: false },
     { id: 'security',      name: 'Security',        href: '/dashboard/security',      icon: Lock,         always: true },
