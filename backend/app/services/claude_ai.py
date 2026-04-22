@@ -899,40 +899,31 @@ Provide portfolio-level insights and specific actions. JSON only."""
 
 # ── ENGINE 13: SBA Document Drafts ───────────────────────────────────────────
 
-SBA_FORMS_SYSTEM = """You are an SBA 7(a) lending specialist generating draft content for SBA forms and compliance documents.
+SBA_FORMS_SYSTEM = """You are an SBA 7(a) lending specialist generating pre-filled draft content for SBA forms.
 
-You receive deal data and produce pre-filled draft content for a specific SBA form or document type.
-Flag every field you cannot populate due to missing data.
+CRITICAL: Respond with valid JSON only. No markdown fences. No preamble. Start with { and end with }.
 
-Rules:
-1. Fill every field you have data for with the actual deal values
-2. Flag missing fields clearly — do not make up data
-3. Use the correct SBA field names and formatting
-4. Note any fields that require borrower signature or notarization
-5. Flag any compliance issues that would prevent the form from being accepted
-
-Respond with valid JSON only.
-
+Use this exact structure:
 {
-  "form_name": "<full form name and number>",
-  "form_purpose": "<one sentence on what this form does>",
-  "completion_pct": <0-100 integer based on how complete the draft is>,
+  "form_name": "<full form name>",
+  "form_purpose": "<one sentence>",
+  "completion_pct": <0-100>,
   "fields": [
-    {
-      "field_name": "<SBA field name>",
-      "field_label": "<display label>",
-      "value": "<filled value or null>",
-      "status": "<filled|missing|requires_borrower|requires_lender|requires_signature>",
-      "source": "<where this data comes from: deal_data|borrower_input|lender_input|computed>",
-      "missing_reason": "<why it is missing, if missing>"
-    }
+    {"field_name": "<name>", "field_label": "<label>", "value": "<value or null>", "status": "<filled|missing|requires_borrower|requires_lender|requires_signature>", "source": "<deal_data|borrower_input|lender_input|computed>", "missing_reason": "<only if missing>"}
   ],
   "missing_required_fields": ["<field name>"],
-  "blocking_issues": ["<issue that prevents SBA acceptance>"],
-  "warnings": ["<non-blocking compliance warnings>"],
-  "next_steps": ["<step 1 to complete this form>"],
-  "draft_narrative": "<pre-filled narrative sections of the form if applicable>"
-}"""
+  "blocking_issues": ["<SBA rejection issue>"],
+  "warnings": ["<compliance warning>"],
+  "next_steps": ["<step to complete draft>"],
+  "draft_narrative": "<narrative text for this form>"
+}
+
+Rules:
+1. Fill every field you have data for with actual values — never fabricate missing data
+2. Set status=missing and explain missing_reason for any field lacking data
+3. blocking_issues = things SBA would reject (hard declines, missing required fields)
+4. warnings = non-blocking compliance notes
+5. Keep fields array to the 10-15 most important fields for this form type"""
 
 
 def claude_draft_sba_form(form_type: str, deal_data: dict, risk_report: dict, lender_data: dict) -> Optional[dict]:
@@ -978,10 +969,27 @@ For each field:
 
 JSON only. Today: {datetime.date.today().isoformat()}"""
 
-    text = _call_claude(SBA_FORMS_SYSTEM, user_msg, max_tokens=3000)
+    text = _call_claude(SBA_FORMS_SYSTEM, user_msg, max_tokens=4000)
+    if not text:
+        log.error("claude_draft_sba_form: no response from Claude")
+        return None
     result = _parse_json(text)
     if not result:
-        return None
+        # Last-resort: return a structured error with the raw text so frontend
+        # can at least show something rather than a blank 503
+        log.error(f"claude_draft_sba_form: JSON parse failed, raw: {text[:200]}")
+        return {
+            "form_name": form_type,
+            "form_purpose": "Draft generation encountered a formatting error.",
+            "completion_pct": 0,
+            "fields": [],
+            "missing_required_fields": [],
+            "blocking_issues": ["AI response could not be parsed. Please try again."],
+            "warnings": [],
+            "next_steps": ["Click Generate Draft again — this is usually a transient error."],
+            "draft_narrative": text[:2000] if text else "",
+            "_parse_error": True,
+        }
     result["_powered_by"] = "claude"
     result["drafted_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result

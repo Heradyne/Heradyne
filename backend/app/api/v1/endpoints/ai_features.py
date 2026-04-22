@@ -404,8 +404,11 @@ async def draft_sba_form(
 
     form_name = SBA_FORMS[request.form_type]
     result = claude_draft_sba_form(form_name, deal_data, risk_report, request.lender_data or {})
-    if not result:
-        raise HTTPException(status_code=503, detail="AI service unavailable. Check ANTHROPIC_API_KEY.")
+    if result is None:
+        raise HTTPException(
+            status_code=503,
+            detail="AI service unavailable — no response from Claude. Verify ANTHROPIC_API_KEY is set correctly in Railway environment variables."
+        )
 
     result["form_type"] = request.form_type
     result["deal_id"] = deal_id

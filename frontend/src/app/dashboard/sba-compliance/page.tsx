@@ -106,7 +106,7 @@ export default function SBACompliancePage() {
       const result = await api.draftSBAForm(selectedDeal, selectedForm);
       setDraft(result);
     } catch (e: any) {
-      setDraftError(e.response?.data?.detail || 'Failed to generate draft. Check ANTHROPIC_API_KEY.');
+      setDraftError(e.response?.data?.detail || e.message || 'Failed to generate draft — check backend logs and verify ANTHROPIC_API_KEY is set in Railway.');
     } finally { setDraftLoading(false); }
   };
 
