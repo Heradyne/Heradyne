@@ -354,6 +354,11 @@ class ApiClient {
     return response.data;
   }
 
+  async scoreWithAIAgent(data: any): Promise<any> {
+    const response = await this.client.post('/ai-agent/score', data);
+    return response.data;
+  }
+
   async getAIAgentDeals(): Promise<any[]> {
     const response = await this.client.get('/ai-agent/deals');
     return response.data;
