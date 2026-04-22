@@ -52,7 +52,7 @@ def _call_claude(system: str, user: str, max_tokens: int = 1500) -> Optional[str
         "anthropic-version": "2023-06-01",
     }, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=45) as resp:
+        with urllib.request.urlopen(req, timeout=90) as resp:
             return json.loads(resp.read())["content"][0]["text"]
     except urllib.error.HTTPError as e:
         log.error(f"Claude HTTP {e.code}: {e.read().decode()[:200]}")

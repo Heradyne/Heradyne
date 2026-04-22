@@ -20,6 +20,7 @@ class ApiClient {
       baseURL: `${API_URL}/api/v1`,
       headers: { 'Content-Type': 'application/json' },
       withCredentials: true,
+      timeout: 120000, // 120s — AI endpoints can take 30-60s
     });
 
     this.client.interceptors.request.use((config) => {
@@ -673,7 +674,7 @@ class ApiClient {
 
   // ── AI Features ───────────────────────────────────────────────────────────
   async generateBankerMemo(dealId: number): Promise<any> {
-    const response = await this.client.post(`/ai-features/deals/${dealId}/banker-memo`);
+    const response = await this.client.post(`/ai-features/deals/${dealId}/banker-memo`, {}, { timeout: 120000 });
     return response.data;
   }
 
@@ -715,7 +716,7 @@ class ApiClient {
     const response = await this.client.post(`/ai-features/deals/${dealId}/draft-sba-form`, {
       form_type: formType,
       lender_data: lenderData,
-    });
+    }, { timeout: 120000 });
     return response.data;
   }
 
