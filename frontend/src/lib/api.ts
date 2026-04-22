@@ -368,14 +368,18 @@ class ApiClient {
     };
     const response = await this.client.post('/ai-agent/score', payload);
     const d = response.data;
-    // Normalize category_scores: endpoint returns {percentage, raw_score...} but page expects {score, rationale}
+    // Normalize category_scores: percentage is now 0-100, pass through variable_scores for drill-down
     if (d.category_scores) {
       const normalized: Record<string, any> = {};
       for (const [cat, val] of Object.entries(d.category_scores as Record<string, any>)) {
         normalized[cat] = {
           score: val.percentage ?? 0,
           weight: val.weight,
-          rationale: val.flags?.join('; ') || '',
+          raw_score: val.raw_score,
+          max_score: val.max_score,
+          weighted_score: val.weighted_score,
+          flags: val.flags || [],
+          variable_scores: val.variable_scores || [],
         };
       }
       d.category_scores = normalized;

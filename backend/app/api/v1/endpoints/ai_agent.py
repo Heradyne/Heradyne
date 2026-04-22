@@ -103,11 +103,24 @@ async def score_deal(
             cat: {
                 "category": score.category.value,
                 "weight": score.weight,
-                "raw_score": score.raw_score,
-                "max_score": score.max_score,
-                "weighted_score": score.weighted_score,
-                "percentage": score.percentage,
+                "raw_score": round(score.raw_score, 2),
+                "max_score": round(score.max_score, 2),
+                "weighted_score": round(score.weighted_score, 1),
+                "percentage": round(score.percentage * 100, 1),
                 "flags": score.flags,
+                "variable_scores": [
+                    {
+                        "id": vs.variable_id,
+                        "name": vs.variable_name,
+                        "raw_value": vs.raw_value,
+                        "score": round(vs.score, 2),
+                        "max_score": round(vs.max_score, 2),
+                        "percentage": round(vs.percentage * 100, 1),
+                        "flag": vs.flag,
+                        "notes": vs.notes,
+                    }
+                    for vs in score.variable_scores
+                ],
             }
             for cat, score in result.category_scores.items()
         },
@@ -294,8 +307,8 @@ async def get_variables(category: Optional[str] = Query(None), current_user: Use
     
     return {
         cat: [VariableInfo(id=v.id, name=v.name, category=v.category.value, weight=v.weight.value,
-                          optimal_range=v.optimal_range or '', caution_range=v.caution_range or '',
-                          reject_threshold=v.reject_threshold or '', description=v.description or '', phase=v.phase or 'mvp')
+                          optimal_range=v.optimal_range, caution_range=v.caution_range,
+                          reject_threshold=v.reject_threshold, description=v.description, phase=v.phase)
               for v in vars_list]
         for cat, vars_list in vars_to_return.items()
     }
