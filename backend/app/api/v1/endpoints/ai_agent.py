@@ -294,8 +294,8 @@ async def get_variables(category: Optional[str] = Query(None), current_user: Use
     
     return {
         cat: [VariableInfo(id=v.id, name=v.name, category=v.category.value, weight=v.weight.value,
-                          optimal_range=v.optimal_range, caution_range=v.caution_range,
-                          reject_threshold=v.reject_threshold, description=v.description, phase=v.phase)
+                          optimal_range=v.optimal_range or '', caution_range=v.caution_range or '',
+                          reject_threshold=v.reject_threshold or '', description=v.description or '', phase=v.phase or 'mvp')
               for v in vars_list]
         for cat, vars_list in vars_to_return.items()
     }
