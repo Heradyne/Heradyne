@@ -356,7 +356,38 @@ class ApiClient {
 
   async scoreWithAIAgent(data: any): Promise<any> {
     const response = await this.client.post('/ai-agent/score', data);
-    return response.data;
+    const d = response.data;
+    // Normalize category_scores: endpoint returns {percentage, raw_score...} but page expects {score, rationale}
+    if (d.category_scores) {
+      const normalized: Record<string, any> = {};
+      for (const [cat, val] of Object.entries(d.category_scores as Record<string, any>)) {
+        normalized[cat] = {
+          score: val.percentage ?? 0,
+          weight: val.weight,
+          rationale: val.flags?.join('; ') || '',
+        };
+      }
+      d.category_scores = normalized;
+    }
+    // Normalize risk_flags to expected shape
+    if (Array.isArray(d.risk_flags)) {
+      d.risk_flags = d.risk_flags.map((f: any) =>
+        typeof f === 'string' ? { flag: f } : f
+      );
+    }
+    // Normalize positive_factors
+    if (Array.isArray(d.positive_factors)) {
+      d.positive_factors = d.positive_factors.map((f: any) =>
+        typeof f === 'string' ? { factor: f } : f
+      );
+    }
+    // Ensure conditions is array of strings
+    if (Array.isArray(d.conditions)) {
+      d.conditions = d.conditions.map((c: any) =>
+        typeof c === 'string' ? c : JSON.stringify(c)
+      );
+    }
+    return d;
   }
 
   async getAIAgentDeals(): Promise<any[]> {
