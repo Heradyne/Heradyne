@@ -154,6 +154,9 @@ export default function AIAgentPage() {
   const [success, setSuccess] = useState('');
   const [scoringResult, setScoringResult] = useState<any>(null);
   const [scoringLoading, setScoringLoading] = useState(false);
+  const [deals, setDeals] = useState<any[]>([]);
+  const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
+  const [dealLoading, setDealLoading] = useState(false);
   
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -172,7 +175,7 @@ export default function AIAgentPage() {
     business_age: 12, equity_injection: 20, dscr: 1.45, borrower_credit_score: 720,
   });
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); api.getDeals().then(setDeals).catch(() => {}); }, []);
 
   const loadData = async () => {
     try {
@@ -307,6 +310,35 @@ export default function AIAgentPage() {
     return categoryVars.filter(v => variableSettings[v.id]?.enabled !== false).length;
   };
 
+  const loadDealIntoForm = async (dealId: number) => {
+    setDealLoading(true);
+    setSelectedDealId(dealId);
+    try {
+      const [deal, rpt] = await Promise.all([
+        api.getDeal(dealId),
+        api.getLatestRiskReport(dealId).catch(() => null),
+      ]);
+      setDemoData({
+        loan_amount: deal.loan_amount_requested || 1500000,
+        naics_industry: deal.industry || '621',
+        business_age: deal.owner_experience_years || 5,
+        equity_injection: deal.equity_injection && deal.purchase_price
+          ? Math.round((deal.equity_injection / deal.purchase_price) * 100)
+          : 20,
+        dscr: rpt?.dscr_base || 1.25,
+        borrower_credit_score: deal.owner_credit_score || 700,
+        annual_revenue: deal.annual_revenue || 0,
+        ebitda: deal.ebitda || 0,
+        purchase_price: deal.purchase_price || 0,
+        owner_experience_years: deal.owner_experience_years || 5,
+      });
+    } catch {
+      setError('Failed to load deal data');
+    } finally {
+      setDealLoading(false);
+    }
+  };
+
   const runScoringDemo = async () => {
     setScoringLoading(true);
     try {
@@ -413,7 +445,32 @@ export default function AIAgentPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Risk Scoring Demo */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4 flex items-center"><Zap className="h-5 w-5 mr-2 text-yellow-500" />Risk Scoring Demo</h2>
+          <h2 className="text-lg font-semibold mb-4 flex items-center"><Zap className="h-5 w-5 mr-2 text-yellow-500" />Risk Scoring</h2>
+
+          {/* Deal selector */}
+          <div className="mb-4">
+            <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Score a Deal</label>
+            <div className="flex gap-2">
+              <select
+                value={selectedDealId || ''}
+                onChange={e => e.target.value ? loadDealIntoForm(Number(e.target.value)) : setSelectedDealId(null)}
+                className="input flex-1 text-sm"
+                disabled={dealLoading}
+              >
+                <option value="">— Enter values manually —</option>
+                {deals.map(deal => (
+                  <option key={deal.id} value={deal.id}>
+                    {deal.name} ({deal.industry})
+                  </option>
+                ))}
+              </select>
+              {dealLoading && <span className="text-xs text-gray-400 self-center">Loading...</span>}
+            </div>
+            {selectedDealId && (
+              <p className="text-xs text-blue-600 mt-1">✓ Deal data loaded — fields pre-filled from deal record</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label className="text-xs text-gray-500">Loan Amount</label>
