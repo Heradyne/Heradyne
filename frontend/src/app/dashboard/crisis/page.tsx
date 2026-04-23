@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { Siren, Loader, RefreshCw, CheckCircle, AlertTriangle, X, Clock, Users, Phone } from 'lucide-react';
+import { AlertCircle, Loader, RefreshCw, CheckCircle, AlertTriangle, X, Clock, Users, Phone } from 'lucide-react';
 import { api } from '@/lib/api';
 
 const SEVERITY_STYLE: Record<string, string> = {
@@ -91,7 +91,7 @@ export default function CrisisPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Siren className="h-7 w-7 text-red-600" /> Crisis Response
+            <AlertCircle className="h-7 w-7 text-red-600" /> Crisis Response
           </h1>
           <p className="text-gray-600">Structured 24–48 hour response plans for business emergencies</p>
         </div>
@@ -140,10 +140,10 @@ export default function CrisisPage() {
 
         <div className="col-span-3">
           {!selectedDeal ? (
-            <div className="card text-center py-16"><Siren className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-gray-400">Select a deal to report a crisis or view past responses</p></div>
+            <div className="card text-center py-16"><AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" /><p className="text-gray-400">Select a deal to report a crisis or view past responses</p></div>
           ) : showForm ? (
             <div className="card border-red-300 bg-red-50">
-              <h3 className="font-semibold text-red-900 mb-1 flex items-center gap-2"><Siren className="h-5 w-5" />Report a Business Crisis</h3>
+              <h3 className="font-semibold text-red-900 mb-1 flex items-center gap-2"><AlertCircle className="h-5 w-5" />Report a Business Crisis</h3>
               <p className="text-sm text-red-700 mb-4">Claude will generate an immediate action plan for the next 24–48 hours.</p>
               <div className="space-y-4">
                 <div>
@@ -186,13 +186,13 @@ export default function CrisisPage() {
             </div>
           ) : submitting ? (
             <div className="card text-center py-12">
-              <Siren className="h-8 w-8 text-red-500 animate-bounce mx-auto mb-3" />
+              <AlertCircle className="h-8 w-8 text-red-500 animate-bounce mx-auto mb-3" />
               <p className="font-medium text-gray-700">Generating crisis response plan...</p>
               <p className="text-sm text-gray-400 mt-1">Building your 24-48 hour action playbook</p>
             </div>
           ) : !response ? (
             <div className="card text-center py-16 border-dashed">
-              <Siren className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+              <AlertCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-400 mb-3">No crisis events on record</p>
               <p className="text-sm text-gray-400">Use the crisis response workflow when something urgent happens to your business.</p>
             </div>

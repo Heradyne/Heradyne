@@ -7,7 +7,8 @@ import { usePathname } from 'next/navigation';
 import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
-  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList, FileBarChart
+  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList, FileBarChart,
+  AlertCircle, LayoutDashboard, AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn, getRoleLabel, DISCLAIMER } from '@/lib/utils';
@@ -19,7 +20,7 @@ const NAV_DEFINITIONS = {
     { id: 'deals',         name: 'My Deals',           href: '/dashboard/deals',        icon: FileText,    always: true },
     { id: 'loan-health',   name: 'Business Dashboard', href: '/dashboard/loan-health',  icon: Activity,    always: false },
     { id: 'quarterly-review', name: 'Quarterly Review', href: '/dashboard/quarterly-review', icon: TrendingUp,  always: false },
-    { id: 'crisis',          name: 'Crisis Response',  href: '/dashboard/crisis',           icon: Siren,       always: false },
+    { id: 'crisis',          name: 'Crisis Response',  href: '/dashboard/crisis',           icon: AlertCircle,       always: false },
     { id: 'business-value', name: 'Business Value',    href: '/dashboard/business-value', icon: DollarSign,  always: false },
     { id: 'get-valuation', name: 'Get a Valuation',    href: '/dashboard/get-valuation',icon: TrendingUp,  always: false },
     { id: 'collateral',    name: 'Collateral',         href: '/dashboard/collateral',   icon: Building2,   always: false },
@@ -42,8 +43,8 @@ const NAV_DEFINITIONS = {
     { id: 'collateral-monitoring', name: 'Collateral Monitor', href: '/dashboard/collateral-monitoring', icon: Building2, always: false },
     { id: 'origination',     name: 'Origination',      href: '/dashboard/origination',       icon: CreditCard,  always: false },
     { id: 'sba-compliance',  name: 'SBA Compliance',   href: '/dashboard/sba-compliance',    icon: Scale,       always: false },
-    { id: 'committee',       name: 'Committee Deck',   href: '/dashboard/committee',         icon: Presentation, always: false },
-    { id: 'guaranty',        name: 'Guaranty Package', href: '/dashboard/guaranty',          icon: AlertOctagon, always: false },
+    { id: 'committee',       name: 'Committee Deck',   href: '/dashboard/committee',         icon: LayoutDashboard, always: false },
+    { id: 'guaranty',        name: 'Guaranty Package', href: '/dashboard/guaranty',          icon: AlertCircle, always: false },
     { id: 'ai-agent',        name: 'AI Underwriter',   href: '/dashboard/ai-agent',          icon: Brain,       always: false },
     { id: 'financials',      name: 'Financials',       href: '/dashboard/financials',        icon: DollarSign,  always: false },
     { id: 'secondary-market',name: 'Secondary Market', href: '/dashboard/secondary-market',  icon: TrendingUp,  always: false },
