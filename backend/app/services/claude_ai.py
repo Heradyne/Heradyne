@@ -997,3 +997,281 @@ JSON only. Today: {datetime.date.today().isoformat()}"""
     result["_powered_by"] = "claude"
     result["drafted_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 14: Covenant Letter Generator ─────────────────────────────────────
+
+COVENANT_LETTER_SYSTEM = """You are an SBA loan servicing specialist generating formal covenant compliance letters.
+
+Write in professional bank correspondence style. Be specific about the covenant, the breach or concern, the cure period, and required actions.
+
+Rules:
+1. Reference the specific loan number, borrower name, and covenant name
+2. State the required level and actual level with exact numbers
+3. For breach letters: state cure period (typically 30-60 days per loan agreement)
+4. For watch letters: be constructive — acknowledge the trend and request action
+5. For compliance confirmation: be brief and positive
+6. Include a specific deadline for response or cure
+
+Respond with valid JSON only. No markdown.
+
+{
+  "letter_type": "<compliance_confirmation|watch_notice|breach_notice|cure_period_expiring>",
+  "subject": "<letter subject line>",
+  "salutation": "<Dear [Name],>",
+  "opening_paragraph": "<context and purpose of letter>",
+  "covenant_detail": "<specific covenant description, required level, actual level>",
+  "required_actions": ["<action 1 with deadline>", "<action 2>"],
+  "deadline": "<specific date or timeframe>",
+  "closing_paragraph": "<next steps and contact info placeholder>",
+  "closing": "<Sincerely, [Loan Officer Name]>",
+  "cc": ["<SBA Servicing Center (if breach)>"],
+  "urgency": "<routine|urgent|critical>"
+}"""
+
+
+def claude_generate_covenant_letter(
+    covenant_name: str,
+    status: str,
+    required_value: float,
+    actual_value: float,
+    borrower_name: str,
+    loan_number: str,
+    lender_name: str,
+    loan_data: dict,
+) -> Optional[dict]:
+    import datetime
+    today = datetime.date.today().isoformat()
+    cure_deadline = (datetime.date.today() + datetime.timedelta(days=30)).isoformat()
+
+    user_msg = f"""Generate a covenant compliance letter.
+
+LOAN DETAILS:
+Borrower: {borrower_name}
+Loan Number: {loan_number}
+Lender: {lender_name}
+Letter Date: {today}
+
+COVENANT:
+Name: {covenant_name}
+Status: {status.upper()}
+Required Level: {required_value}
+Actual Level: {actual_value}
+Variance: {round((actual_value - required_value) / required_value * 100, 1) if required_value else 'N/A'}%
+Cure Period Deadline: {cure_deadline}
+
+LOAN CONTEXT:
+{json.dumps(loan_data, indent=2)}
+
+Generate the appropriate {status} letter. JSON only."""
+
+    text = _call_claude(COVENANT_LETTER_SYSTEM, user_msg, max_tokens=1500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    result["letter_date"] = __import__("datetime").date.today().isoformat()
+    return result
+
+
+# ── ENGINE 15: Annual Review Generator ───────────────────────────────────────
+
+ANNUAL_REVIEW_SYSTEM = """You are a senior SBA loan officer generating an annual loan review report.
+
+This is the formal annual review that documents the loan's performance, the borrower's financial condition, and the lender's ongoing risk assessment. It must be thorough enough to pass SBA examination.
+
+Rules:
+1. Reference specific numbers — DSCR, revenue, EBITDA, balance, payment history
+2. Compare current performance to origination underwriting
+3. Identify trends — improving, stable, deteriorating
+4. Flag any policy exceptions, covenant issues, or concerns
+5. Give a clear risk rating and recommendation (maintain/enhance monitoring, restructure, etc.)
+6. Write in the formal style that appears in bank loan files
+
+Respond with valid JSON only.
+
+{
+  "review_date": "<ISO date>",
+  "review_period": "<year covered>",
+  "loan_number": "<loan number>",
+  "borrower_name": "<name>",
+  "risk_rating": "<1-Pass|2-Watch|3-Substandard|4-Doubtful|5-Loss>",
+  "risk_rating_change": "<improved|maintained|downgraded>",
+  "executive_summary": "<3-4 sentences: current status, key developments, risk rating rationale>",
+  "financial_performance": {
+    "revenue_vs_origination": "<analysis with specific numbers>",
+    "ebitda_trend": "<analysis>",
+    "dscr_current": "<current DSCR and comparison to requirement>",
+    "dscr_trend": "<improving/stable/deteriorating with data>",
+    "working_capital": "<assessment>"
+  },
+  "loan_performance": {
+    "payment_history": "<summary of payment behavior>",
+    "current_balance": "<balance vs original>",
+    "collateral_assessment": "<current collateral adequacy>",
+    "covenant_compliance": "<summary of covenant status>"
+  },
+  "business_assessment": "<operational assessment, management, industry conditions>",
+  "risk_factors": ["<specific risk 1 with data>", "<risk 2>"],
+  "positive_factors": ["<strength 1>", "<strength 2>"],
+  "action_items": [
+    {"action": "<required action>", "owner": "<lender|borrower>", "due_date": "<date>", "priority": "<high|medium|low>"}
+  ],
+  "recommendation": "<Continue current terms|Increase monitoring frequency|Obtain updated financials|Consider restructure|Refer to special assets>",
+  "next_review_date": "<ISO date>",
+  "officer_notes": "<additional commentary for loan file>"
+}"""
+
+
+def claude_generate_annual_review(
+    deal_data: dict,
+    loan_data: dict,
+    risk_report: dict,
+    uw_data: dict,
+    financial_data: dict,
+    payment_history: list,
+    covenant_status: list,
+    review_year: int,
+) -> Optional[dict]:
+    import datetime
+    _n = lambda v: v or 0
+    rev = _n(deal_data.get("annual_revenue"))
+    ebitda = _n(deal_data.get("ebitda"))
+    balance = _n(loan_data.get("current_principal_balance", loan_data.get("principal_amount")))
+    original = _n(loan_data.get("principal_amount"))
+    dscr = risk_report.get("dscr_base") or "N/A"
+    payments_late = sum(1 for p in payment_history if p.get("is_late"))
+
+    user_msg = f"""Generate a formal annual loan review for {review_year}.
+
+LOAN:
+Borrower: {deal_data.get('name', 'Unknown')}
+Loan Number: {loan_data.get('loan_number', 'N/A')}
+Original Balance: ${_n(original):,.0f}
+Current Balance: ${_n(balance):,.0f}
+Payments Made: {loan_data.get('total_payments_made', 'N/A')} | Late Payments: {payments_late}
+Days Past Due: {loan_data.get('days_past_due', 0)}
+Industry: {deal_data.get('industry', 'N/A')}
+
+FINANCIAL PERFORMANCE:
+Revenue: ${rev:,.0f} | EBITDA: ${ebitda:,.0f} ({round(ebitda/rev*100,1) if rev else 0}% margin)
+Current DSCR: {dscr}x | Origination DSCR: {risk_report.get('origination_dscr', 'N/A')}x
+Health Score: {uw_data.get('health_score', {}).get('score', 'N/A')}/100
+
+CURRENT YEAR FINANCIALS (if submitted):
+{json.dumps(financial_data, indent=2) if financial_data else 'Not yet submitted'}
+
+COVENANT STATUS:
+{json.dumps(covenant_status, indent=2) if covenant_status else 'No active covenants on file'}
+
+PAYMENT HISTORY (last 12):
+{json.dumps(payment_history[-12:], indent=2) if payment_history else 'No payment records'}
+
+UNDERWRITING:
+Verdict: {uw_data.get('deal_killer', {}).get('verdict', 'N/A')}
+SBA Eligible: {uw_data.get('sba_eligibility', {}).get('eligible', 'N/A')}
+Collateral Coverage: {risk_report.get('collateral_coverage', 'N/A')}x
+
+Review Period: {review_year}
+Review Date: {datetime.date.today().isoformat()}
+
+Generate a complete annual review for the loan file. JSON only."""
+
+    text = _call_claude(ANNUAL_REVIEW_SYSTEM, user_msg, max_tokens=3000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 16: Site Visit Preparation ────────────────────────────────────────
+
+SITE_VISIT_SYSTEM = """You are an SBA loan officer preparing for a borrower site visit or annual review meeting.
+
+Generate a structured preparation package the loan officer can bring to the visit and use during the review.
+
+Rules:
+1. Prepare specific questions based on the deal's financial data and risk indicators
+2. Flag anything unusual that needs in-person verification
+3. Include items to physically verify at the site
+4. Suggest topics to raise based on monitoring alerts and trends
+5. Provide a post-visit documentation template
+
+Respond with valid JSON only.
+
+{
+  "visit_purpose": "<annual review|covenant check|troubled loan review|routine monitoring>",
+  "pre_visit_summary": "<2-3 sentences on the loan's current status to brief the officer>",
+  "items_to_verify_onsite": [
+    {"item": "<what to check>", "why": "<why it matters>", "how": "<how to verify it>"}
+  ],
+  "financial_questions": [
+    {"question": "<specific question citing actual numbers>", "context": "<why you're asking>"}
+  ],
+  "operational_questions": ["<question about operations, staffing, customers, etc.>"],
+  "risk_flags_to_address": [
+    {"flag": "<concern from monitoring data>", "question_to_ask": "<how to probe it>"}
+  ],
+  "documents_to_request": ["<document 1>", "<document 2>"],
+  "positive_topics": ["<accomplishment or strength to acknowledge>"],
+  "post_visit_documentation_template": {
+    "visit_date": "<fill in>",
+    "persons_present": "<fill in>",
+    "facility_condition": "<fill in>",
+    "key_findings": "<fill in>",
+    "borrower_representations": "<fill in>",
+    "action_items": "<fill in>",
+    "officer_assessment": "<fill in>"
+  }
+}"""
+
+
+def claude_prepare_site_visit(
+    deal_data: dict,
+    loan_data: dict,
+    risk_report: dict,
+    uw_data: dict,
+    covenant_status: list,
+    monitoring_alerts: list,
+    visit_type: str = "annual_review",
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(deal_data.get("annual_revenue"))
+    ebitda = _n(deal_data.get("ebitda"))
+    balance = _n(loan_data.get("current_principal_balance", loan_data.get("principal_amount")))
+    dscr = risk_report.get("dscr_base") or "N/A"
+    health = uw_data.get("health_score", {}).get("score", "N/A")
+
+    user_msg = f"""Prepare a site visit package for a {visit_type.replace('_', ' ')}.
+
+LOAN OVERVIEW:
+Borrower: {deal_data.get('name', 'Unknown')}
+Industry: {deal_data.get('industry', 'N/A')}
+Current Balance: ${_n(balance):,.0f}
+Days Past Due: {loan_data.get('days_past_due', 0)}
+
+FINANCIAL SNAPSHOT:
+Revenue: ${rev:,.0f} | EBITDA: ${ebitda:,.0f}
+DSCR: {dscr}x | Health Score: {health}/100
+Verdict: {uw_data.get('deal_killer', {}).get('verdict', 'N/A')}
+
+ACTIVE MONITORING ALERTS:
+{json.dumps(monitoring_alerts, indent=2) if monitoring_alerts else 'No active alerts'}
+
+COVENANT STATUS:
+{json.dumps(covenant_status, indent=2) if covenant_status else 'No covenants tracked'}
+
+COLLATERAL:
+Coverage: {risk_report.get('collateral_coverage', 'N/A')}x | NOLV: ${_n(risk_report.get('total_nolv')):,.0f}
+
+Generate a thorough site visit preparation package. JSON only."""
+
+    text = _call_claude(SITE_VISIT_SYSTEM, user_msg, max_tokens=2500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["prepared_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

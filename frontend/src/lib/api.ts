@@ -776,6 +776,61 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Servicing: Covenants ─────────────────────────────────────────────────
+  async addCovenant(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/servicing/deals/${dealId}/covenants`, data);
+    return response.data;
+  }
+
+  async getCovenants(dealId: number): Promise<any> {
+    const response = await this.client.get(`/servicing/deals/${dealId}/covenants`);
+    return response.data;
+  }
+
+  async logCovenantCheck(covenantId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/servicing/covenants/${covenantId}/check`, data);
+    return response.data;
+  }
+
+  async generateCovenantLetter(covenantId: number): Promise<any> {
+    const response = await this.client.post(`/servicing/covenants/${covenantId}/generate-letter`, {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getCovenantDashboard(): Promise<any> {
+    const response = await this.client.get('/servicing/lender/covenant-dashboard');
+    return response.data;
+  }
+
+  // ── Servicing: Annual Reviews ─────────────────────────────────────────────
+  async generateAnnualReview(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/servicing/deals/${dealId}/annual-review`, data, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getAnnualReviews(dealId: number): Promise<any> {
+    const response = await this.client.get(`/servicing/deals/${dealId}/annual-reviews`);
+    return response.data;
+  }
+
+  async submitFinancials(reviewId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/servicing/annual-reviews/${reviewId}/submit-financials`, data);
+    return response.data;
+  }
+
+  async saveSiteVisitNotes(reviewId: number, notes: any): Promise<any> {
+    const response = await this.client.put(`/servicing/annual-reviews/${reviewId}/site-visit-notes`, notes);
+    return response.data;
+  }
+
+  // ── Servicing: Site Visits ────────────────────────────────────────────────
+  async generateSiteVisitPrep(dealId: number, visitType?: string): Promise<any> {
+    const params = visitType ? `?visit_type=${visitType}` : '';
+    const response = await this.client.post(`/servicing/deals/${dealId}/site-visit-prep${params}`, {}, { timeout: 120000 });
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();
