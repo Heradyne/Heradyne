@@ -27,6 +27,7 @@ class UserResponse(UserBase):
     role: UserRole
     is_active: bool
     must_change_password: bool = False
+    organization_id: Optional[int] = None
     created_at: datetime
     updated_at: datetime
     

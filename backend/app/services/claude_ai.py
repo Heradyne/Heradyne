@@ -1513,3 +1513,78 @@ Identify all UCC expirations (within 90 days), insurance expirations (within 60 
     result["_powered_by"] = "claude"
     result["checked_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 20: Employee Contribution Evaluator ────────────────────────────────
+
+CONTRIBUTION_EVAL_SYSTEM = """You are evaluating an employee contribution for a small business owner. 
+Estimate the business value conservatively and transparently.
+
+Rules:
+1. Be conservative — never overstate
+2. Show your math step by step
+3. If value is primarily cultural/intangible, say so — don't force a dollar figure
+4. Prefer ranges over point estimates
+5. Flag if you need more info to make a good estimate
+
+Respond with valid JSON only. No markdown.
+
+{
+  "value_low": <float or null if intangible>,
+  "value_mid": <float or null if intangible>,
+  "value_high": <float or null if intangible>,
+  "value_unit": "<$ | hours | % | intangible>",
+  "is_intangible": <true|false>,
+  "reasoning": [
+    {"step": 1, "label": "<step name>", "detail": "<calculation or logic>", "value": "<intermediate result>"}
+  ],
+  "linked_kpis": [
+    {"kpi_name": "<n>", "impact": "<how this contribution affects it>", "magnitude": "<small|medium|large>"}
+  ],
+  "confidence": "<low|medium|high>",
+  "confidence_reason": "<why this confidence level>",
+  "clarifying_questions": ["<question that would improve the estimate>"],
+  "summary": "<1-2 sentences summarizing the value and how it was calculated>"
+}"""
+
+
+def claude_evaluate_contribution(
+    title: str,
+    description: str,
+    category: str,
+    contribution_type: str,
+    evidence: str,
+    employee_kpis: list,
+    company_context: dict,
+    employee_role: str,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(company_context.get('annual_revenue'))
+    industry = company_context.get('industry', 'small business')
+
+    user_msg = f"""Evaluate this employee contribution.
+
+COMPANY CONTEXT:
+Industry: {industry}
+Annual Revenue: ${rev:,.0f}
+Business Size: {'small' if rev < 2_000_000 else 'mid-size'}
+
+EMPLOYEE:
+Role: {employee_role}
+Active KPIs: {json.dumps(employee_kpis, indent=2) if employee_kpis else 'Not specified'}
+
+CONTRIBUTION:
+Type: {contribution_type.replace('_', ' ').title()}
+Category: {category}
+Title: {title}
+Description: {description}
+Evidence: {evidence or 'None provided'}
+
+Evaluate the business value. Be conservative. Show your reasoning step by step. JSON only."""
+
+    text = _call_claude(CONTRIBUTION_EVAL_SYSTEM, user_msg, max_tokens=2000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["evaluated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

@@ -891,6 +891,83 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Employee KPI Module ───────────────────────────────────────────────────
+  async inviteEmployee(data: any): Promise<any> {
+    const response = await this.client.post('/employee-kpi/invite', data);
+    return response.data;
+  }
+
+  async acceptInvite(token: string, password: string): Promise<any> {
+    const response = await this.client.post(`/employee-kpi/accept-invite?token=${token}&password=${encodeURIComponent(password)}`);
+    return response.data;
+  }
+
+  async getMyEmployees(): Promise<any> {
+    const response = await this.client.get('/employee-kpi/employees');
+    return response.data;
+  }
+
+  async createBusinessKPI(data: any): Promise<any> {
+    const response = await this.client.post('/employee-kpi/business-kpis', data);
+    return response.data;
+  }
+
+  async getBusinessKPIs(): Promise<any> {
+    const response = await this.client.get('/employee-kpi/business-kpis');
+    return response.data;
+  }
+
+  async assignEmployeeKPI(data: any): Promise<any> {
+    const response = await this.client.post('/employee-kpi/employee-kpis', data);
+    return response.data;
+  }
+
+  async getReviewQueue(): Promise<any> {
+    const response = await this.client.get('/employee-kpi/review-queue');
+    return response.data;
+  }
+
+  async reviewContribution(contributionId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/employee-kpi/contributions/${contributionId}/review`, data);
+    return response.data;
+  }
+
+  async getOwnerKPIDashboard(): Promise<any> {
+    const response = await this.client.get('/employee-kpi/dashboard');
+    return response.data;
+  }
+
+  async submitContribution(data: any): Promise<any> {
+    const response = await this.client.post('/employee-kpi/contributions', data, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getMyContributions(): Promise<any> {
+    const response = await this.client.get('/employee-kpi/my-contributions');
+    return response.data;
+  }
+
+  async getMyKPIs(): Promise<any> {
+    const response = await this.client.get('/employee-kpi/my-kpis');
+    return response.data;
+  }
+
+  async withdrawContribution(contributionId: number): Promise<any> {
+    const response = await this.client.post(`/employee-kpi/contributions/${contributionId}/withdraw`);
+    return response.data;
+  }
+
+  async addContributionDiscussion(contributionId: number, message: string): Promise<any> {
+    const response = await this.client.post(`/employee-kpi/contributions/${contributionId}/discuss`, { message });
+    return response.data;
+  }
+
+  async getBusinessSnapshot(): Promise<any> {
+    const response = await this.client.get('/employee-kpi/business-snapshot');
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();

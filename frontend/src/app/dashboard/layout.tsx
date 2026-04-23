@@ -22,6 +22,7 @@ const NAV_DEFINITIONS = {
     { id: 'collateral',    name: 'Collateral',         href: '/dashboard/collateral',   icon: Building2,   always: false },
     { id: 'signatures',    name: 'Signatures',         href: '/dashboard/signatures',   icon: FileSignature,always: false },
     { id: 'protection',    name: 'Default Protection', href: '/dashboard/protection',   icon: ShieldAlert, always: false },
+    { id: 'employee-kpi',  name: 'Employee Program',  href: '/dashboard/employee-kpi', icon: Users,       always: false },
     { id: 'security',      name: 'Security',             href: '/dashboard/security',     icon: Lock,        always: true  },
   ],
   lender: [
@@ -92,6 +93,11 @@ const NAV_DEFINITIONS = {
     { id: 'assumptions',     name: 'Assumptions',    href: '/dashboard/assumptions',   icon: Settings,    always: false },
     { id: 'audit',           name: 'Audit Logs',     href: '/dashboard/audit',         icon: BarChart3,   always: false },
     { id: 'security',        name: 'Security',        href: '/dashboard/security',      icon: Lock,        always: true },
+  ],
+  employee: [
+    { id: 'home',          name: 'Dashboard',         href: '/dashboard',                    icon: Home,        always: true },
+    { id: 'my-contributions', name: 'My Contributions', href: '/dashboard/my-contributions', icon: TrendingUp,  always: true },
+    { id: 'security',      name: 'Security',           href: '/dashboard/security',           icon: Lock,        always: true },
   ],
 };
 
