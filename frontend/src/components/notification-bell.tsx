@@ -4,19 +4,20 @@ import { useEffect, useState, useRef } from 'react';
 import { Bell, X, Check, CheckCheck, AlertTriangle, FileText, DollarSign, Package, TrendingUp, Shield } from 'lucide-react';
 import { api } from '@/lib/api';
 
-const TYPE_ICON: Record<string, React.ReactNode> = {
-  covenant_breach:          <AlertTriangle className="h-4 w-4 text-red-500" />,
-  collateral_expiry:        <Shield className="h-4 w-4 text-orange-500" />,
-  proposal_received:        <DollarSign className="h-4 w-4 text-green-500" />,
-  contract_ready:           <FileText className="h-4 w-4 text-blue-500" />,
-  ai_evaluation_complete:   <TrendingUp className="h-4 w-4 text-purple-500" />,
-  qbr_ready:                <TrendingUp className="h-4 w-4 text-blue-500" />,
-  crisis_update:            <AlertTriangle className="h-4 w-4 text-red-600" />,
-  review_decision:          <Check className="h-4 w-4 text-green-600" />,
-  asset_evaluated:          <Package className="h-4 w-4 text-blue-500" />,
-  system:                   <Bell className="h-4 w-4 text-gray-500" />,
-  general:                  <Bell className="h-4 w-4 text-gray-500" />,
-};
+function NotificationIcon({ type }: { type: string }) {
+  switch (type) {
+    case 'covenant_breach':        return <AlertTriangle className="h-4 w-4 text-red-500" />;
+    case 'collateral_expiry':      return <Shield className="h-4 w-4 text-orange-500" />;
+    case 'proposal_received':      return <DollarSign className="h-4 w-4 text-green-500" />;
+    case 'contract_ready':         return <FileText className="h-4 w-4 text-blue-500" />;
+    case 'ai_evaluation_complete': return <TrendingUp className="h-4 w-4 text-purple-500" />;
+    case 'qbr_ready':              return <TrendingUp className="h-4 w-4 text-blue-500" />;
+    case 'crisis_update':          return <AlertTriangle className="h-4 w-4 text-red-600" />;
+    case 'review_decision':        return <Check className="h-4 w-4 text-green-600" />;
+    case 'asset_evaluated':        return <Package className="h-4 w-4 text-blue-500" />;
+    default:                       return <Bell className="h-4 w-4 text-gray-500" />;
+  }
+}
 
 const TYPE_BG: Record<string, string> = {
   covenant_breach:   'bg-red-50',
@@ -127,7 +128,7 @@ export function NotificationBell() {
                 }`}
               >
                 <div className="shrink-0 mt-0.5 w-6 h-6 flex items-center justify-center">
-                  {TYPE_ICON[n.type] || TYPE_ICON.general}
+                  <NotificationIcon type={n.type} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-medium ${!n.is_read ? 'text-gray-900' : 'text-gray-600'}`}>

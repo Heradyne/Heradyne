@@ -29,7 +29,8 @@ export default function DashboardPage() {
   const loadData = async () => {
     try {
       if (user?.role === 'borrower' || user?.role === 'admin') {
-        const d = await api.getDeals();
+        const dRaw = await api.getDeals();
+        const d: any[] = Array.isArray(dRaw) ? dRaw : ((dRaw as any)?.deals ?? []);
         setDeals(d);
         const analyzed = d.filter((deal: any) => ['analyzed','matched','funded','approved'].includes(deal.status));
         const token = localStorage.getItem('token');
@@ -43,8 +44,10 @@ export default function DashboardPage() {
         setUwSummary(uwResults);
       }
       if (['lender','insurer','loan_officer','credit_committee'].includes(user?.role || '')) {
-        const [m, d] = await Promise.all([api.getMyMatches().catch(()=>[]), api.getDeals().catch(()=>[])]);
-        setMatches(m); setDeals(d);
+        const [mRaw, dRaw2] = await Promise.all([api.getMyMatches().catch(()=>[]), api.getDeals().catch(()=>[])]);
+        const m: any[] = Array.isArray(mRaw) ? mRaw : ((mRaw as any)?.matches ?? []);
+        const d2: any[] = Array.isArray(dRaw2) ? dRaw2 : ((dRaw2 as any)?.deals ?? []);
+        setMatches(m); setDeals(d2);
       }
     } catch(e) { console.error(e); }
     finally { setLoading(false); }

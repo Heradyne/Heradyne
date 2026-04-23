@@ -76,7 +76,8 @@ export default function VerificationPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const matchData = await api.getMyMatches();
+      const matchRaw = await api.getMyMatches();
+      const matchData: any[] = Array.isArray(matchRaw) ? matchRaw : ((matchRaw as any)?.matches ?? []);
       setMatches(matchData);
 
       // Load deal details, risk reports, and verification for each match

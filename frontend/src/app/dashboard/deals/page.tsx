@@ -24,7 +24,8 @@ export default function DealsPage() {
 
   const loadDeals = async () => {
     try {
-      const data = await api.getDeals(statusFilter || undefined);
+      const dataRaw = await api.getDeals(statusFilter || undefined);
+      const data: any[] = Array.isArray(dataRaw) ? dataRaw : ((dataRaw as any)?.deals ?? []);
       setDeals(data);
       
       // For borrowers, check each deal for info requests

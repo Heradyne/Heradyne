@@ -102,7 +102,8 @@ export default function SignaturesPage() {
         setUploadedDocs(uploads);
         
         // Load matched deals they can upload to
-        const matches = await api.getMyMatches();
+        const matchRaw = await api.getMyMatches();
+        const matches: any[] = Array.isArray(matchRaw) ? matchRaw : ((matchRaw as any)?.matches ?? []);
         const acceptedMatches = matches.filter((m: any) => 
           m.status === 'accepted' || m.status === 'counter_accepted'
         );
