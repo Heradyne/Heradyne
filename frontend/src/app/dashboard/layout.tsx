@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
-  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList
+  ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList, FileBarChart
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn, getRoleLabel, DISCLAIMER } from '@/lib/utils';
@@ -33,6 +33,9 @@ const NAV_DEFINITIONS = {
     { id: 'covenant-monitoring', name: 'Covenants',      href: '/dashboard/covenant-monitoring', icon: Shield,      always: false },
     { id: 'annual-reviews',  name: 'Annual Reviews',   href: '/dashboard/annual-reviews',    icon: ClipboardList, always: false },
     { id: 'site-visits',     name: 'Site Visits',      href: '/dashboard/site-visits',       icon: MapPin,      always: false },
+    { id: 'sba-1502',        name: '1502 Reporting',   href: '/dashboard/sba-1502',          icon: FileBarChart, always: false },
+    { id: 'audit-prep',      name: 'Audit Prep',       href: '/dashboard/audit-prep',        icon: Shield,      always: false },
+    { id: 'collateral-monitoring', name: 'Collateral Monitor', href: '/dashboard/collateral-monitoring', icon: Building2, always: false },
     { id: 'origination',     name: 'Origination',      href: '/dashboard/origination',       icon: CreditCard,  always: false },
     { id: 'sba-compliance',  name: 'SBA Compliance',   href: '/dashboard/sba-compliance',    icon: Scale,       always: false },
     { id: 'ai-agent',        name: 'AI Underwriter',   href: '/dashboard/ai-agent',          icon: Brain,       always: false },

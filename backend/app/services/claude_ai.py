@@ -1275,3 +1275,241 @@ Generate a thorough site visit preparation package. JSON only."""
     result["_powered_by"] = "claude"
     result["prepared_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 17: SBA 1502 Report Generator ─────────────────────────────────────
+
+SBA_1502_SYSTEM = """You are an SBA servicing specialist generating SBA Form 1502 monthly reporting data.
+
+SBA Form 1502 is the monthly loan status report all SBA 7(a) lenders must submit. It tracks:
+- Current loan balance and guaranteed balance
+- Payment status (current, 1-29 DPD, 30-60 DPD, 60+ DPD, default)
+- Interest accrued during the period
+- Principal payments received
+- Any status changes
+
+Rules:
+1. Use exact SBA field names as they appear on Form 1502
+2. Flag any data quality issues that would cause SBA to reject the report
+3. Calculate guaranteed balance from principal balance × guarantee percentage
+4. Payment status codes: C=Current, 1=1-29 DPD, 2=30-59 DPD, 3=60-89 DPD, 4=90+ DPD, D=Default
+5. Flag loans needing special servicing attention
+
+Respond with valid JSON only. No markdown.
+
+{
+  "report_month": "<MM/YYYY>",
+  "lender_id_placeholder": "<SBA Lender ID>",
+  "summary": {
+    "total_loans": <int>,
+    "total_outstanding_balance": <float>,
+    "total_guaranteed_balance": <float>,
+    "current_loans": <int>,
+    "delinquent_loans": <int>,
+    "default_loans": <int>
+  },
+  "loan_rows": [
+    {
+      "sba_loan_number": "<loan number>",
+      "borrower_name": "<name>",
+      "original_amount": <float>,
+      "current_balance": <float>,
+      "guaranteed_balance": <float>,
+      "guarantee_pct": <float>,
+      "payment_status_code": "<C|1|2|3|4|D>",
+      "days_past_due": <int>,
+      "interest_rate": <float>,
+      "interest_accrued_this_period": <float>,
+      "principal_paid_this_period": <float>,
+      "maturity_date": "<date>",
+      "flags": ["<any issues>"]
+    }
+  ],
+  "validation_errors": ["<error that would cause SBA rejection>"],
+  "warnings": ["<non-blocking data quality issues>"],
+  "ready_to_submit": <true|false>
+}"""
+
+
+def claude_generate_1502(loans: list, month: int, year: int, lender_name: str) -> Optional[dict]:
+    import datetime
+    report_period = f"{month:02d}/{year}"
+
+    user_msg = f"""Generate SBA Form 1502 monthly report for {lender_name}.
+
+REPORTING PERIOD: {report_period}
+LOAN COUNT: {len(loans)}
+
+LOAN DATA:
+{json.dumps(loans, indent=2)}
+
+Generate the complete 1502 report. Flag any data issues. JSON only."""
+
+    text = _call_claude(SBA_1502_SYSTEM, user_msg, max_tokens=4000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 18: SBA Audit Preparation ─────────────────────────────────────────
+
+AUDIT_PREP_SYSTEM = """You are an SBA loan audit specialist preparing audit-ready documentation for an SBA portfolio review.
+
+SBA conducts periodic lender audits. Failure to have proper documentation can result in:
+- Guarantee purchases being denied
+- Loss of PLP (Preferred Lender Program) status  
+- Civil money penalties
+
+The standard SBA audit looks at 10 key areas (the "10-tab file"):
+1. Credit application and underwriting
+2. Eligibility determination
+3. Loan approval and authorization
+4. Closing and disbursement
+5. Collateral
+6. Equity injection
+7. Servicing and monitoring
+8. Financial statements
+9. Insurance
+10. Compliance certifications
+
+Rules:
+1. Check each tab for completeness based on available deal/loan data
+2. Flag missing items with specific SBA form numbers or document names
+3. Note any items that could jeopardize guarantee purchase
+4. Provide a readiness score 0-100
+5. Prioritize critical missing items (guarantee-threatening) vs nice-to-have
+
+Respond with valid JSON only.
+
+{
+  "readiness_score": <0-100>,
+  "readiness_level": "<audit_ready|mostly_ready|needs_work|critical_gaps>",
+  "executive_summary": "<2-3 sentences on overall audit readiness>",
+  "tabs": [
+    {
+      "tab_number": <1-10>,
+      "tab_name": "<name>",
+      "completion_pct": <0-100>,
+      "status": "<complete|mostly_complete|incomplete|missing>",
+      "present_items": ["<item that is present>"],
+      "missing_items": [{"item": "<missing item>", "sba_reference": "<SBA SOP section>", "risk": "<high|medium|low>", "action": "<what to do>"}]
+    }
+  ],
+  "critical_gaps": ["<item that could result in guarantee denial>"],
+  "high_priority_actions": [
+    {"action": "<specific action>", "deadline": "<when needed>", "risk_if_missing": "<consequence>"}
+  ],
+  "strengths": ["<well-documented area>"],
+  "estimated_hours_to_audit_ready": <int>
+}"""
+
+
+def claude_generate_audit_package(
+    deal_data: dict,
+    loan_data: dict,
+    risk_report: dict,
+    documents: list,
+    payment_history: list,
+    covenant_status: list,
+    annual_reviews: list,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+
+    user_msg = f"""Assess audit readiness for this SBA loan file.
+
+LOAN:
+Borrower: {deal_data.get('name', 'Unknown')}
+Loan Number: {loan_data.get('loan_number', 'N/A')}
+Original Amount: ${_n(loan_data.get('principal_amount')):,.0f}
+Current Balance: ${_n(loan_data.get('current_principal_balance')):,.0f}
+Origination Date: {loan_data.get('origination_date', 'N/A')}
+Industry: {deal_data.get('industry', 'N/A')}
+
+DOCUMENTS ON FILE:
+{json.dumps([d.get('document_type', d.get('filename', 'unknown')) for d in documents], indent=2) if documents else 'None uploaded'}
+
+PAYMENT HISTORY:
+Total Payments Made: {loan_data.get('total_payments_made', 0)}
+Days Past Due: {loan_data.get('days_past_due', 0)}
+Late Payments: {sum(1 for p in payment_history if p.get('is_late'))}
+
+COVENANT COMPLIANCE:
+{json.dumps(covenant_status, indent=2) if covenant_status else 'No covenants tracked'}
+
+ANNUAL REVIEWS:
+{json.dumps([{'year': r.get('review_year'), 'status': r.get('status'), 'rating': r.get('risk_rating')} for r in annual_reviews], indent=2) if annual_reviews else 'No reviews on file'}
+
+UNDERWRITING:
+DSCR: {risk_report.get('dscr_base', 'N/A')}x
+SBA Eligible: {risk_report.get('sba_eligible', 'N/A')}
+Health Score: {risk_report.get('health_score', 'N/A')}/100
+
+Assess all 10 audit tabs. Be specific about what is present and missing. JSON only."""
+
+    text = _call_claude(AUDIT_PREP_SYSTEM, user_msg, max_tokens=4000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 19: Collateral Monitoring Alerts ───────────────────────────────────
+
+COLLATERAL_MONITOR_SYSTEM = """You are an SBA loan collateral monitoring specialist.
+
+Review the collateral portfolio and identify:
+1. UCC filings expiring in the next 90 days (must be continued before expiration)
+2. Insurance policies expiring in the next 60 days
+3. Appraisals that need updating (typically required every 3 years for real estate)
+4. Collateral whose value may have significantly changed
+5. Any missing documentation
+
+UCC filings are valid for 5 years. Continuation must be filed within 6 months before expiration.
+Insurance must be maintained at all times — lapse creates serious risk.
+
+Respond with valid JSON only.
+
+{
+  "portfolio_health": "<healthy|attention_needed|critical>",
+  "total_collateral_value": <float>,
+  "total_ucc_filed": <int>,
+  "alerts": [
+    {
+      "asset_id": <int>,
+      "asset_name": "<name>",
+      "alert_type": "<ucc_expiring|insurance_expiring|appraisal_due|value_change|missing_docs>",
+      "severity": "<critical|high|medium|low>",
+      "message": "<specific alert with dates>",
+      "due_date": "<date>",
+      "action_required": "<specific action to take>"
+    }
+  ],
+  "ucc_expiring_90_days": <int>,
+  "insurance_expiring_60_days": <int>,
+  "appraisals_due": <int>,
+  "recommended_actions": ["<action 1>", "<action 2>"]
+}"""
+
+
+def claude_monitor_collateral(assets: list, today_str: str) -> Optional[dict]:
+    user_msg = f"""Review this collateral portfolio for monitoring alerts.
+
+TODAY: {today_str}
+ASSET COUNT: {len(assets)}
+
+ASSETS:
+{json.dumps(assets, indent=2)}
+
+Identify all UCC expirations (within 90 days), insurance expirations (within 60 days), and appraisal requirements. JSON only."""
+
+    text = _call_claude(COLLATERAL_MONITOR_SYSTEM, user_msg, max_tokens=2000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["checked_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

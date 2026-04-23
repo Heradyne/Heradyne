@@ -831,6 +831,66 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Compliance: SBA 1502 ──────────────────────────────────────────────────
+  async generate1502Report(month: number, year: number): Promise<any> {
+    const response = await this.client.post('/compliance/1502/generate',
+      { reporting_month: month, reporting_year: year }, { timeout: 120000 });
+    return response.data;
+  }
+
+  async list1502Reports(): Promise<any> {
+    const response = await this.client.get('/compliance/1502/');
+    return response.data;
+  }
+
+  async get1502Report(reportId: number): Promise<any> {
+    const response = await this.client.get(`/compliance/1502/${reportId}`);
+    return response.data;
+  }
+
+  async submit1502Report(reportId: number): Promise<any> {
+    const response = await this.client.put(`/compliance/1502/${reportId}/submit`);
+    return response.data;
+  }
+
+  // ── Compliance: Audit Prep ────────────────────────────────────────────────
+  async getAuditFile(dealId: number): Promise<any> {
+    const response = await this.client.get(`/compliance/audit/${dealId}`);
+    return response.data;
+  }
+
+  async generateAuditPackage(dealId: number): Promise<any> {
+    const response = await this.client.post(`/compliance/audit/${dealId}/generate`, {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async updateAuditChecklist(dealId: number, data: any): Promise<any> {
+    const response = await this.client.put(`/compliance/audit/${dealId}/checklist`, data);
+    return response.data;
+  }
+
+  // ── Compliance: Collateral Monitoring ─────────────────────────────────────
+  async getCollateralMonitoring(): Promise<any> {
+    const response = await this.client.post('/compliance/collateral/monitoring', {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async updateUCCInfo(assetId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/compliance/collateral/${assetId}/ucc`, data);
+    return response.data;
+  }
+
+  async updateInsuranceInfo(assetId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/compliance/collateral/${assetId}/insurance`, data);
+    return response.data;
+  }
+
+  async updateAppraisalInfo(assetId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/compliance/collateral/${assetId}/appraisal`, data);
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();
