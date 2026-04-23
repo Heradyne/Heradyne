@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import underwriting, predeal, portfolio_reserve, sba_diligence, support_indication, qsbs_eval, deal_chat, admin_reseed, diligence, ai_features, servicing, compliance, employee_kpi
+from app.api.v1.endpoints import underwriting, predeal, portfolio_reserve, sba_diligence, support_indication, qsbs_eval, deal_chat, admin_reseed, diligence, ai_features, servicing, compliance, employee_kpi, sprint4, business_value
 from app.api.v1.endpoints import auth, users, deals, policies, matching, cashflow, assumptions, audit, financial, secondary_market, origination, signature_documents, default_protection, collateral, verification, reinsurance, ai_agent, sba_compliance, actuarial
 
 api_router = APIRouter()
@@ -38,6 +38,8 @@ api_router.include_router(ai_features.router, prefix="/ai-features", tags=["AI F
 api_router.include_router(servicing.router, prefix="/servicing", tags=["Servicing"])
 api_router.include_router(compliance.router, prefix="/compliance", tags=["Compliance"])
 api_router.include_router(employee_kpi.router, prefix="/employee-kpi", tags=["Employee KPI"])
+api_router.include_router(sprint4.router, prefix="/sprint4", tags=["Sprint 4"])
+api_router.include_router(business_value.router, prefix="/business-value", tags=["Business Value"])
 
 api_router.include_router(admin_reseed.router, prefix="/admin", tags=["Admin"])
 api_router.include_router(diligence.router, prefix="", tags=["Section 2 — Full Diligence"])

@@ -1588,3 +1588,658 @@ Evaluate the business value. Be conservative. Show your reasoning step by step. 
     result["_powered_by"] = "claude"
     result["evaluated_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 21: Guaranty Purchase Package ─────────────────────────────────────
+
+GUARANTY_SYSTEM = """You are an SBA loan workout specialist preparing a guaranty purchase package.
+
+When an SBA loan defaults, the lender submits a guaranty purchase package to SBA to collect on the guarantee. 
+This is the "10-tab package" — a standardized set of documentation SBA requires.
+
+The 10 tabs are:
+1. Loan Summary & Default Narrative
+2. Credit Application & Approval Documents
+3. Closing & Disbursement Documentation
+4. Collateral Documentation
+5. Equity Injection Evidence
+6. Financial Statements (origination + 3 years)
+7. Servicing History & Payment Records
+8. Default & Loss Mitigation Actions
+9. Insurance & Other Recovery Actions
+10. SBA Forms & Certifications
+
+Rules:
+1. Be specific about what documents are needed for each tab
+2. Flag anything missing that SBA will reject the package for
+3. Draft the narrative sections (tabs 1 and 8) fully
+4. Calculate estimated net recovery after liquidation costs
+5. Note any servicing deficiencies that could reduce or eliminate the guarantee
+
+Respond with valid JSON only. No markdown.
+
+{
+  "package_summary": {
+    "borrower_name": "<n>",
+    "loan_number": "<n>",
+    "original_amount": <float>,
+    "balance_at_default": <float>,
+    "guaranteed_amount": <float>,
+    "default_date": "<date>",
+    "default_reason": "<primary reason>"
+  },
+  "estimated_recovery": {
+    "collateral_liquidation_value": <float>,
+    "estimated_liquidation_costs": <float>,
+    "net_recovery": <float>,
+    "sba_net_loss": <float>,
+    "recovery_timeline_months": <int>
+  },
+  "tabs": [
+    {
+      "tab_number": <1-10>,
+      "tab_name": "<n>",
+      "status": "<complete|incomplete|missing>",
+      "narrative": "<drafted narrative for this tab if applicable>",
+      "required_documents": ["<document>"],
+      "present_documents": ["<document already in file>"],
+      "missing_documents": ["<document needed>"],
+      "critical_issues": ["<issue that could jeopardize guarantee>"]
+    }
+  ],
+  "servicing_deficiencies": ["<any issue that could reduce guarantee>"],
+  "overall_readiness": "<ready|needs_work|critical_gaps>",
+  "estimated_preparation_hours": <int>,
+  "next_steps": ["<step 1>", "<step 2>"]
+}"""
+
+
+def claude_generate_guaranty_package(
+    deal_data: dict,
+    loan_data: dict,
+    risk_report: dict,
+    payment_history: list,
+    covenant_status: list,
+    documents: list,
+    default_date: str,
+    default_reason: str,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    late_payments = sum(1 for p in payment_history if p.get("is_late"))
+    balance = _n(loan_data.get("current_principal_balance"))
+    original = _n(loan_data.get("principal_amount"))
+    guarantee_pct = loan_data.get("guarantee_percentage") or 0.75
+
+    user_msg = f"""Prepare a guaranty purchase package for this defaulted SBA loan.
+
+LOAN DETAILS:
+Borrower: {deal_data.get('name', 'Unknown')}
+Loan Number: {loan_data.get('loan_number', 'N/A')}
+Original Amount: ${_n(original):,.0f}
+Balance at Default: ${_n(balance):,.0f}
+Guarantee %: {guarantee_pct * 100:.0f}%
+Guaranteed Amount: ${balance * guarantee_pct:,.0f}
+Default Date: {default_date}
+Default Reason: {default_reason}
+Industry: {deal_data.get('industry', 'N/A')}
+
+PAYMENT HISTORY:
+Total Payments Made: {loan_data.get('total_payments_made', 0)}
+Late Payments: {late_payments}
+Days Past Due at Default: {loan_data.get('days_past_due', 0)}
+
+COLLATERAL:
+Coverage: {risk_report.get('collateral_coverage', 'N/A')}x
+NOLV: ${_n(risk_report.get('total_nolv')):,.0f}
+
+DOCUMENTS ON FILE:
+{chr(10).join(['• ' + d for d in documents]) if documents else 'None specified'}
+
+COVENANT STATUS:
+{json.dumps(covenant_status, indent=2) if covenant_status else 'None tracked'}
+
+ORIGINATION DATA:
+DSCR at origination: {risk_report.get('dscr_base', 'N/A')}x
+Equity injection: ${_n(deal_data.get('equity_injection')):,.0f}
+SBA eligible: {risk_report.get('sba_eligible', 'Unknown')}
+
+Draft the complete 10-tab guaranty purchase package. Be specific about missing documents.
+Generate full narratives for tabs 1 and 8. JSON only."""
+
+    text = _call_claude(GUARANTY_SYSTEM, user_msg, max_tokens=4000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 22: Credit Committee Presentation ──────────────────────────────────
+
+COMMITTEE_SYSTEM = """You are a senior loan officer preparing a credit committee presentation for an SBA 7(a) loan.
+
+This presentation will be reviewed by the credit committee to approve, decline, or request modifications to the loan.
+It must be thorough, balanced, and formatted for efficient committee review.
+
+Rules:
+1. Lead with the recommendation — committee members are busy
+2. Use actual numbers from the deal — no placeholders
+3. Present risks honestly — underselling risks is worse than overselling them
+4. Structure for a 10-15 minute committee presentation
+5. Include deal structure alternatives if the primary structure has concerns
+
+Respond with valid JSON only.
+
+{
+  "recommendation": "<APPROVE|APPROVE WITH CONDITIONS|DECLINE|REQUEST MORE INFO>",
+  "confidence": "<high|medium|low>",
+  "one_line_summary": "<20 words or less>",
+  "slides": [
+    {
+      "slide_number": <int>,
+      "title": "<slide title>",
+      "type": "<cover|executive_summary|transaction|borrower|financials|underwriting|collateral|risk|structure|recommendation>",
+      "key_points": ["<bullet point>"],
+      "data_table": [{"label": "<n>", "value": "<v>"}],
+      "speaker_notes": "<what the loan officer should say>"
+    }
+  ],
+  "approval_conditions": ["<condition if recommending approval with conditions>"],
+  "questions_committee_will_ask": ["<likely tough question>"],
+  "deal_killers_addressed": ["<how each potential deal killer was resolved>"],
+  "comparable_deals": "<context on similar deals in portfolio if applicable>"
+}"""
+
+
+def claude_generate_committee_presentation(
+    deal_data: dict,
+    risk_report: dict,
+    uw_data: dict,
+    lender_context: dict,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(deal_data.get("annual_revenue"))
+    ebitda = _n(deal_data.get("ebitda"))
+    price = _n(deal_data.get("purchase_price"))
+    loan = _n(deal_data.get("loan_amount_requested"))
+    equity = _n(deal_data.get("equity_injection"))
+    dscr = risk_report.get("dscr_base") or "N/A"
+    health = uw_data.get("health_score", {}).get("score", "N/A")
+    verdict = uw_data.get("deal_killer", {}).get("verdict", "unknown")
+
+    user_msg = f"""Generate a credit committee presentation.
+
+TRANSACTION:
+Borrower / Business: {deal_data.get('name', 'Unknown')}
+Industry: {deal_data.get('industry', 'N/A')}
+Purchase Price: ${price:,.0f} | Loan: ${loan:,.0f} | Equity: ${equity:,.0f} ({round(equity/price*100,1) if price else 0}%)
+Owner Experience: {deal_data.get('owner_experience_years', 'N/A')} years
+Credit Score: {deal_data.get('owner_credit_score', 'N/A')}
+
+FINANCIALS:
+Revenue: ${rev:,.0f} | EBITDA: ${ebitda:,.0f} ({round(ebitda/rev*100,1) if rev else 0}% margin)
+DSCR: {dscr}x | Health Score: {health}/100
+Verdict: {verdict.upper()}
+
+UNDERWRITING:
+SBA Eligible: {uw_data.get('sba_eligibility', {}).get('eligible', 'N/A')}
+Failed Checks: {uw_data.get('sba_eligibility', {}).get('failed_checks', [])}
+Collateral Coverage: {risk_report.get('collateral_coverage', 'N/A')}x
+Annual PD: {risk_report.get('annual_pd', 'N/A')}
+
+VALUATION:
+Equity Value (mid): ${_n(risk_report.get('ev_mid')):,.0f}
+Max Supportable Price: ${_n(uw_data.get('deal_killer', {}).get('max_supportable_price')):,.0f}
+
+LENDER CONTEXT:
+{json.dumps(lender_context, indent=2) if lender_context else 'Standard SBA 7a terms'}
+
+Create a complete committee presentation with 8-10 slides. JSON only."""
+
+    text = _call_claude(COMMITTEE_SYSTEM, user_msg, max_tokens=4000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 23: Quarterly Business Review ─────────────────────────────────────
+
+QBR_SYSTEM = """You are a business advisor generating a quarterly business review for a small business owner.
+
+This review helps the owner understand how their business is performing, what's working, what needs attention, and what to focus on next quarter.
+
+Rules:
+1. Be honest and specific — use actual numbers
+2. Frame concerns constructively — this is a coaching document, not a report card
+3. Link loan performance to business performance
+4. Give 3-5 concrete, actionable priorities for next quarter
+5. Keep it readable for a non-financial business owner
+
+Respond with valid JSON only.
+
+{
+  "quarter_label": "<Q1 2026>",
+  "business_name": "<n>",
+  "headline": "<one-sentence summary of the quarter>",
+  "overall_rating": "<strong|solid|mixed|needs_attention|critical>",
+  "sections": {
+    "performance_summary": "<2-3 sentences on how the business performed this quarter>",
+    "financial_highlights": [{"metric": "<n>", "value": "<v>", "vs_prior": "<change>", "interpretation": "<what it means>"}],
+    "loan_health": "<plain-English assessment of loan compliance and trajectory>",
+    "whats_working": ["<specific strength with data>"],
+    "areas_for_improvement": [{"area": "<n>", "observation": "<what the data shows>", "suggestion": "<actionable advice>"}],
+    "industry_context": "<brief comparison to industry benchmarks if relevant>",
+    "risk_flags": ["<anything lender or advisor should know about>"]
+  },
+  "q_priorities": [
+    {"priority": 1, "title": "<title>", "action": "<specific action>", "why": "<why this matters>", "by_when": "<timeframe>"}
+  ],
+  "questions_for_owner": ["<question worth reflecting on>"],
+  "next_review_date": "<Q2 2026>"
+}"""
+
+
+def claude_generate_qbr(
+    deal_data: dict,
+    loan_data: dict,
+    risk_report: dict,
+    cashflows: list,
+    quarter: int,
+    year: int,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(deal_data.get("annual_revenue"))
+    ebitda = _n(deal_data.get("ebitda"))
+    dscr = risk_report.get("dscr_base") or "N/A"
+    health = risk_report.get("health_score") or "N/A"
+    balance = _n(loan_data.get("current_principal_balance"))
+    dpd = loan_data.get("days_past_due") or 0
+
+    # Get recent cashflow data
+    recent_cf = cashflows[-3:] if cashflows else []
+
+    user_msg = f"""Generate a Q{quarter} {year} business review for this SBA loan borrower.
+
+BUSINESS:
+Name: {deal_data.get('name', 'Unknown')}
+Industry: {deal_data.get('industry', 'N/A')}
+Annual Revenue: ${rev:,.0f}
+EBITDA: ${ebitda:,.0f} ({round(ebitda/rev*100,1) if rev else 0}% margin)
+
+LOAN STATUS:
+Current Balance: ${balance:,.0f}
+Days Past Due: {dpd}
+DSCR: {dscr}x
+Health Score: {health}/100
+
+RECENT CASHFLOWS:
+{json.dumps(recent_cf, indent=2) if recent_cf else 'Not available'}
+
+HEALTH BREAKDOWN:
+Cashflow Score: {risk_report.get('health_score_cashflow', 'N/A')}
+Stability Score: {risk_report.get('health_score_stability', 'N/A')}
+Growth Score: {risk_report.get('health_score_growth', 'N/A')}
+Liquidity Score: {risk_report.get('health_score_liquidity', 'N/A')}
+
+Write this for the BUSINESS OWNER — plain language, actionable, honest but constructive.
+Quarter: Q{quarter} {year}. JSON only."""
+
+    text = _call_claude(QBR_SYSTEM, user_msg, max_tokens=3000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 24: Crisis Response Workflow ──────────────────────────────────────
+
+CRISIS_SYSTEM = """You are a business crisis advisor helping a small business owner respond to an acute business problem.
+
+The owner needs immediate, structured guidance for the first 24-48 hours of a crisis situation.
+
+Crisis types you handle:
+- Major customer loss (lost a key account)
+- Key person departure (owner, manager, key employee leaving)
+- Compliance issue (regulatory, legal, license problem)
+- Cash crisis (can't make payroll, bills coming due)
+- Operational failure (equipment breakdown, supply chain, facility)
+- Reputation/PR crisis
+
+Rules:
+1. First hour actions come first — urgency matters
+2. Be specific and actionable — no vague advice
+3. Flag if the lender should be notified (and help draft that communication)
+4. Include immediate cash preservation steps if relevant
+5. Separate "stabilize" actions (hours 1-24) from "recover" actions (days 2-14)
+
+Respond with valid JSON only.
+
+{
+  "crisis_type": "<type>",
+  "severity_assessment": "<critical|serious|manageable>",
+  "headline": "<what this crisis means for the business in plain English>",
+  "immediate_risk_to_loan": "<yes/no and brief explanation>",
+  "stabilize_actions": [
+    {"hour": "<1-4|4-12|12-24>", "action": "<specific step>", "who": "<owner|advisor|attorney|lender>", "why": "<why this can't wait>"}
+  ],
+  "recovery_actions": [
+    {"day": "<2-3|4-7|8-14>", "action": "<step>", "outcome": "<what this achieves>"}
+  ],
+  "notify_lender": <true|false>,
+  "lender_communication_draft": "<draft message to lender if applicable>",
+  "cash_preservation_steps": ["<step if cash is at risk>"],
+  "mistakes_to_avoid": ["<common mistake in this situation>"],
+  "resources_to_engage": ["<attorney|CPA|industry association|SBA resource center|etc>"],
+  "30_day_outlook": "<honest assessment of where things stand in 30 days if actions are taken>"
+}"""
+
+
+def claude_crisis_response(
+    crisis_type: str,
+    description: str,
+    deal_data: dict,
+    loan_data: dict,
+    risk_report: dict,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(deal_data.get("annual_revenue"))
+    balance = _n(loan_data.get("current_principal_balance"))
+    dpd = loan_data.get("days_past_due") or 0
+    health = risk_report.get("health_score") or "N/A"
+
+    user_msg = f"""Generate an immediate crisis response plan.
+
+BUSINESS CONTEXT:
+Business: {deal_data.get('name', 'Unknown')}
+Industry: {deal_data.get('industry', 'N/A')}
+Annual Revenue: ${rev:,.0f}
+SBA Loan Balance: ${balance:,.0f}
+Days Past Due: {dpd}
+Health Score: {health}/100
+DSCR: {risk_report.get('dscr_base', 'N/A')}x
+
+CRISIS:
+Type: {crisis_type}
+Description: {description}
+
+Generate an immediate 24-48 hour response plan. Be specific. The owner needs to act now.
+JSON only."""
+
+    text = _call_claude(CRISIS_SYSTEM, user_msg, max_tokens=2500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+# ── ENGINE 25: Value Growth Advisor ──────────────────────────────────────────
+
+VALUE_GROWTH_SYSTEM = """You are a business valuation and growth advisor for a small business owner who has acquired a business via SBA financing.
+
+Your job is to:
+1. Explain what drives the business's current valuation in plain English
+2. Identify the highest-leverage actions to increase value
+3. Give specific, actionable suggestions tied to real numbers
+4. Show what the business could be worth if they execute well
+
+Think like a private equity operating partner. Be specific, not generic.
+
+Rules:
+1. Use actual numbers from the data — never say "increase revenue" without saying by how much and how
+2. Prioritize by impact: biggest value drivers first
+3. Connect every suggestion to a valuation outcome (e.g., "adding $50K EBITDA at a 4x multiple = $200K in equity value")
+4. Be honest about risks and what would hurt value
+5. Give a realistic timeline for each suggestion
+
+Respond with valid JSON only. No markdown.
+
+{
+  "current_value_summary": {
+    "equity_value_mid": <float>,
+    "equity_value_range": "<$X – $Y>",
+    "primary_valuation_method": "<which method dominates and why>",
+    "implied_multiple": "<X.Xx EBITDA or SDE>",
+    "vs_purchase_price": "<how current value compares to what they paid>"
+  },
+  "value_drivers": [
+    {
+      "driver": "<what drives this business's value>",
+      "current_state": "<where they are now with data>",
+      "importance": "<critical|high|medium>",
+      "explanation": "<why this matters for valuation>"
+    }
+  ],
+  "growth_opportunities": [
+    {
+      "rank": <1-5>,
+      "title": "<specific opportunity>",
+      "current_metric": "<baseline with number>",
+      "target_metric": "<realistic target with number>",
+      "value_impact": "<dollar impact on equity value>",
+      "how_to_do_it": "<3-5 specific steps>",
+      "timeline": "<realistic timeframe>",
+      "difficulty": "<easy|medium|hard>",
+      "estimated_cost": "<investment required>"
+    }
+  ],
+  "value_risks": [
+    {"risk": "<what could reduce value>", "current_exposure": "<how exposed they are>", "mitigation": "<what to do about it>"}
+  ],
+  "upside_scenario": {
+    "description": "<what the business could look like in 3 years if growth actions are taken>",
+    "projected_revenue": <float>,
+    "projected_ebitda": <float>,
+    "projected_value_low": <float>,
+    "projected_value_mid": <float>,
+    "projected_value_high": <float>,
+    "key_assumptions": ["<assumption 1>"]
+  },
+  "quick_wins": ["<something achievable in 90 days that moves the needle>"],
+  "one_thing": "<the single most important thing this owner should focus on right now>"
+}"""
+
+
+def claude_value_growth_advisor(
+    deal_data: dict,
+    risk_report: dict,
+    uw_data: dict,
+    cashflows: list,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(deal_data.get("annual_revenue"))
+    ebitda = _n(deal_data.get("ebitda"))
+    price = _n(deal_data.get("purchase_price"))
+    loan = _n(deal_data.get("loan_amount_requested"))
+    equity_val_mid = _n(risk_report.get("equity_value_mid"))
+    equity_val_low = _n(risk_report.get("equity_value_low"))
+    equity_val_high = _n(risk_report.get("equity_value_high"))
+    dscr = risk_report.get("dscr_base") or "N/A"
+    health = risk_report.get("health_score") or "N/A"
+    sde_multiple = risk_report.get("sde_multiple_implied") or "N/A"
+    normalized_sde = _n(risk_report.get("normalized_sde"))
+    normalized_ebitda = _n(risk_report.get("normalized_ebitda"))
+    ev_mid = _n(risk_report.get("ev_mid"))
+
+    user_msg = f"""Analyze this business and generate a value growth plan.
+
+BUSINESS:
+Name: {deal_data.get('name', 'Unknown')}
+Industry: {deal_data.get('industry', 'N/A')}
+Purchase Price: ${price:,.0f}
+SBA Loan: ${loan:,.0f}
+Owner Experience: {deal_data.get('owner_experience_years', 'N/A')} years
+
+FINANCIALS:
+Annual Revenue: ${rev:,.0f}
+Normalized EBITDA: ${normalized_ebitda:,.0f} ({round(normalized_ebitda/rev*100,1) if rev else 0}% margin)
+Normalized SDE: ${normalized_sde:,.0f}
+Implied SDE Multiple: {sde_multiple}x
+
+CURRENT VALUATION:
+Enterprise Value: ${ev_mid:,.0f} (range: ${_n(risk_report.get('ev_low')):,.0f} – ${_n(risk_report.get('ev_high')):,.0f})
+Equity Value: ${equity_val_mid:,.0f} (range: ${equity_val_low:,.0f} – ${equity_val_high:,.0f})
+Health Score: {health}/100
+DSCR: {dscr}x
+Annual PD: {risk_report.get('annual_pd', 'N/A')}
+
+HEALTH BREAKDOWN:
+Cashflow: {risk_report.get('health_score_cashflow', 'N/A')}
+Stability: {risk_report.get('health_score_stability', 'N/A')}
+Growth: {risk_report.get('health_score_growth', 'N/A')}
+Liquidity: {risk_report.get('health_score_liquidity', 'N/A')}
+
+COLLATERAL:
+Coverage: {risk_report.get('collateral_coverage', 'N/A')}x
+NOLV: ${_n(risk_report.get('total_nolv')):,.0f}
+
+Identify the top 5 highest-leverage ways to grow value. Be specific to THIS business and industry.
+Show how each opportunity translates to equity value. JSON only."""
+
+    text = _call_claude(VALUE_GROWTH_SYSTEM, user_msg, max_tokens=3500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 26: Investment Summary / CIM Generator ────────────────────────────
+
+CIM_SYSTEM = """You are a business broker and M&A advisor writing a Confidential Information Memorandum (CIM) for a small business sale.
+
+The CIM is the primary marketing document sent to qualified buyers. It must:
+- Present the business attractively but honestly
+- Give buyers everything they need to make an initial offer
+- Highlight what makes this business a compelling acquisition
+- Address the obvious questions buyers will have
+- Be written for a financially sophisticated buyer (PE, search fund, individual buyer)
+
+Rules:
+1. Lead with what makes this business special — buyer hook first
+2. Use specific numbers — vague descriptions lose buyers
+3. Be honest about challenges — sophisticated buyers will find them anyway
+4. Think about buyer types: who is the ideal buyer for THIS business
+5. Frame the seller transition positively — not as a risk but as a structured handoff
+6. The tone is professional, confident, and specific
+
+Respond with valid JSON only. No markdown.
+
+{
+  "executive_summary": "<3-4 sentences — the buyer hook. Why this business, why now, why at this price>",
+  "business_overview": {
+    "business_name": "<n>",
+    "industry": "<n>",
+    "founded": "<year if known>",
+    "description": "<2-3 sentence plain-English description of what the business does>",
+    "competitive_position": "<what makes this business defensible>",
+    "customer_base": "<description of customer concentration and relationships>"
+  },
+  "investment_highlights": [
+    {"title": "<highlight title>", "detail": "<specific supporting detail with numbers>"}
+  ],
+  "financial_summary": {
+    "revenue": "<$X annual revenue>",
+    "ebitda": "<$X EBITDA / X% margin>",
+    "sde": "<$X seller's discretionary earnings>",
+    "dscr": "<Xx — debt can be serviced>",
+    "revenue_trend": "<growing/stable/declining — add context>",
+    "cash_flow_quality": "<assessment of earnings quality>"
+  },
+  "valuation": {
+    "asking_price": "<$X>",
+    "ev_ebitda_multiple": "<Xx — context vs industry>",
+    "sde_multiple": "<Xx>",
+    "equity_value_rationale": "<why this price is justified>",
+    "sba_eligible": "<yes/no — important for buyers using SBA financing>",
+    "equity_injection_required": "<approximate % down for SBA buyer>"
+  },
+  "growth_opportunities": [
+    "<specific growth opportunity a new owner could pursue>"
+  ],
+  "transaction_details": {
+    "asking_price_dollars": <float>,
+    "seller_financing": "<yes/no and terms if yes>",
+    "transition_period": "<X months seller stays>",
+    "ideal_buyer_profile": "<who would be the best buyer>",
+    "reason_for_sale": "<seller's motivation — be honest but positive>"
+  },
+  "risk_factors": [
+    {"risk": "<honest risk disclosure>", "mitigation": "<how it's managed or could be>"}
+  ],
+  "deal_process": {
+    "next_steps": ["<step for interested buyers>"],
+    "data_room_available": true,
+    "nda_required": true
+  }
+}"""
+
+
+def claude_generate_investment_summary(
+    deal_data: dict,
+    risk_report: dict,
+    uw_data: dict,
+    listing_data: dict,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(deal_data.get("annual_revenue"))
+    ebitda = _n(deal_data.get("ebitda"))
+    price = _n(deal_data.get("purchase_price"))
+    asking = _n(listing_data.get("asking_price") or risk_report.get("equity_value_mid") or price)
+    normalized_ebitda = _n(risk_report.get("normalized_ebitda") or ebitda)
+    normalized_sde = _n(risk_report.get("normalized_sde"))
+    equity_mid = _n(risk_report.get("equity_value_mid"))
+    dscr = risk_report.get("dscr_base") or "N/A"
+    sde_multiple = risk_report.get("sde_multiple_implied") or "N/A"
+    transition = listing_data.get("transition_period") or 6
+    seller_fin = listing_data.get("seller_financing", False)
+    seller_fin_amt = _n(listing_data.get("seller_financing_amount"))
+    motivation = listing_data.get("motivation", "Owner pursuing other opportunities")
+    ideal_buyer = listing_data.get("ideal_buyer", "Experienced operator or search fund")
+
+    user_msg = f"""Write a Confidential Information Memorandum (CIM) for this business sale.
+
+BUSINESS:
+Name: {deal_data.get('name', 'Unknown')}
+Industry: {deal_data.get('industry', 'N/A')}
+Owner Experience: {deal_data.get('owner_experience_years', 'N/A')} years in industry
+
+FINANCIALS:
+Annual Revenue: ${rev:,.0f}
+Normalized EBITDA: ${normalized_ebitda:,.0f} ({round(normalized_ebitda/rev*100,1) if rev else 0}% margin)
+Normalized SDE: ${normalized_sde:,.0f}
+DSCR: {dscr}x
+Health Score: {risk_report.get('health_score', 'N/A')}/100
+
+VALUATION:
+Asking Price: ${asking:,.0f}
+Equity Value (AI): ${equity_mid:,.0f}
+SDE Multiple: {sde_multiple}x
+SBA Eligible: {risk_report.get('sba_eligible', 'Yes')}
+Equity Injection (est): {round((asking - _n(deal_data.get('loan_amount_requested'))) / asking * 100, 1) if asking else 10}%
+
+DEAL TERMS:
+Seller Transition: {transition} months
+Seller Financing: {'Yes — ${:,.0f}'.format(seller_fin_amt) if seller_fin else 'No'}
+Reason for Sale: {motivation}
+Ideal Buyer: {ideal_buyer}
+
+RISK PROFILE:
+Annual PD: {risk_report.get('annual_pd', 'N/A')}
+Collateral Coverage: {risk_report.get('collateral_coverage', 'N/A')}x
+
+Write a compelling, honest CIM. Present the best case while disclosing real risks. JSON only."""
+
+    text = _call_claude(CIM_SYSTEM, user_msg, max_tokens=3500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

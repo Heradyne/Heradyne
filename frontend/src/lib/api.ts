@@ -968,6 +968,108 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Sprint 4: Guaranty Purchase Package ──────────────────────────────────
+  async generateGuarantyPackage(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/sprint4/guaranty/${dealId}/generate`, data, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getGuarantyPackage(dealId: number): Promise<any> {
+    const response = await this.client.get(`/sprint4/guaranty/${dealId}`);
+    return response.data;
+  }
+
+  async updateGuarantyTab(packageId: number, tabNumber: number, complete: boolean): Promise<any> {
+    const response = await this.client.put(`/sprint4/guaranty/${packageId}/tab`, { tab_number: tabNumber, complete });
+    return response.data;
+  }
+
+  // ── Sprint 4: Credit Committee Presentation ───────────────────────────────
+  async generateCommitteePresentation(dealId: number, data?: any): Promise<any> {
+    const response = await this.client.post(`/sprint4/committee/${dealId}/generate`, data || {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getCommitteePresentation(dealId: number): Promise<any> {
+    const response = await this.client.get(`/sprint4/committee/${dealId}`);
+    return response.data;
+  }
+
+  async recordCommitteeDecision(presentationId: number, decision: string, notes?: string): Promise<any> {
+    const response = await this.client.put(`/sprint4/committee/${presentationId}/decision`, { decision, notes });
+    return response.data;
+  }
+
+  // ── Sprint 4: Quarterly Business Review ───────────────────────────────────
+  async generateQBR(dealId: number, quarter: number, year: number): Promise<any> {
+    const response = await this.client.post(`/sprint4/qbr/${dealId}/generate`, { quarter, year }, { timeout: 120000 });
+    return response.data;
+  }
+
+  async listQBRs(dealId: number): Promise<any> {
+    const response = await this.client.get(`/sprint4/qbr/${dealId}`);
+    return response.data;
+  }
+
+  // ── Sprint 4: Crisis Response ──────────────────────────────────────────────
+  async reportCrisis(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/sprint4/crisis/${dealId}/report`, data, { timeout: 120000 });
+    return response.data;
+  }
+
+  async listCrises(dealId: number): Promise<any> {
+    const response = await this.client.get(`/sprint4/crisis/${dealId}`);
+    return response.data;
+  }
+
+  async resolveCrisis(crisisId: number, resolutionNotes: string): Promise<any> {
+    const response = await this.client.put(`/sprint4/crisis/${crisisId}/resolve`, { resolution_notes: resolutionNotes });
+    return response.data;
+  }
+
+
+  // ── Business Value Hub ────────────────────────────────────────────────────
+  async getBusinessValueSnapshot(dealId: number): Promise<any> {
+    const response = await this.client.get(`/business-value/${dealId}/snapshot`);
+    return response.data;
+  }
+
+  async generateValueGrowthPlan(dealId: number): Promise<any> {
+    const response = await this.client.post(`/business-value/${dealId}/growth-plan`, {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getValueGrowthPlan(dealId: number): Promise<any> {
+    const response = await this.client.get(`/business-value/${dealId}/growth-plan`);
+    return response.data;
+  }
+
+  async listBusinessForSale(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/business-value/${dealId}/list-for-sale`, data);
+    return response.data;
+  }
+
+  async getBusinessListing(dealId: number): Promise<any> {
+    const response = await this.client.get(`/business-value/${dealId}/listing`);
+    return response.data;
+  }
+
+  async withdrawBusinessListing(dealId: number): Promise<any> {
+    const response = await this.client.delete(`/business-value/${dealId}/listing`);
+    return response.data;
+  }
+
+  async generateInvestmentSummary(dealId: number): Promise<any> {
+    const response = await this.client.post(`/business-value/${dealId}/investment-summary`, {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getInvestmentSummary(dealId: number): Promise<any> {
+    const response = await this.client.get(`/business-value/${dealId}/investment-summary`);
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();
