@@ -2243,3 +2243,203 @@ Write a compelling, honest CIM. Present the best case while disclosing real risk
     result["_powered_by"] = "claude"
     result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 27: Asset Evaluation for Investors ─────────────────────────────────
+
+ASSET_EVAL_SYSTEM = """You are an asset valuation and investment analyst evaluating a business asset for potential sale-leaseback or investment.
+
+You review the asset description, supporting links, and business context to produce:
+1. A fair market value estimate with reasoning
+2. An investment summary for potential buyers/investors
+3. Leaseback viability assessment
+4. Key risks and due diligence questions
+
+Rules:
+1. Be conservative on value — investors need to make money
+2. Always flag what you can't verify from the description alone
+3. Assess leaseback viability: can the business afford to lease it back?
+4. Think from both sides: what does owner gain? what does investor earn?
+
+Respond with valid JSON only. No markdown.
+
+{
+  "asset_summary": {
+    "asset_type": "<type>",
+    "description": "<concise 2-sentence summary>",
+    "condition_assessment": "<based on description>",
+    "key_characteristics": ["<characteristic>"]
+  },
+  "valuation": {
+    "estimated_value_low": <float>,
+    "estimated_value_mid": <float>,
+    "estimated_value_high": <float>,
+    "valuation_method": "<comparable sales | income approach | cost approach | combination>",
+    "reasoning": "<step-by-step valuation logic>",
+    "confidence": "<low|medium|high>",
+    "confidence_notes": "<what would improve confidence>"
+  },
+  "investor_summary": {
+    "headline": "<why this asset is interesting to an investor>",
+    "highlights": ["<investment highlight>"],
+    "suggested_purchase_price": <float>,
+    "suggested_monthly_lease": <float>,
+    "suggested_lease_term_months": <int>,
+    "implied_cap_rate": <float>,
+    "annual_yield_pct": <float>,
+    "payback_period_years": <float>
+  },
+  "leaseback_viability": {
+    "viable": <true|false>,
+    "affordability_assessment": "<can the business afford this lease payment?>",
+    "business_need": "<why the owner needs to keep using this asset>",
+    "risk_to_investor": "<low|medium|high>",
+    "risk_notes": "<key risks>"
+  },
+  "due_diligence_required": ["<what investor should verify>"],
+  "red_flags": ["<anything concerning>"],
+  "suggested_deal_structure": "<recommended structure with terms>"
+}"""
+
+
+def claude_evaluate_asset(
+    title: str,
+    description: str,
+    asset_type: str,
+    owner_estimated_value: float,
+    location: str,
+    external_link: str,
+    additional_details: dict,
+    business_context: dict,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+    rev = _n(business_context.get("annual_revenue"))
+    ebitda = _n(business_context.get("ebitda"))
+
+    user_msg = f"""Evaluate this asset for sale-leaseback or investor acquisition.
+
+ASSET:
+Title: {title}
+Type: {asset_type}
+Description: {description}
+Location: {location or 'Not specified'}
+External Link: {external_link or 'None provided'}
+Owner's Estimated Value: ${_n(owner_estimated_value):,.0f}
+Additional Details: {json.dumps(additional_details or {}, indent=2)}
+
+BUSINESS CONTEXT (the owner's business):
+Industry: {business_context.get('industry', 'N/A')}
+Annual Revenue: ${rev:,.0f}
+EBITDA: ${ebitda:,.0f} ({round(ebitda/rev*100,1) if rev else 0}% margin)
+Loan Balance: ${_n(business_context.get('loan_balance')):,.0f}
+Health Score: {business_context.get('health_score', 'N/A')}/100
+
+Provide a complete investor evaluation. Be conservative on value. JSON only."""
+
+    text = _call_claude(ASSET_EVAL_SYSTEM, user_msg, max_tokens=2500)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["evaluated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result
+
+
+# ── ENGINE 28: Leaseback Contract Generator ───────────────────────────────────
+
+CONTRACT_SYSTEM = """You are a commercial attorney drafting a sale-leaseback agreement for a small business asset.
+
+This contract governs:
+1. The sale of the asset from owner to investor/purchaser
+2. The immediate leaseback of the same asset to the original owner
+3. Payment terms, duration, and conditions
+4. Options to repurchase (if applicable)
+
+Rules:
+1. Use clear, plain English — this owner is a small business operator, not a lawyer
+2. Include all standard commercial leaseback provisions
+3. Specify every payment, date, and condition explicitly
+4. Include default provisions and remedies
+5. Flag sections that need attorney review before signing
+
+Respond with valid JSON only.
+
+{
+  "contract_title": "Sale-Leaseback Agreement",
+  "parties": {
+    "seller_lessee": "<owner name and role>",
+    "buyer_lessor": "<investor/admin name and role>"
+  },
+  "recitals": "<background paragraph explaining the transaction>",
+  "sections": [
+    {
+      "section_number": "<1.0>",
+      "title": "<section title>",
+      "content": "<full section text>",
+      "requires_attorney_review": <true|false>
+    }
+  ],
+  "key_terms_summary": {
+    "purchase_price": "<$X>",
+    "monthly_lease_payment": "<$X>",
+    "lease_term": "<X months>",
+    "lease_start_date": "<TBD — effective upon full execution>",
+    "buyback_option": "<yes/no and terms>",
+    "governing_law": "<State of [TBD]>"
+  },
+  "signature_blocks": [
+    {"party": "Seller/Lessee", "name_line": "_______________", "date_line": "_______________"},
+    {"party": "Buyer/Lessor", "name_line": "_______________", "date_line": "_______________"}
+  ],
+  "attorney_review_notes": ["<section or clause that needs professional legal review>"]
+}"""
+
+
+def claude_generate_leaseback_contract(
+    asset_title: str,
+    asset_description: str,
+    owner_name: str,
+    investor_name: str,
+    purchase_price: float,
+    monthly_lease: float,
+    lease_term_months: int,
+    lease_type: str,
+    buyback_option: bool,
+    buyback_price: float,
+    buyback_period_months: int,
+) -> Optional[dict]:
+    import datetime
+    today = datetime.date.today().isoformat()
+    lease_end = (datetime.date.today() + datetime.timedelta(days=lease_term_months * 30)).isoformat()
+    annual_rent = monthly_lease * 12
+    total_rent = monthly_lease * lease_term_months
+
+    user_msg = f"""Draft a sale-leaseback agreement.
+
+TRANSACTION:
+Asset: {asset_title}
+Description: {asset_description}
+
+PARTIES:
+Seller/Lessee (owner): {owner_name}
+Buyer/Lessor (investor): {investor_name}
+
+TERMS:
+Purchase Price: ${purchase_price:,.0f}
+Monthly Lease Payment: ${monthly_lease:,.0f}/month (${annual_rent:,.0f}/year)
+Lease Term: {lease_term_months} months
+Lease Type: {lease_type.title()}
+Total Lease Payments: ${total_rent:,.0f}
+Buyback Option: {'Yes — ${:,.0f} within {} months'.format(buyback_price, buyback_period_months) if buyback_option else 'No'}
+Agreement Date: {today}
+Estimated Lease End: {lease_end}
+
+Draft a complete, professional sale-leaseback agreement. Include all standard commercial provisions.
+Flag any section that requires attorney review before signing. JSON only."""
+
+    text = _call_claude(CONTRACT_SYSTEM, user_msg, max_tokens=4000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

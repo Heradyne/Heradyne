@@ -1070,6 +1070,84 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Asset Leaseback Marketplace ───────────────────────────────────────────
+  async createAssetListing(data: any): Promise<any> {
+    const response = await this.client.post('/leaseback/assets', data);
+    return response.data;
+  }
+
+  async getMyAssetListings(): Promise<any> {
+    const response = await this.client.get('/leaseback/assets/mine');
+    return response.data;
+  }
+
+  async getAssetListing(assetId: number): Promise<any> {
+    const response = await this.client.get(`/leaseback/assets/${assetId}`);
+    return response.data;
+  }
+
+  async updateAssetListing(assetId: number, data: any): Promise<any> {
+    const response = await this.client.put(`/leaseback/assets/${assetId}`, data);
+    return response.data;
+  }
+
+  async evaluateAsset(assetId: number): Promise<any> {
+    const response = await this.client.post(`/leaseback/assets/${assetId}/evaluate`, {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getMyLeasebackProposals(): Promise<any> {
+    const response = await this.client.get('/leaseback/proposals/mine');
+    return response.data;
+  }
+
+  async acceptLeasebackProposal(proposalId: number, notes?: string): Promise<any> {
+    const response = await this.client.post(`/leaseback/proposals/${proposalId}/accept`, { accept: true, notes });
+    return response.data;
+  }
+
+  async declineLeasebackProposal(proposalId: number, notes?: string): Promise<any> {
+    const response = await this.client.post(`/leaseback/proposals/${proposalId}/decline`, { accept: false, notes });
+    return response.data;
+  }
+
+  async getMyLeasebackContracts(): Promise<any> {
+    const response = await this.client.get('/leaseback/contracts/mine');
+    return response.data;
+  }
+
+  async signLeasebackContract(contractId: number): Promise<any> {
+    const response = await this.client.post(`/leaseback/contracts/${contractId}/sign`);
+    return response.data;
+  }
+
+  // Admin leaseback
+  async getAllAssetListings(): Promise<any> {
+    const response = await this.client.get('/leaseback/assets/all');
+    return response.data;
+  }
+
+  async proposeLeaseBack(assetId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/leaseback/assets/${assetId}/propose`, data);
+    return response.data;
+  }
+
+  async generateLeasebackContract(proposalId: number): Promise<any> {
+    const response = await this.client.post(`/leaseback/proposals/${proposalId}/contract`, {}, { timeout: 120000 });
+    return response.data;
+  }
+
+  async adminSignContract(contractId: number): Promise<any> {
+    const response = await this.client.post(`/leaseback/contracts/${contractId}/countersign`);
+    return response.data;
+  }
+
+  async getAllLeasebackContracts(): Promise<any> {
+    const response = await this.client.get('/leaseback/contracts/all');
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();

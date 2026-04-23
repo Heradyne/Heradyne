@@ -8,7 +8,7 @@ import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
   ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList, FileBarChart,
-  AlertCircle, LayoutDashboard, AlertTriangle
+  AlertCircle, LayoutDashboard, AlertTriangle, Package
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { cn, getRoleLabel, DISCLAIMER } from '@/lib/utils';
@@ -24,6 +24,7 @@ const NAV_DEFINITIONS = {
     { id: 'business-value', name: 'Business Value',    href: '/dashboard/business-value', icon: DollarSign,  always: false },
     { id: 'get-valuation', name: 'Get a Valuation',    href: '/dashboard/get-valuation',icon: TrendingUp,  always: false },
     { id: 'collateral',    name: 'Collateral',         href: '/dashboard/collateral',   icon: Building2,   always: false },
+    { id: 'asset-leaseback',  name: 'Asset Marketplace', href: '/dashboard/asset-leaseback',  icon: Package,     always: false },
     { id: 'signatures',    name: 'Signatures',         href: '/dashboard/signatures',   icon: FileSignature,always: false },
     { id: 'protection',    name: 'Default Protection', href: '/dashboard/protection',   icon: ShieldAlert, always: false },
     { id: 'employee-kpi',  name: 'Employee Program',  href: '/dashboard/employee-kpi', icon: Users,       always: false },
@@ -95,6 +96,7 @@ const NAV_DEFINITIONS = {
     { id: 'ai-agent',        name: 'AI Agent',       href: '/dashboard/ai-agent',      icon: Brain,       always: false },
     { id: 'financials',      name: 'Financials',     href: '/dashboard/financials',    icon: DollarSign,  always: false },
     { id: 'secondary-market',name: 'Secondary Market',href:'/dashboard/secondary-market',icon:TrendingUp,  always: false },
+    { id: 'leaseback-admin', name: 'Asset Marketplace', href: '/dashboard/leaseback-admin', icon: Package,  always: false },
     { id: 'users',           name: 'Users',          href: '/dashboard/users',         icon: Users,       always: true },
     { id: 'assumptions',     name: 'Assumptions',    href: '/dashboard/assumptions',   icon: Settings,    always: false },
     { id: 'audit',           name: 'Audit Logs',     href: '/dashboard/audit',         icon: BarChart3,   always: false },
