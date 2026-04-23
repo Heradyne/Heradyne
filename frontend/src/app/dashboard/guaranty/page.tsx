@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { AlertTriangle, FileText, Loader, RefreshCw, CheckCircle, XCircle, ChevronDown, ChevronUp, X, DollarSign } from 'lucide-react';
 import { api } from '@/lib/api';
+import { AIDisclaimer } from '@/components/ai-disclaimer';
 import { formatCurrency } from '@/lib/utils';
 
 const TAB_STATUS: Record<string, string> = {

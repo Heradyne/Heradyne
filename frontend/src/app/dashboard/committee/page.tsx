@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { Presentation, Loader, RefreshCw, CheckCircle, AlertTriangle, X, ChevronDown, ChevronUp, ThumbsUp, ThumbsDown, Clock } from 'lucide-react';
 import { api } from '@/lib/api';
+import { AIDisclaimer } from '@/components/ai-disclaimer';
 import { formatCurrency } from '@/lib/utils';
 
 const RECOMMENDATION_STYLE: Record<string, string> = {

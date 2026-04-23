@@ -264,12 +264,19 @@ async def invite_employee(
     }
 
 
+class AcceptInviteRequest(BaseModel):
+    token: str
+    password: str
+
+
 @router.post("/accept-invite")
 async def accept_invite(
-    token: str,
-    password: str,
+    request: Request,
+    data: AcceptInviteRequest,
     db: Session = Depends(get_db),
 ):
+    token = data.token
+    password = data.password
     """Accept an employee invite and create the employee account."""
     invite = db.query(EmployeeInvite).filter(
         EmployeeInvite.token == token,

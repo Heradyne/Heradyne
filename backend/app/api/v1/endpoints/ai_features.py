@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 from app.core.database import get_db
 from app.core.deps import get_current_active_user
+from app.services.ai_budget import check_ai_budget
 from app.models.user import User, UserRole
 from app.models.deal import Deal, DealRiskReport
 from app.models.executed_loan import ExecutedLoan
@@ -47,6 +48,7 @@ async def generate_banker_memo(
 ):
     """Generate an AI-powered SBA credit memo for loan committee review."""
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    check_ai_budget(current_user)
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 
@@ -129,6 +131,7 @@ async def sba_compliance_qa(
     deal_context = None
     if request.deal_id:
         deal = db.query(Deal).filter(Deal.id == request.deal_id).first()
+    check_ai_budget(current_user)
         if deal:
             rpt = db.query(DealRiskReport).filter(
                 DealRiskReport.deal_id == request.deal_id
@@ -165,6 +168,7 @@ async def get_borrower_recommendations(
 ):
     """AI-powered borrower recommendation engine. Personalized approval-maximizing advice."""
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    check_ai_budget(current_user)
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
     if current_user.role == UserRole.BORROWER and deal.borrower_id != current_user.id:
@@ -224,6 +228,7 @@ async def check_covenants(
 ):
     """AI covenant monitoring with plain-English explanations for borrowers."""
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    check_ai_budget(current_user)
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
     if current_user.role == UserRole.BORROWER and deal.borrower_id != current_user.id:
@@ -364,6 +369,7 @@ async def draft_sba_form(
         raise HTTPException(status_code=403, detail="Lender access required")
 
     deal = db.query(Deal).filter(Deal.id == deal_id).first()
+    check_ai_budget(current_user)
     if not deal:
         raise HTTPException(status_code=404, detail="Deal not found")
 

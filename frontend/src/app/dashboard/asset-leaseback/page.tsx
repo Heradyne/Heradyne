@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { Package, Plus, Loader, RefreshCw, CheckCircle, AlertTriangle, X, ChevronDown, ChevronUp, FileText, ExternalLink, DollarSign, Tag } from 'lucide-react';
 import { api } from '@/lib/api';
+import { LegalAckGate, AIDisclaimer } from '@/components/ai-disclaimer';
 import { formatCurrency } from '@/lib/utils';
 
 const ASSET_TYPES = [
@@ -44,6 +45,7 @@ export default function AssetLeasebackPage() {
   const [respondingTo, setRespondingTo] = useState<number | null>(null);
   const [responseNotes, setResponseNotes] = useState('');
   const [signingContract, setSigningContract] = useState<number | null>(null);
+  const [ackContractId, setAckContractId] = useState<number | null>(null);
   const [form, setForm] = useState({
     title: '', description: '', asset_type: 'equipment', location: '',
     external_link: '', owner_estimated_value: '', additional_details: '',
@@ -455,13 +457,20 @@ export default function AssetLeasebackPage() {
                   )}
                 </div>
 
-                {/* Sign button */}
+                {/* Sign button — requires legal acknowledgment */}
                 {!contract.owner_signed_at && contract.status !== 'fully_executed' && (
-                  <button onClick={() => signContract(contract.id)} disabled={signingContract === contract.id}
-                    className="btn bg-blue-600 text-white hover:bg-blue-700 border-blue-600 w-full inline-flex items-center justify-center gap-2">
-                    {signingContract === contract.id ? <Loader className="h-4 w-4 animate-spin" /> : <FileText className="h-4 w-4" />}
-                    Sign Contract
-                  </button>
+                  ackContractId === contract.id ? (
+                    <LegalAckGate
+                      onConfirm={() => { signContract(contract.id); setAckContractId(null); }}
+                      disabled={signingContract === contract.id}
+                      actionLabel={signingContract === contract.id ? 'Signing...' : 'Sign Contract'}
+                    />
+                  ) : (
+                    <button onClick={() => setAckContractId(contract.id)}
+                      className="btn bg-blue-600 text-white hover:bg-blue-700 border-blue-600 w-full inline-flex items-center justify-center gap-2">
+                      <FileText className="h-4 w-4" /> Review & Sign Contract
+                    </button>
+                  )
                 )}
 
                 {contract.status === 'fully_executed' && (

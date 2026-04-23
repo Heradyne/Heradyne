@@ -899,7 +899,7 @@ class ApiClient {
   }
 
   async acceptInvite(token: string, password: string): Promise<any> {
-    const response = await this.client.post(`/employee-kpi/accept-invite?token=${token}&password=${encodeURIComponent(password)}`);
+    const response = await this.client.post('/employee-kpi/accept-invite', { token, password });
     return response.data;
   }
 
@@ -1145,6 +1145,23 @@ class ApiClient {
 
   async getAllLeasebackContracts(): Promise<any> {
     const response = await this.client.get('/leaseback/contracts/all');
+    return response.data;
+  }
+
+
+  // ── Notifications ─────────────────────────────────────────────────────────
+  async getNotifications(): Promise<any> {
+    const response = await this.client.get('/notifications/');
+    return response.data;
+  }
+
+  async markNotificationRead(notificationId: number): Promise<any> {
+    const response = await this.client.post(`/notifications/read/${notificationId}`);
+    return response.data;
+  }
+
+  async markAllNotificationsRead(): Promise<any> {
+    const response = await this.client.post('/notifications/read-all');
     return response.data;
   }
 

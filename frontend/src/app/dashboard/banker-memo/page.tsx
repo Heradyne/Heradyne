@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { FileText, Loader, Download, RefreshCw, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 import { api } from '@/lib/api';
+import { AIDisclaimer } from '@/components/ai-disclaimer';
 import { formatCurrency, formatDate } from '@/lib/utils';
 
 export default function BankerMemoPage() {

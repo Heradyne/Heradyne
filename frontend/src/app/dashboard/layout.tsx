@@ -11,6 +11,8 @@ import {
   AlertCircle, LayoutDashboard, AlertTriangle, Package
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
+import { NotificationBell } from '@/components/notification-bell';
+import { NotificationBell } from '@/components/notification-bell';
 import { cn, getRoleLabel, DISCLAIMER } from '@/lib/utils';
 import IdleWarning from '@/components/IdleWarning';
 
@@ -125,6 +127,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (mustChangePassword) router.push('/change-password');
   }, [mustChangePassword, router]);
 
+  // Onboarding redirect — first login only
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user && typeof window !== 'undefined') {
+      const onboarded = localStorage.getItem('heradyne_onboarded');
+      const path = window.location.pathname;
+      if (!onboarded && !path.includes('/onboarding') && !path.includes('/change-password')) {
+        router.push('/dashboard/onboarding');
+      }
+    }
+  }, [isLoading, isAuthenticated, user, router]);
+
   // Load appetite preferences
   useEffect(() => {
     if (!user?.role) return;
@@ -184,7 +197,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User */}
         <div className="px-4 py-3" style={{borderBottom:'1px solid rgba(255,255,255,0.07)'}}>
-          <p className="text-sm font-medium truncate" style={{color:'rgba(255,255,255,0.88)',marginBottom:'4px'}}>{user.full_name || user.email}</p>
+          <div className="flex items-center justify-between mb-1">
+            <p className="text-sm font-medium truncate" style={{color:'rgba(255,255,255,0.88)'}}>{user.full_name || user.email}</p>
+            <div style={{filter:'invert(1) brightness(2) opacity(0.6)'}}>
+              <NotificationBell />
+            </div>
+          </div>
           <span className={`${getRoleBadge(user.role)} mt-1`} style={{opacity:0.8}}>
             {getRoleLabel(user.role)}
           </span>

@@ -2,6 +2,10 @@ from datetime import timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
@@ -81,6 +85,7 @@ class MFAEnrollRequest(BaseModel):
 # ── Register ──────────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@limiter.limit("3/minute")
 def register(request: Request, user_data: UserCreate, db: Session = Depends(get_db)):
     if user_data.role != UserRole.BORROWER:
         raise HTTPException(status_code=403, detail="Only borrowers can self-register")
@@ -122,6 +127,7 @@ def register(request: Request, user_data: UserCreate, db: Session = Depends(get_
 # ── Login ─────────────────────────────────────────────────────────────────────
 
 @router.post("/login")
+@limiter.limit("5/minute")
 def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db)):
     ip = _get_client_ip(request)
 
@@ -185,6 +191,7 @@ def login(request: Request, credentials: UserLogin, db: Session = Depends(get_db
 # ── MFA verify ────────────────────────────────────────────────────────────────
 
 @router.post("/mfa/verify")
+@limiter.limit("10/minute")
 def mfa_verify(request: Request, body: MFAVerifyRequest, db: Session = Depends(get_db)):
     payload = decode_access_token(body.mfa_token)
     if not payload or not payload.get("mfa_challenge"):
@@ -355,6 +362,7 @@ def get_me(current_user: User = Depends(get_current_active_user)):
 # ── Token refresh ─────────────────────────────────────────────────────────────
 
 @router.post("/refresh")
+@limiter.limit("30/minute")
 def refresh_access_token(
     request: Request,
     db: Session = Depends(get_db),

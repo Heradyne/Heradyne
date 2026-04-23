@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic';
 import { useEffect, useState } from 'react';
 import { TrendingUp, Target, Tag, Loader, RefreshCw, CheckCircle, AlertTriangle, X, ChevronDown, ChevronUp, DollarSign, ArrowUpRight, Sparkles, Building2, Copy, Check } from 'lucide-react';
 import { api } from '@/lib/api';
+import { AIDisclaimer, DisclaimerBanner } from '@/components/ai-disclaimer';
 import { formatCurrency } from '@/lib/utils';
 
 type Tab = 'value' | 'grow' | 'sell';
@@ -700,6 +701,7 @@ export default function BusinessValuePage() {
                         </div>
                       )}
 
+                      <AIDisclaimer type="legal" compact className="mb-2" />
                       <p className="text-xs text-gray-400 text-center">
                         AI-generated CIM v{cim.version}. Review with your broker or attorney before sharing with buyers.
                         Generated {cim.generated_at ? new Date(cim.generated_at).toLocaleString() : ''}.

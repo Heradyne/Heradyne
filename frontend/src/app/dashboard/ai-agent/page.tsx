@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react';
 import { Brain, AlertTriangle, TrendingUp, Shield, CheckCircle, XCircle, Activity, BarChart3, RefreshCw, Target, Zap, ChevronDown, ChevronUp, Save, RotateCcw, Settings } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
+import { AIDisclaimer } from '@/components/ai-disclaimer';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 
 interface Variable {
