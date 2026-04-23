@@ -60,7 +60,9 @@ export default function MatchesPage() {
 
   const loadMatches = async () => {
     try {
-      const matchData = await api.getMyMatches();
+      const raw = await api.getMyMatches();
+      // Normalize — backend returns array directly, but guard against wrapper objects
+      const matchData: DealMatch[] = Array.isArray(raw) ? raw : ((raw as any)?.matches ?? []);
       setMatches(matchData);
 
       // Load deal details, risk reports, and verification for each match
