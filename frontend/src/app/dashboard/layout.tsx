@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { NotificationBell } from '@/components/notification-bell';
-import { NotificationBell } from '@/components/notification-bell';
 import { cn, getRoleLabel, DISCLAIMER } from '@/lib/utils';
 import IdleWarning from '@/components/IdleWarning';
 
