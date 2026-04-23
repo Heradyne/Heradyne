@@ -1,5 +1,4 @@
-'use client'; // v2-sprint-a
-
+'use client';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,9 +60,7 @@ export default function MatchesPage() {
 
   const loadMatches = async () => {
     try {
-      const raw = await api.getMyMatches();
-      // Normalize — backend returns array directly, but guard against wrapper objects
-      const matchData: DealMatch[] = Array.isArray(raw) ? raw : ((raw as any)?.matches ?? []);
+      const matchData = await api.getMyMatches();
       setMatches(matchData);
 
       // Load deal details, risk reports, and verification for each match
@@ -796,11 +793,11 @@ export default function MatchesPage() {
                             </div>
                           </div>
                           
-                          {aiAnalyses[match.deal_id].risk_flags?.length > 0 && (
+                          {(aiAnalyses[match.deal_id].risk_flags || []).length > 0 && (
                             <div className="mb-3">
                               <p className="text-xs font-medium text-gray-700 mb-1">Risk Flags:</p>
                               <div className="space-y-1">
-                                {aiAnalyses[match.deal_id].risk_flags.slice(0, 3).map((flag: any, i: number) => (
+                                {(aiAnalyses[match.deal_id].risk_flags || []).slice(0, 3).map((flag: any, i: number) => (
                                   <p key={i} className="text-xs text-orange-700 flex items-start">
                                     <AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof flag === 'object' ? `${flag.flag}${flag.value ? ` (${flag.value})` : ''}` : flag}
@@ -810,11 +807,11 @@ export default function MatchesPage() {
                             </div>
                           )}
                           
-                          {aiAnalyses[match.deal_id].positive_factors?.length > 0 && (
+                          {(aiAnalyses[match.deal_id].positive_factors || []).length > 0 && (
                             <div>
                               <p className="text-xs font-medium text-gray-700 mb-1">Positive Factors:</p>
                               <div className="space-y-1">
-                                {aiAnalyses[match.deal_id].positive_factors.slice(0, 3).map((factor: any, i: number) => (
+                                {(aiAnalyses[match.deal_id].positive_factors || []).slice(0, 3).map((factor: any, i: number) => (
                                   <p key={i} className="text-xs text-green-700 flex items-start">
                                     <CheckCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof factor === 'object' ? `${factor.factor}${factor.value ? ` (${factor.value})` : ''}` : factor}
