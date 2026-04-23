@@ -1,4 +1,5 @@
-'use client';
+'use client'; // v2-sprint-a
+
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';

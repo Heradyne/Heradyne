@@ -1,4 +1,5 @@
-'use client';
+'use client'; // v2-sprint-a
+
 
 import { useEffect, useState, useRef } from 'react';
 import { Bell, X, Check, CheckCheck, AlertTriangle, FileText, DollarSign, Package, TrendingUp, Shield } from 'lucide-react';
@@ -32,12 +33,10 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unread, setUnread] = useState(0);
-  const [loading, setLoading] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadNotifications();
-    // Poll every 60 seconds
     const interval = setInterval(loadNotifications, 60000);
     return () => clearInterval(interval);
   }, []);
@@ -55,7 +54,7 @@ export function NotificationBell() {
       const data = await api.getNotifications();
       setNotifications(data.notifications || []);
       setUnread(data.unread_count || 0);
-    } catch { /* silent fail */ }
+    } catch { /* silent — endpoint may not exist yet */ }
   };
 
   const markRead = async (id: number) => {
@@ -97,7 +96,6 @@ export function NotificationBell() {
 
       {open && (
         <div className="absolute right-0 top-10 w-80 bg-white border border-gray-200 rounded-2xl shadow-xl z-50 overflow-hidden">
-          {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <h3 className="font-semibold text-gray-900 text-sm">Notifications</h3>
             <div className="flex items-center gap-2">
@@ -111,8 +109,6 @@ export function NotificationBell() {
               </button>
             </div>
           </div>
-
-          {/* List */}
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="text-center py-10">
