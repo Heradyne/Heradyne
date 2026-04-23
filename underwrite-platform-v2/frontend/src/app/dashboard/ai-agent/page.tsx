@@ -154,6 +154,10 @@ export default function AIAgentPage() {
   const [success, setSuccess] = useState('');
   const [scoringResult, setScoringResult] = useState<any>(null);
   const [scoringLoading, setScoringLoading] = useState(false);
+  const [expandedScoreCategories, setExpandedScoreCategories] = useState<Set<string>>(new Set());
+  const [deals, setDeals] = useState<any[]>([]);
+  const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
+  const [dealLoading, setDealLoading] = useState(false);
   
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -172,7 +176,7 @@ export default function AIAgentPage() {
     business_age: 12, equity_injection: 20, dscr: 1.45, borrower_credit_score: 720,
   });
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); api.getDeals().then(setDeals).catch(() => {}); }, []);
 
   const loadData = async () => {
     try {
@@ -307,13 +311,48 @@ export default function AIAgentPage() {
     return categoryVars.filter(v => variableSettings[v.id]?.enabled !== false).length;
   };
 
+  const loadDealIntoForm = async (dealId: number) => {
+    setDealLoading(true);
+    setSelectedDealId(dealId);
+    try {
+      const [deal, rpt] = await Promise.all([
+        api.getDeal(dealId),
+        api.getLatestRiskReport(dealId).catch(() => null),
+      ]);
+      setDemoData({
+        loan_amount: deal.loan_amount_requested || 1500000,
+        loan_purpose: 'acquisition',
+        naics_industry: deal.industry || '621',
+        business_age: deal.owner_experience_years || 5,
+        equity_injection: deal.equity_injection && deal.purchase_price
+          ? Math.round((deal.equity_injection / deal.purchase_price) * 100)
+          : 20,
+        dscr: rpt?.dscr_base || 1.25,
+        borrower_credit_score: deal.owner_credit_score || 700,
+      });
+    } catch {
+      setError('Failed to load deal data');
+    } finally {
+      setDealLoading(false);
+    }
+  };
+
   const runScoringDemo = async () => {
     setScoringLoading(true);
+    setScoringResult(null);
     try {
       const result = await api.scoreWithAIAgent(demoData);
-      setScoringResult(result);
+      if (result && result.composite_score !== undefined) {
+        setScoringResult(result);
+      } else {
+        setError('Unexpected response from scoring engine');
+      }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Scoring failed');
+      const detail = err.response?.data?.detail;
+      const msg = Array.isArray(detail)
+        ? detail.map((d: any) => `${d.loc?.join('.')} — ${d.msg}`).join(', ')
+        : (typeof detail === 'string' ? detail : 'Scoring failed');
+      setError(msg);
     } finally {
       setScoringLoading(false);
     }
@@ -413,7 +452,32 @@ export default function AIAgentPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Risk Scoring Demo */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4 flex items-center"><Zap className="h-5 w-5 mr-2 text-yellow-500" />Risk Scoring Demo</h2>
+          <h2 className="text-lg font-semibold mb-4 flex items-center"><Zap className="h-5 w-5 mr-2 text-yellow-500" />Risk Scoring</h2>
+
+          {/* Deal selector */}
+          <div className="mb-4">
+            <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Score a Deal</label>
+            <div className="flex gap-2">
+              <select
+                value={selectedDealId || ''}
+                onChange={e => e.target.value ? loadDealIntoForm(Number(e.target.value)) : setSelectedDealId(null)}
+                className="input flex-1 text-sm"
+                disabled={dealLoading}
+              >
+                <option value="">— Enter values manually —</option>
+                {deals.map(deal => (
+                  <option key={deal.id} value={deal.id}>
+                    {deal.name} ({deal.industry})
+                  </option>
+                ))}
+              </select>
+              {dealLoading && <span className="text-xs text-gray-400 self-center">Loading...</span>}
+            </div>
+            {selectedDealId && (
+              <p className="text-xs text-blue-600 mt-1">✓ Deal data loaded — fields pre-filled from deal record</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label className="text-xs text-gray-500">Loan Amount</label>
@@ -446,36 +510,186 @@ export default function AIAgentPage() {
           </button>
 
           {scoringResult && (
-            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between mb-3">
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-4">
+              {/* Score header */}
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-3xl font-bold">{scoringResult.composite_score}</p>
+                  <p className="text-3xl font-bold">{scoringResult.composite_score?.toFixed(1)}</p>
                   <p className="text-sm text-gray-500">Composite Score</p>
+                  {scoringResult.variables_missing?.length > 0 && (
+                    <p className="text-xs text-amber-600 mt-1">
+                      ⚠ {scoringResult.variables_missing.length} of {(scoringResult.variables_evaluated || 0) + (scoringResult.variables_missing?.length || 0)} variables missing data — score reflects available inputs only
+                    </p>
+                  )}
                 </div>
                 <div className={`px-4 py-2 rounded-lg border ${getTierColor(scoringResult.tier)}`}>
                   <p className="font-semibold">{scoringResult.tier_display}</p>
-                  <p className="text-xs">{scoringResult.decision.replace('_', ' ')}</p>
+                  <p className="text-xs">{scoringResult.decision?.replace(/_/g, ' ')}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
-                <div className="bg-white p-2 rounded"><span className="text-gray-500">Premium:</span> <span className="font-medium">{(scoringResult.recommended_premium * 100).toFixed(2)}%</span></div>
-                <div className="bg-white p-2 rounded"><span className="text-gray-500">Exp. Default:</span> <span className="font-medium">{(scoringResult.expected_annual_default_rate * 100).toFixed(2)}%</span></div>
-                <div className="bg-white p-2 rounded"><span className="text-gray-500">FOIA Benchmark:</span> <span className="font-medium">{(scoringResult.foia_benchmark_rate * 100).toFixed(2)}%</span></div>
-                <div className="bg-white p-2 rounded"><span className="text-gray-500">Monitoring:</span> <span className="font-medium capitalize">{scoringResult.monitoring_frequency}</span></div>
-              </div>
-              {scoringResult.risk_flags?.length > 0 && (
-                <div className="text-sm">
-                  <p className="font-medium text-gray-700 mb-1">Risk Flags:</p>
-                  {scoringResult.risk_flags.slice(0, 3).map((flag: string, i: number) => (
-                    <p key={i} className="text-orange-600 text-xs flex items-start"><AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />{flag}</p>
-                  ))}
+
+              {/* Key insight */}
+              {scoringResult.key_insight && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-xs font-bold text-blue-700 uppercase mb-1">AI Key Insight</p>
+                  <p className="text-sm text-blue-800 italic">"{scoringResult.key_insight}"</p>
                 </div>
               )}
+
+              {/* Metrics grid */}
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="bg-white p-2 rounded"><span className="text-gray-500">Premium:</span> <span className="font-medium">{((scoringResult.recommended_premium||0) * 100).toFixed(2)}%</span></div>
+                <div className="bg-white p-2 rounded"><span className="text-gray-500">Exp. Default:</span> <span className="font-medium">{((scoringResult.expected_annual_default_rate||0) * 100).toFixed(2)}%</span></div>
+                <div className="bg-white p-2 rounded"><span className="text-gray-500">FOIA Benchmark:</span> <span className="font-medium">{((scoringResult.foia_benchmark_rate||0) * 100).toFixed(2)}%</span></div>
+                <div className="bg-white p-2 rounded"><span className="text-gray-500">Monitoring:</span> <span className="font-medium capitalize">{scoringResult.monitoring_frequency}</span></div>
+              </div>
+
+              {/* Category scores with drill-down */}
+              {scoringResult.category_scores && Object.keys(scoringResult.category_scores).length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown — click to drill down</p>
+                  <div className="space-y-2">
+                    {Object.entries(scoringResult.category_scores).map(([cat, data]: [string, any]) => {
+                      const score = typeof data === 'object' ? data.score : data;
+                      const varScores: any[] = data.variable_scores || [];
+                      const flags: string[] = data.flags || [];
+                      const isExpanded = expandedScoreCategories.has(cat);
+                      const scoreColor = score >= 70 ? 'text-green-700' : score >= 50 ? 'text-yellow-700' : 'text-red-600';
+                      const barColor = score >= 70 ? '#15803d' : score >= 50 ? '#ca8a04' : '#dc2626';
+                      return (
+                        <div key={cat} className="bg-white rounded-lg border border-gray-100 overflow-hidden">
+                          <button
+                            className="w-full p-3 text-left hover:bg-gray-50 transition-colors"
+                            onClick={() => {
+                              setExpandedScoreCategories(prev => {
+                                const next = new Set(prev);
+                                next.has(cat) ? next.delete(cat) : next.add(cat);
+                                return next;
+                              });
+                            }}
+                          >
+                            <div className="flex justify-between items-center mb-1.5">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold capitalize">{cat}</span>
+                                <span className="text-xs text-gray-400">{data.weight ? `${(data.weight*100).toFixed(0)}% weight` : ''}</span>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-bold ${scoreColor}`}>{score?.toFixed(1)}/100</span>
+                                <span className="text-gray-400 text-xs">{isExpanded ? '▲' : '▼'}</span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-2">
+                              <div className="h-2 rounded-full transition-all" style={{width:`${Math.min(score||0,100)}%`, backgroundColor: barColor}}/>
+                            </div>
+                            {flags.length > 0 && !isExpanded && (
+                              <p className="text-xs text-gray-500 mt-1 truncate">{flags[0]}</p>
+                            )}
+                          </button>
+
+                          {isExpanded && (
+                            <div className="border-t border-gray-100 bg-gray-50 px-3 py-2">
+                              {/* Scored/missing data summary */}
+                              <div className="flex gap-3 mb-2 text-xs text-gray-500">
+                                <span>Raw: {data.raw_score?.toFixed(1)}/{data.max_score?.toFixed(1)} pts</span>
+                                <span>Weighted contribution: {data.weighted_score?.toFixed(1)} pts</span>
+                              </div>
+
+                              {/* Per-variable breakdown */}
+                              {varScores.length > 0 && (
+                                <div className="space-y-1 mb-2">
+                                  {varScores.map((vs: any, i: number) => (
+                                    <div key={i} className={`flex items-start justify-between py-1.5 px-2 rounded text-xs ${
+                                      vs.flag === 'optimal' ? 'bg-green-50' :
+                                      vs.flag === 'caution' ? 'bg-yellow-50' :
+                                      vs.flag === 'reject' ? 'bg-red-50' :
+                                      'bg-gray-100'
+                                    }`}>
+                                      <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-gray-800 truncate">{vs.name}</p>
+                                        <p className="text-gray-500">{vs.notes || (vs.raw_value == null ? 'Data not provided' : `Value: ${vs.raw_value}`)}</p>
+                                      </div>
+                                      <div className="text-right shrink-0 ml-2">
+                                        <span className={`font-bold ${vs.flag === 'optimal' ? 'text-green-700' : vs.flag === 'caution' ? 'text-yellow-700' : vs.flag === 'reject' ? 'text-red-600' : 'text-gray-500'}`}>
+                                          {vs.score?.toFixed(1)}/{vs.max_score?.toFixed(1)}
+                                        </span>
+                                        {vs.flag && (
+                                          <p className={`text-xs uppercase font-medium ${vs.flag === 'optimal' ? 'text-green-600' : vs.flag === 'caution' ? 'text-yellow-600' : vs.flag === 'reject' ? 'text-red-600' : 'text-gray-400'}`}>
+                                            {vs.flag}
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+
+                              {/* Category flags */}
+                              {flags.length > 0 && (
+                                <div>
+                                  {flags.map((f: string, i: number) => (
+                                    <p key={i} className="text-xs text-amber-700 flex gap-1"><span className="shrink-0">⚠</span>{f}</p>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Risk flags — new structured format */}
+              {scoringResult.risk_flags?.length > 0 && (
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Risk Flags</p>
+                  <div className="space-y-2">
+                    {scoringResult.risk_flags.slice(0, 4).map((flag: any, i: number) => (
+                      <div key={i} className="bg-red-50 border border-red-100 rounded-lg p-2">
+                        {typeof flag === 'object' ? (
+                          <>
+                            <p className="text-xs font-semibold text-red-700">{flag.flag}</p>
+                            {flag.metric && <p className="text-xs text-red-600">{flag.metric}: {flag.value} (threshold: {flag.threshold})</p>}
+                            {flag.dollar_impact && <p className="text-xs text-red-500">{flag.dollar_impact}</p>}
+                          </>
+                        ) : (
+                          <p className="text-xs text-red-700 flex items-start gap-1"><AlertTriangle className="h-3 w-3 mt-0.5 shrink-0"/>{flag}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Positive factors */}
               {scoringResult.positive_factors?.length > 0 && (
-                <div className="text-sm mt-2">
-                  <p className="font-medium text-gray-700 mb-1">Positive Factors:</p>
-                  {scoringResult.positive_factors.slice(0, 3).map((factor: string, i: number) => (
-                    <p key={i} className="text-green-600 text-xs flex items-start"><CheckCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />{factor}</p>
+                <div>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Positive Factors</p>
+                  <div className="space-y-2">
+                    {scoringResult.positive_factors.slice(0, 3).map((factor: any, i: number) => (
+                      <div key={i} className="bg-green-50 border border-green-100 rounded-lg p-2">
+                        {typeof factor === 'object' ? (
+                          <>
+                            <p className="text-xs font-semibold text-green-700">{factor.factor}</p>
+                            {factor.metric && <p className="text-xs text-green-600">{factor.metric}: {factor.value}</p>}
+                            {factor.why_it_matters && <p className="text-xs text-green-500">{factor.why_it_matters}</p>}
+                          </>
+                        ) : (
+                          <p className="text-xs text-green-700 flex items-start gap-1"><CheckCircle className="h-3 w-3 mt-0.5 shrink-0"/>{factor}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Conditions */}
+              {scoringResult.conditions?.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                  <p className="text-xs font-bold text-yellow-800 uppercase mb-1">Approval Conditions</p>
+                  {scoringResult.conditions.map((c: string, i: number) => (
+                    <p key={i} className="text-xs text-yellow-700">• {c}</p>
                   ))}
                 </div>
               )}
