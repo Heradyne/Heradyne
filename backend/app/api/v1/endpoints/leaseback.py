@@ -213,6 +213,30 @@ async def my_asset_listings(
     return {"assets": [_serialize_asset(a) for a in assets]}
 
 
+@router.get("/assets/all")
+async def all_asset_listings(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Admin view of all asset listings."""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    assets = db.query(AssetListing).order_by(AssetListing.created_at.desc()).all()
+    result = []
+    for a in assets:
+        owner = db.query(User).filter(User.id == a.owner_id).first()
+        proposals = db.query(LeasebackProposal).filter(
+            LeasebackProposal.asset_listing_id == a.id
+        ).count()
+        d = _serialize_asset(a)
+        d["owner_name"] = owner.full_name if owner else "Unknown"
+        d["owner_email"] = owner.email if owner else ""
+        d["proposal_count"] = proposals
+        result.append(d)
+    return {"assets": result, "total": len(result)}
+
+
 @router.get("/assets/{asset_id}")
 async def get_asset(
     asset_id: int,
@@ -385,6 +409,34 @@ async def decline_proposal(
 
 # ── Owner: Sign contract ──────────────────────────────────────────────────────
 
+@router.get("/contracts/all")
+async def all_contracts(
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Admin view of all contracts."""
+    if current_user.role != UserRole.ADMIN:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    contracts = db.query(LeasebackContract).order_by(LeasebackContract.created_at.desc()).all()
+    result = []
+    for c in contracts:
+        asset = db.query(AssetListing).filter(AssetListing.id == c.asset_listing_id).first()
+        owner = db.query(User).filter(User.id == c.owner_id).first()
+        proposal = db.query(LeasebackProposal).filter(LeasebackProposal.id == c.proposal_id).first()
+        result.append({
+            "id": c.id, "status": c.status,
+            "asset_title": asset.title if asset else "Unknown",
+            "owner_name": owner.full_name if owner else "Unknown",
+            "purchase_price": proposal.purchase_price if proposal else None,
+            "monthly_lease": proposal.monthly_lease_payment if proposal else None,
+            "owner_signed": c.owner_signed_at is not None,
+            "investor_signed": c.investor_signed_at is not None,
+            "effective_date": str(c.effective_date) if c.effective_date else None,
+            "created_at": c.created_at.isoformat(),
+        })
+    return {"contracts": result}
+
 @router.get("/contracts/mine")
 async def my_contracts(
     current_user: User = Depends(get_current_active_user),
@@ -448,30 +500,6 @@ async def owner_sign_contract(
 
 
 # ── Admin: Asset marketplace ──────────────────────────────────────────────────
-
-@router.get("/assets/all")
-async def all_asset_listings(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-):
-    """Admin view of all asset listings."""
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
-    assets = db.query(AssetListing).order_by(AssetListing.created_at.desc()).all()
-    result = []
-    for a in assets:
-        owner = db.query(User).filter(User.id == a.owner_id).first()
-        proposals = db.query(LeasebackProposal).filter(
-            LeasebackProposal.asset_listing_id == a.id
-        ).count()
-        d = _serialize_asset(a)
-        d["owner_name"] = owner.full_name if owner else "Unknown"
-        d["owner_email"] = owner.email if owner else ""
-        d["proposal_count"] = proposals
-        result.append(d)
-    return {"assets": result, "total": len(result)}
-
 
 @router.post("/assets/{asset_id}/propose")
 async def create_proposal(
@@ -615,31 +643,3 @@ async def admin_sign_contract(
 
     return {"contract_id": contract_id, "status": contract.status}
 
-
-@router.get("/contracts/all")
-async def all_contracts(
-    current_user: User = Depends(get_current_active_user),
-    db: Session = Depends(get_db),
-):
-    """Admin view of all contracts."""
-    if current_user.role != UserRole.ADMIN:
-        raise HTTPException(status_code=403, detail="Admin access required")
-
-    contracts = db.query(LeasebackContract).order_by(LeasebackContract.created_at.desc()).all()
-    result = []
-    for c in contracts:
-        asset = db.query(AssetListing).filter(AssetListing.id == c.asset_listing_id).first()
-        owner = db.query(User).filter(User.id == c.owner_id).first()
-        proposal = db.query(LeasebackProposal).filter(LeasebackProposal.id == c.proposal_id).first()
-        result.append({
-            "id": c.id, "status": c.status,
-            "asset_title": asset.title if asset else "Unknown",
-            "owner_name": owner.full_name if owner else "Unknown",
-            "purchase_price": proposal.purchase_price if proposal else None,
-            "monthly_lease": proposal.monthly_lease_payment if proposal else None,
-            "owner_signed": c.owner_signed_at is not None,
-            "investor_signed": c.investor_signed_at is not None,
-            "effective_date": str(c.effective_date) if c.effective_date else None,
-            "created_at": c.created_at.isoformat(),
-        })
-    return {"contracts": result}
