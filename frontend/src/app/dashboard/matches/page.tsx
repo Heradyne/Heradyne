@@ -550,7 +550,7 @@ export default function MatchesPage() {
                     </div>
 
                     {/* Addbacks */}
-                    {deal.addbacks && deal.addbacks.length > 0 && (
+                    {deal.addbacks && Array.isArray(deal.addbacks) && deal.addbacks.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">EBITDA Addbacks</h4>
                         <div className="bg-white rounded border p-3">
@@ -581,7 +581,7 @@ export default function MatchesPage() {
                     )}
 
                     {/* Business Assets */}
-                    {deal.business_assets && deal.business_assets.length > 0 && (
+                    {deal.business_assets && Array.isArray(deal.business_assets) && deal.business_assets.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Business Assets (Collateral)</h4>
                         <div className="bg-white rounded border p-3">
@@ -614,7 +614,7 @@ export default function MatchesPage() {
                     )}
 
                     {/* Personal Assets */}
-                    {deal.personal_assets && deal.personal_assets.length > 0 && (
+                    {deal.personal_assets && Array.isArray(deal.personal_assets) && deal.personal_assets.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Personal Assets (Collateral)</h4>
                         <div className="bg-white rounded border p-3">
@@ -837,7 +837,7 @@ export default function MatchesPage() {
                     </div>
 
                     {/* Documents */}
-                    {deal.documents && deal.documents.length > 0 && (
+                    {deal.documents && Array.isArray(deal.documents) && deal.documents.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Uploaded Documents ({(deal.documents || []).length})</h4>
                         <div className="bg-white rounded border p-3">
@@ -893,7 +893,7 @@ export default function MatchesPage() {
                 )}
 
                 {/* Verification Flags Section */}
-                {verification && verification.discrepancies.length > 0 && (
+                {verification && Array.isArray(verification.discrepancies) && verification.discrepancies.length > 0 && (
                   <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                     <p className="text-sm font-medium text-yellow-800 mb-2 flex items-center">
                       <AlertTriangle className="h-4 w-4 mr-1" />
