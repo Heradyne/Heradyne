@@ -830,7 +830,7 @@ export default function DealDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {uwData.(deal_killer.breakpoint_scenarios || []).map((s: any, i: number) => (
+                        {(uwData.deal_killer.breakpoint_scenarios || []).map((s: any, i: number) => (
                           <tr key={i} className={i === 0 ? 'bg-green-50' : ''}>
                             <td className="py-2 text-gray-700">{s.label}</td>
                             <td className={`py-2 text-right font-medium ${s.dscr >= 1.25 ? 'text-green-700' : s.dscr >= 1.0 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -863,7 +863,7 @@ export default function DealDetailPage() {
                     </span>
                   </div>
                   <div className="space-y-1.5">
-                    {uwData.(sba_eligibility.checklist || []).map((item: any, i: number) => (
+                    {(uwData.sba_eligibility.checklist || []).map((item: any, i: number) => (
                       <div key={i} className={`flex items-start gap-3 p-2 rounded text-sm ${item.pass ? 'bg-green-50' : 'bg-red-50'}`}>
                         <span className={`flex-shrink-0 font-bold ${item.pass ? 'text-green-600' : 'text-red-600'}`}>
                           {item.pass ? '✓' : '✕'}

@@ -300,7 +300,7 @@ export default function MonitoringPage() {
                     <div>
                       <p className="text-sm font-semibold text-gray-700 mb-2">Active Playbooks</p>
                       <div className="space-y-2">
-                        {loan.(uw.playbooks || []).map((pb: any, i: number) => (
+                        {(loan.uw.playbooks || []).map((pb: any, i: number) => (
                           <div key={i} className={`rounded-lg border p-3 ${pb.severity === 'critical' ? 'bg-red-50 border-red-200' : pb.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
                             <div className="flex justify-between items-start">
                               <p className="text-sm font-medium text-gray-800">{pb.title}</p>
