@@ -157,10 +157,10 @@ export default function BusinessValuePage() {
         {/* Deal selector */}
         {deals.length > 1 && (
           <select value={selectedDeal?.id || ''} onChange={e => {
-            const d = deals.find(x => x.id === +e.target.value);
+            const d = (deals || []).find(x => x.id === +e.target.value);
             if (d) selectDeal(d);
           }} className="input text-sm w-56">
-            {deals.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            {(deals || []).map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
         )}
       </div>
@@ -370,7 +370,7 @@ export default function BusinessValuePage() {
                   {growthPlan.quick_wins?.length > 0 && (
                     <div className="card bg-green-50 border-green-200">
                       <p className="text-sm font-semibold text-green-800 mb-2">⚡ Quick Wins (90 days)</p>
-                      {growthPlan.quick_wins.map((w: string, i: number) => (
+                      {(growthPlan.quick_wins || []).map((w: string, i: number) => (
                         <p key={i} className="text-sm text-green-700 flex gap-2 mb-1"><CheckCircle className="h-4 w-4 shrink-0 mt-0.5 text-green-500" />{w}</p>
                       ))}
                     </div>
@@ -381,7 +381,7 @@ export default function BusinessValuePage() {
                     <div>
                       <h3 className="font-semibold text-gray-800 mb-3">Top Growth Opportunities</h3>
                       <div className="space-y-3">
-                        {growthPlan.growth_opportunities.map((opp: any, i: number) => {
+                        {(growthPlan.growth_opportunities || []).map((opp: any, i: number) => {
                           const isExp = expandedOpp === i;
                           return (
                             <div key={i} className={`card overflow-hidden ${IMPORTANCE_STYLE[opp.difficulty] || ''}`}>
@@ -413,7 +413,7 @@ export default function BusinessValuePage() {
                                   {Array.isArray(opp.how_to_do_it) ? (
                                     <div>
                                       <p className="text-xs font-semibold text-gray-500 uppercase mb-2">How to Do It</p>
-                                      {opp.how_to_do_it.map((step: string, si: number) => (
+                                      {(opp.how_to_do_it || []).map((step: string, si: number) => (
                                         <p key={si} className="text-sm text-gray-700 flex gap-2 mb-1"><span className="font-bold shrink-0 text-blue-600">{si+1}.</span>{step}</p>
                                       ))}
                                     </div>

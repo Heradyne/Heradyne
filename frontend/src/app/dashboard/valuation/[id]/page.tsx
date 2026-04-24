@@ -282,7 +282,7 @@ export default function ValuationResultsPage() {
                 </div>
                 {isFull&&expandedPlaybook===i&&pb.actions&&(
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
-                    {pb.actions.map((a:any)=>(
+                    {(pb.actions || []).map((a:any)=>(
                       <div key={a.step} className="flex gap-3">
                         <span className="w-7 h-7 rounded-full bg-white border-2 text-xs font-bold flex items-center justify-center shrink-0">{a.step}</span>
                         <div>

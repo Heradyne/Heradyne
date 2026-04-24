@@ -107,8 +107,8 @@ export default function AdminLeasebackPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin" /></div>;
 
-  const evaluatedAssets = assets.filter(a => a.status === 'evaluated' || a.ai_evaluation);
-  const pendingContracts = contracts.filter(c => !c.investor_signed);
+  const evaluatedAssets = (assets || []).filter(a => a.status === 'evaluated' || a.ai_evaluation);
+  const pendingContracts = (contracts || []).filter(c => !c.investor_signed);
 
   return (
     <div>
@@ -129,7 +129,7 @@ export default function AdminLeasebackPage() {
           { label: 'Total Listings', val: assets.length },
           { label: 'Evaluated', val: evaluatedAssets.length },
           { label: 'Pending Contracts', val: pendingContracts.length, alert: pendingContracts.length > 0 },
-          { label: 'Active Deals', val: contracts.filter(c => c.status === 'fully_executed').length },
+          { label: 'Active Deals', val: (contracts || []).filter(c => c.status === 'fully_executed').length },
         ].map(s => (
           <div key={s.label} className={`card text-center ${s.alert ? 'border-yellow-300 bg-yellow-50' : ''}`}>
             <p className={`text-2xl font-bold ${s.alert ? 'text-yellow-700' : 'text-gray-900'}`}>{s.val}</p>
@@ -161,7 +161,7 @@ export default function AdminLeasebackPage() {
             <p className="text-xs font-semibold text-gray-400 uppercase mb-3">All Listings ({assets.length})</p>
             {assets.length === 0 ? (
               <p className="text-sm text-gray-400">No assets submitted yet</p>
-            ) : assets.map(asset => (
+            ) : (assets || []).map(asset => (
               <button key={asset.id} onClick={() => { setSelectedAsset(asset); setShowProposalForm(false); }}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
                   selectedAsset?.id === asset.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
@@ -385,7 +385,7 @@ export default function AdminLeasebackPage() {
               <FileText className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-400">No contracts yet. Accept proposals will generate contracts here.</p>
             </div>
-          ) : contracts.map(contract => {
+          ) : (contracts || []).map(contract => {
             const isExp = expandedContract === contract.id;
             return (
               <div key={contract.id} className="card">

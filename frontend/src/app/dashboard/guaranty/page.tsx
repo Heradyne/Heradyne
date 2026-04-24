@@ -226,20 +226,20 @@ export default function GuarantyPackagePage() {
                                   {tab.present_documents?.length > 0 && (
                                     <div>
                                       <p className="text-xs font-semibold text-green-700 uppercase mb-1">Present in File</p>
-                                      {tab.present_documents.map((d: string, i: number) => <p key={i} className="text-xs text-gray-700 flex gap-1"><CheckCircle className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />{d}</p>)}
+                                      {(tab.present_documents || []).map((d: string, i: number) => <p key={i} className="text-xs text-gray-700 flex gap-1"><CheckCircle className="h-3 w-3 text-green-500 mt-0.5 shrink-0" />{d}</p>)}
                                     </div>
                                   )}
                                   {tab.missing_documents?.length > 0 && (
                                     <div>
                                       <p className="text-xs font-semibold text-red-700 uppercase mb-1">Missing</p>
-                                      {tab.missing_documents.map((d: string, i: number) => <p key={i} className="text-xs text-gray-700 flex gap-1"><XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />{d}</p>)}
+                                      {(tab.missing_documents || []).map((d: string, i: number) => <p key={i} className="text-xs text-gray-700 flex gap-1"><XCircle className="h-3 w-3 text-red-500 mt-0.5 shrink-0" />{d}</p>)}
                                     </div>
                                   )}
                                 </div>
                                 {tab.critical_issues?.length > 0 && (
                                   <div className="bg-red-50 border border-red-200 rounded-lg p-2">
                                     <p className="text-xs font-bold text-red-700 uppercase mb-1">Critical Issues</p>
-                                    {tab.critical_issues.map((issue: string, i: number) => <p key={i} className="text-xs text-red-600">• {issue}</p>)}
+                                    {(tab.critical_issues || []).map((issue: string, i: number) => <p key={i} className="text-xs text-red-600">• {issue}</p>)}
                                   </div>
                                 )}
                               </div>

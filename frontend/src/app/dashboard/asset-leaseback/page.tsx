@@ -120,8 +120,8 @@ export default function AssetLeasebackPage() {
 
   if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin" /></div>;
 
-  const pendingProposals = proposals.filter(p => p.status === 'proposed');
-  const pendingContracts = contracts.filter(c => c.status === 'pending_signature');
+  const pendingProposals = (proposals || []).filter(p => p.status === 'proposed');
+  const pendingContracts = (contracts || []).filter(c => c.status === 'pending_signature');
 
   return (
     <div>
@@ -217,7 +217,7 @@ export default function AssetLeasebackPage() {
               <p className="text-gray-400 mb-3">No assets listed yet</p>
               <p className="text-sm text-gray-400">List equipment, real estate, vehicles, or other assets to unlock leaseback financing from investors.</p>
             </div>
-          ) : assets.map(asset => {
+          ) : (assets || []).map(asset => {
             const isExp = expanded === asset.id;
             const ev = asset.ai_evaluation;
             const statusInfo = STATUS_STYLE[asset.status] || STATUS_STYLE.pending;
@@ -312,7 +312,7 @@ export default function AssetLeasebackPage() {
               <Tag className="h-12 w-12 text-gray-300 mx-auto mb-3" />
               <p className="text-gray-400">No proposals received yet. Once an investor reviews your asset, proposals will appear here.</p>
             </div>
-          ) : proposals.map(proposal => (
+          ) : (proposals || []).map(proposal => (
             <div key={proposal.id} className={`card border-2 ${proposal.status === 'proposed' ? 'border-yellow-300' : proposal.status === 'accepted' ? 'border-green-300' : 'border-gray-200'}`}>
               <div className="flex items-start justify-between mb-3">
                 <div>

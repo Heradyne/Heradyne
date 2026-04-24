@@ -100,9 +100,9 @@ export default function LoanHealthPage() {
 
   // Cash flow chart dimensions
   const chartW = 600; const chartH = 140; const pad = 40;
-  const maxRev = Math.max(...cashflow.map((c: any) => c.revenue), 1);
-  const minEbitda = Math.min(...cashflow.map((c: any) => c.ebitda), 0);
-  const maxEbitda = Math.max(...cashflow.map((c: any) => c.ebitda), 1);
+  const maxRev = Math.max(...(cashflow || []).map((c: any) => c.revenue), 1);
+  const minEbitda = Math.min(...(cashflow || []).map((c: any) => c.ebitda), 0);
+  const maxEbitda = Math.max(...(cashflow || []).map((c: any) => c.ebitda), 1);
   const range = maxRev;
 
   const xScale = (i: number) => pad + (i / (cashflow.length - 1 || 1)) * (chartW - pad * 2);
@@ -237,7 +237,7 @@ export default function LoanHealthPage() {
                 </div>
                 {expandedPlaybook === i && pb.actions && (
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                    {pb.actions.map((a: any) => (
+                    {(pb.actions || []).map((a: any) => (
                       <div key={a.step} className="flex gap-3">
                         <span className="w-6 h-6 rounded-full bg-white border text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{a.step}</span>
                         <div>

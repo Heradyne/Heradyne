@@ -239,7 +239,7 @@ export default function AuditPrepPage() {
                               {tab.present_items?.length > 0 && (
                                 <div>
                                   <p className="text-xs font-semibold text-green-700 uppercase mb-1">Present in File</p>
-                                  {tab.present_items.map((item: string, i: number) => (
+                                  {(tab.present_items || []).map((item: string, i: number) => (
                                     <div key={i} className="flex items-center gap-2 text-sm text-gray-700 mb-1">
                                       <input type="checkbox" defaultChecked
                                         onChange={e => toggleChecklist(tab.tab_number, item, e.target.checked)}
@@ -254,7 +254,7 @@ export default function AuditPrepPage() {
                               {tab.missing_items?.length > 0 && (
                                 <div>
                                   <p className="text-xs font-semibold text-red-700 uppercase mb-1">Missing / Incomplete</p>
-                                  {tab.missing_items.map((item: any, i: number) => (
+                                  {(tab.missing_items || []).map((item: any, i: number) => (
                                     <div key={i} className={`p-2 rounded-lg border mb-2 ${RISK_STYLE[item.risk] || RISK_STYLE.low}`}>
                                       <div className="flex items-start justify-between">
                                         <div className="flex-1">
