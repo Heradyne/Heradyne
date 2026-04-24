@@ -34,7 +34,7 @@ export default function DealsPage() {
           if (deal.status !== 'draft') {
             try {
               const matches = await api.getDealMatches(deal.id);
-              const infoRequests = matches.filter(m => m.status === 'info_requested');
+              const infoRequests = (matches || []).filter(m => m.status === 'info_requested');
               if (infoRequests.length > 0) {
                 infoRequestsMap[deal.id] = infoRequests;
               }
@@ -52,7 +52,7 @@ export default function DealsPage() {
     }
   };
 
-  const filteredDeals = deals.filter(deal =>
+  const filteredDeals = (deals || []).filter(deal =>
     deal.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     deal.industry.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -146,7 +146,7 @@ export default function DealsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {(filteredDeals || []).map((deal) => {
+                {filteredDeals.map((deal) => {
                   const hasInfoRequests = dealInfoRequests[deal.id]?.length > 0;
                   return (
                     <tr key={deal.id} className={`hover:bg-gray-50 ${hasInfoRequests ? 'bg-amber-50' : ''}`}>

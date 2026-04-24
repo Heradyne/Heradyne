@@ -69,9 +69,9 @@ export default function DashboardPage() {
   const isInsurer = user?.role === 'insurer';
   const isAdmin = user?.role === 'admin';
 
-  const pendingDeals = deals.filter(d => ['submitted','analyzed'].includes(d.status)).length;
-  const activeDeals = deals.filter(d => ['matched','funded','approved'].includes(d.status)).length;
-  const pendingMatches = matches.filter(m => m.status === 'pending').length;
+  const pendingDeals = (deals || []).filter(d => ['submitted','analyzed'].includes(d.status)).length;
+  const activeDeals = (deals || []).filter(d => ['matched','funded','approved'].includes(d.status)).length;
+  const pendingMatches = (matches || []).filter(m => m.status === 'pending').length;
 
   return (
     <div style={{maxWidth:'1100px',margin:'0 auto'}}>
@@ -145,7 +145,7 @@ export default function DashboardPage() {
           </div>
           <div className="stat-block">
             <p className="stat-label">Accepted</p>
-            <p className="stat-num num val-ok">{(matches || []).filter(m=>m.status==='accepted').length}</p>
+            <p className="stat-num num val-ok">{matches.filter(m=>m.status==='accepted').length}</p>
             <p className="stat-sub">in your book</p>
           </div>
           <div className="stat-block">
@@ -178,7 +178,7 @@ export default function DashboardPage() {
               <Link href="/dashboard/get-valuation" className="btn btn-ghost btn-sm">View all <ArrowRight style={{width:'12px',height:'12px'}}/></Link>
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:'1rem'}}>
-              {(uwSummary || []).map(uw => {
+              {uwSummary.map(uw => {
                 const score = uw.health_score?.score || 0;
                 const verdict = uw.deal_killer?.verdict;
                 const color = score>=70?'var(--green-mid)':score>=50?'var(--yellow-mid)':'var(--red-mid)';
@@ -224,7 +224,7 @@ export default function DashboardPage() {
             </div>
           ) : (
             <div style={{display:'flex',flexDirection:'column',gap:'0'}}>
-              {(deals || []).slice(0,6).map((deal,i) => (
+              {deals.slice(0,6).map((deal,i) => (
                 <Link key={deal.id} href={isBorrower?`/dashboard/valuation/${deal.id}`:`/dashboard/deals/${deal.id}`}
                   style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0.75rem 0',textDecoration:'none',borderBottom:i<Math.min(deals.length,6)-1?'1px solid var(--border)':'none',transition:'background 0.12s',cursor:'pointer'}}
                   onMouseEnter={e=>(e.currentTarget as HTMLElement).style.marginLeft='4px'}
@@ -275,7 +275,7 @@ export default function DashboardPage() {
                 <h2 style={{fontFamily:'"DM Serif Display",serif',fontSize:'1.1rem',color:'var(--navy)',fontWeight:400}}>Pending Review</h2>
                 <span style={{fontFamily:'"DM Mono",monospace',fontSize:'1rem',color:'var(--gold-dark)',fontWeight:500}}>{pendingMatches}</span>
               </div>
-              {(matches || []).filter(m=>m.status==='pending').slice(0,4).map((m,i,arr) => (
+              {matches.filter(m=>m.status==='pending').slice(0,4).map((m,i,arr) => (
                 <div key={m.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'0.65rem 0',borderBottom:i<arr.length-1?'1px solid var(--border)':'none'}}>
                   <div>
                     <p style={{fontSize:'0.82rem',fontWeight:500,color:'var(--ink)'}}>{m.deal_name||`Deal #${m.deal_id}`}</p>
@@ -295,7 +295,7 @@ export default function DashboardPage() {
                 {[
                   {label:'SBA Dataset', value:'1.59M', sub:'loans calibrated'},
                   {label:'Avg DSCR', value:'1.42x', sub:'portfolio average'},
-                  {label:'SBA Eligible', value:`${(deals || []).filter(d=>d.sba_eligible!==false).length}`, sub:'of your deals'},
+                  {label:'SBA Eligible', value:`${deals.filter(d=>d.sba_eligible!==false).length}`, sub:'of your deals'},
                   {label:'Data Vintage', value:'25yr', sub:'FY2000–2024'},
                 ].map(s => (
                   <div key={s.label} style={{padding:'0.875rem',background:'var(--surface)',borderRadius:'3px',border:'1px solid var(--border)'}}>

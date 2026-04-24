@@ -103,7 +103,7 @@ export default function SignaturesPage() {
         
         // Load matched deals they can upload to
         const matches = await api.getMyMatches();
-        const acceptedMatches = matches.filter((m: any) => 
+        const acceptedMatches = (matches || []).filter((m: any) => 
           m.status === 'accepted' || m.status === 'counter_accepted'
         );
         const deals = acceptedMatches.map((m: any) => ({
@@ -348,7 +348,7 @@ export default function SignaturesPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {(pendingDocs || []).map((doc) => (
+              {pendingDocs.map((doc) => (
                 <div key={doc.id} className="card hover:shadow-lg transition-shadow">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4">
@@ -437,7 +437,7 @@ export default function SignaturesPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {(uploadedDocs || []).map((doc) => (
+                    {uploadedDocs.map((doc) => (
                       <tr key={doc.id} className="hover:bg-gray-50">
                         <td className="px-4 py-3">
                           <div>
@@ -504,7 +504,7 @@ export default function SignaturesPage() {
                   required
                 >
                   <option value={0}>Select a deal...</option>
-                  {(matchedDeals || []).map((deal) => (
+                  {matchedDeals.map((deal) => (
                     <option key={deal.id} value={deal.id}>{deal.name}</option>
                   ))}
                 </select>

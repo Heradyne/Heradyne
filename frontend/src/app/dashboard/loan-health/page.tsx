@@ -32,7 +32,7 @@ export default function LoanHealthPage() {
       if (!dealsRes.ok) return;
       const deals = await dealsRes.json();
       // Find funded deal — check both 'funded' status and deals with HVAC in name as fallback
-      const funded = deals.find((d: any) => d.status === 'funded') ||
+      const funded = (deals || []).find((d: any) => d.status === 'funded') ||
                      deals.find((d: any) => d.name?.toLowerCase().includes('hvac'));
       if (!funded) { setLoading(false); return; }
 
@@ -108,8 +108,8 @@ export default function LoanHealthPage() {
   const xScale = (i: number) => pad + (i / (cashflow.length - 1 || 1)) * (chartW - pad * 2);
   const yScale = (v: number) => chartH - pad/2 - ((v - minEbitda) / (range - minEbitda || 1)) * (chartH - pad);
 
-  const revPoints = cashflow.map((c: any, i: number) => `${xScale(i)},${yScale(c.revenue)}`).join(' ');
-  const ebitdaPoints = cashflow.map((c: any, i: number) => `${xScale(i)},${yScale(c.ebitda)}`).join(' ');
+  const revPoints = (cashflow || []).map((c: any, i: number) => `${xScale(i)},${yScale(c.revenue)}`).join(' ');
+  const ebitdaPoints = (cashflow || []).map((c: any, i: number) => `${xScale(i)},${yScale(c.ebitda)}`).join(' ');
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -165,14 +165,14 @@ export default function LoanHealthPage() {
             {/* EBITDA line */}
             <polyline points={ebitdaPoints} fill="none" stroke="#16a34a" strokeWidth="2" strokeLinejoin="round" strokeDasharray="4,2"/>
             {/* Data points */}
-            {(cashflow || []).map((c: any, i: number) => (
+            {cashflow.map((c: any, i: number) => (
               <g key={i}>
                 <circle cx={xScale(i)} cy={yScale(c.revenue)} r="3" fill="#2563eb"/>
                 <circle cx={xScale(i)} cy={yScale(c.ebitda)} r="2.5" fill="#16a34a"/>
               </g>
             ))}
             {/* Month labels — show every 3rd */}
-            {(cashflow || []).map((c: any, i: number) => i % 3 === 0 && (
+            {cashflow.map((c: any, i: number) => i % 3 === 0 && (
               <text key={i} x={xScale(i)} y={chartH} textAnchor="middle" fontSize="9" fill="#9ca3af">
                 {c.month}/{String(c.year).slice(2)}
               </text>
@@ -220,7 +220,7 @@ export default function LoanHealthPage() {
           <h2 className="text-lg font-semibold mb-1">Action Items</h2>
           <p className="text-xs text-gray-400 mb-4">AI-generated recommendations based on your current financials</p>
           <div className="space-y-3">
-            {(playbooks || []).map((pb: any, i: number) => (
+            {playbooks.map((pb: any, i: number) => (
               <div key={i} className={`rounded-lg border p-4 ${pb.severity === 'critical' ? 'bg-red-50 border-red-200' : pb.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
                 <div className="flex items-start justify-between cursor-pointer" onClick={() => setExpandedPlaybook(expandedPlaybook === i ? null : i)}>
                   <div className="flex items-start gap-3">

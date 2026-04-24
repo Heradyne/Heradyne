@@ -184,9 +184,9 @@ export default function CollateralPage() {
     return badges[status] || badges.pending;
   };
 
-  const filteredCategories = categories.filter(c => c.type === form.asset_type);
-  const filteredAssets = assets.filter(a => a.asset_type === activeTab);
-  const selectedCategory = categories.find(c => c.value === form.category);
+  const filteredCategories = (categories || []).filter(c => c.type === form.asset_type);
+  const filteredAssets = (assets || []).filter(a => a.asset_type === activeTab);
+  const selectedCategory = (categories || []).find(c => c.value === form.category);
   const showRealEstateFields = ['real_estate', 'real_property'].includes(form.category);
   const showVehicleFields = ['vehicle', 'vehicles_fleet'].includes(form.category);
   const showEquipmentFields = ['equipment', 'inventory', 'furniture_fixtures'].includes(form.category);
@@ -259,7 +259,7 @@ export default function CollateralPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {(filteredAssets || []).map((asset) => {
+          {filteredAssets.map((asset) => {
             const Icon = getCategoryIcon(asset.category);
             const badge = getVerificationBadge(asset.verification_status);
             const BadgeIcon = badge.icon;
@@ -328,7 +328,7 @@ export default function CollateralPage() {
                 <label className="label">Category *</label>
                 <select value={form.category} onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))} className="input" required>
                   <option value="">Select category...</option>
-                  {(filteredCategories || []).map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
+                  {filteredCategories.map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
                 </select>
                 {selectedCategory && <p className="text-xs text-gray-500 mt-1">{selectedCategory.description} • {(selectedCategory.haircut * 100).toFixed(0)}% haircut</p>}
               </div>
@@ -484,7 +484,7 @@ function InsurerCollateralView() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {(deals || []).map(deal => {
+          {deals.map(deal => {
             const col = collateral[deal.id];
             const uwDeal = uw[deal.id];
             const business = col?.business_assets || [];
@@ -581,7 +581,7 @@ function InsurerCollateralView() {
                         </p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {(business || []).map((a: any, i: number) => (
+                          {business.map((a: any, i: number) => (
                             <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--navy-faint)', border: '1px solid var(--navy-light)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--navy)', textTransform: 'capitalize' }}>{a.description || a.name || a.type?.replace(/_/g,' ')}</p>
@@ -613,7 +613,7 @@ function InsurerCollateralView() {
                         </p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {(personal || []).map((a: any, i: number) => (
+                          {personal.map((a: any, i: number) => (
                             <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--yellow-bg)', border: '1px solid var(--yellow-border)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--yellow)', textTransform: 'capitalize' }}>{a.description || a.name || a.type?.replace(/_/g,' ')}</p>
@@ -707,7 +707,7 @@ function LenderCollateralView() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {(deals || []).map(deal => {
+          {deals.map(deal => {
             const col = collateral[deal.id];
             const uwDeal = uw[deal.id];
             const personal = col?.personal_assets || [];
@@ -808,7 +808,7 @@ function LenderCollateralView() {
                         </tr>
                       </thead>
                       <tbody>
-                        {(allAssets || []).map((asset: any, i: number) => {
+                        {allAssets.map((asset: any, i: number) => {
                           // Handle both {type,value,description} and full PreQualifiedAsset shapes
                           const name   = asset.description || asset.name || asset.type?.replace(/_/g,' ') || '—';
                           const type   = asset.type || asset.asset_type || asset.category || '—';

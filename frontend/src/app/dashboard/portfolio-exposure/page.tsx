@@ -37,10 +37,10 @@ export default function PortfolioExposurePage() {
   };
 
   // Compute concentration metrics
-  const totalExposure = deals.reduce((sum, d) => sum + (d.loan_amount_requested || 0), 0);
+  const totalExposure = (deals || []).reduce((sum, d) => sum + (d.loan_amount_requested || 0), 0);
   const totalDeals = deals.length;
 
-  const byIndustry = deals.reduce((acc, d) => {
+  const byIndustry = (deals || []).reduce((acc, d) => {
     const ind = d.industry || 'other';
     if (!acc[ind]) acc[ind] = { count: 0, exposure: 0 };
     acc[ind].count++;
@@ -48,7 +48,7 @@ export default function PortfolioExposurePage() {
     return acc;
   }, {} as Record<string, {count:number;exposure:number}>);
 
-  const byStatus = deals.reduce((acc, d) => {
+  const byStatus = (deals || []).reduce((acc, d) => {
     if (!acc[d.status]) acc[d.status] = { count: 0, exposure: 0 };
     acc[d.status].count++;
     acc[d.status].exposure += d.loan_amount_requested || 0;
@@ -56,7 +56,7 @@ export default function PortfolioExposurePage() {
   }, {} as Record<string, {count:number;exposure:number}>);
 
   const avgHealth = Object.values(uwData).reduce((sum: number, uw: any) => sum + (uw.health_score?.score || 0), 0) / Math.max(Object.keys(uwData).length, 1);
-  const atRisk = deals.filter(d => {
+  const atRisk = (deals || []).filter(d => {
     const uw = uwData[d.id];
     return uw && (uw.health_score?.score || 0) < 60;
   });
@@ -102,7 +102,7 @@ export default function PortfolioExposurePage() {
           <p className="text-sm text-gray-400">No deals loaded yet.</p>
         ) : (
           <div className="space-y-3">
-            {(sortedIndustries || []).map(([ind, data]) => {
+            {sortedIndustries.map(([ind, data]) => {
               const pct = totalExposure > 0 ? data.exposure / totalExposure * 100 : 0;
               const barPct = data.exposure / maxIndustryExposure * 100;
               const isConcentrated = pct > 30;
@@ -127,7 +127,7 @@ export default function PortfolioExposurePage() {
             })}
           </div>
         )}
-        {(sortedIndustries || []).some(([,d]) => d.exposure / totalExposure > 0.3) && (
+        {sortedIndustries.some(([,d]) => d.exposure / totalExposure > 0.3) && (
           <div className="mt-4 bg-orange-50 border border-orange-200 rounded-lg p-3">
             <p className="text-xs text-orange-700"><strong>Concentration alert:</strong> One or more industries exceed 30% of total exposure. Consider diversification limits.</p>
           </div>
@@ -156,7 +156,7 @@ export default function PortfolioExposurePage() {
             At-Risk Deals
           </h2>
           <div className="space-y-3">
-            {(atRisk || []).map(deal => {
+            {atRisk.map(deal => {
               const uw = uwData[deal.id];
               const alert = uw?.alert_level || 'advisory';
               return (

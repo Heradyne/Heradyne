@@ -154,12 +154,12 @@ export default function MatchesPage() {
     return colors[tier] || 'bg-gray-100 text-gray-800';
   };
 
-  const filteredMatches = matches.filter(match => {
+  const filteredMatches = (matches || []).filter(match => {
     if (filter === 'all') return true;
     return match.status === filter;
   });
 
-  const pendingCount = matches.filter(m => m.status === 'pending').length;
+  const pendingCount = (matches || []).filter(m => m.status === 'pending').length;
 
   if (loading) {
     return (
@@ -220,7 +220,7 @@ export default function MatchesPage() {
       {/* Matches list */}
       <div className="space-y-4">
         {filteredMatches.length > 0 ? (
-          filteredMatches.map((match) => {
+          (filteredMatches || []).map((match) => {
             const deal = deals[match.deal_id];
             const report = riskReports[match.deal_id];
             const verification = verifications[match.deal_id];
@@ -561,7 +561,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {(deal.addbacks || []).map((addback: any, i: number) => (
+                              {deal.addbacks.map((addback: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2">{addback.description}</td>
                                   <td className="py-2 text-right font-medium">{formatCurrency(addback.amount)}</td>
@@ -593,7 +593,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {(deal.business_assets || []).map((asset: any, i: number) => (
+                              {deal.business_assets.map((asset: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2 capitalize">{asset.type?.replace('_', ' ')}</td>
                                   <td className="py-2 text-gray-600">{asset.description || '-'}</td>
@@ -626,7 +626,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {(deal.personal_assets || []).map((asset: any, i: number) => (
+                              {deal.personal_assets.map((asset: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2 capitalize">{asset.type?.replace('_', ' ')}</td>
                                   <td className="py-2 text-gray-600">{asset.description || '-'}</td>
@@ -797,7 +797,7 @@ export default function MatchesPage() {
                             <div className="mb-3">
                               <p className="text-xs font-medium text-gray-700 mb-1">Risk Flags:</p>
                               <div className="space-y-1">
-                                {(aiAnalyses[match.deal_id].risk_flags || []).slice(0, 3).map((flag: any, i: number) => (
+                                {aiAnalyses[match.deal_id].risk_flags.slice(0, 3).map((flag: any, i: number) => (
                                   <p key={i} className="text-xs text-orange-700 flex items-start">
                                     <AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof flag === 'object' ? `${flag.flag}${flag.value ? ` (${flag.value})` : ''}` : flag}
@@ -811,7 +811,7 @@ export default function MatchesPage() {
                             <div>
                               <p className="text-xs font-medium text-gray-700 mb-1">Positive Factors:</p>
                               <div className="space-y-1">
-                                {(aiAnalyses[match.deal_id].positive_factors || []).slice(0, 3).map((factor: any, i: number) => (
+                                {aiAnalyses[match.deal_id].positive_factors.slice(0, 3).map((factor: any, i: number) => (
                                   <p key={i} className="text-xs text-green-700 flex items-start">
                                     <CheckCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof factor === 'object' ? `${factor.factor}${factor.value ? ` (${factor.value})` : ''}` : factor}
@@ -838,7 +838,7 @@ export default function MatchesPage() {
                     {/* Documents */}
                     {deal.documents && deal.documents.length > 0 && (
                       <div>
-                        <h4 className="font-medium text-gray-900 mb-2">Uploaded Documents ({deal.documents.length})</h4>
+                        <h4 className="font-medium text-gray-900 mb-2">Uploaded Documents ({(deal.documents || []).length})</h4>
                         <div className="bg-white rounded border p-3">
                           <table className="w-full text-sm">
                             <thead>
@@ -850,7 +850,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {(deal.documents || []).map((doc: any) => (
+                              {deal.documents.map((doc: any) => (
                                 <tr key={doc.id} className="border-b last:border-0">
                                   <td className="py-2 flex items-center">
                                     <FileText className="h-4 w-4 mr-2 text-gray-400" />
@@ -899,7 +899,7 @@ export default function MatchesPage() {
                       Document Verification Flags
                     </p>
                     <div className="space-y-2">
-                      {(verification.discrepancies || []).map((d, i) => (
+                      {verification.discrepancies.map((d, i) => (
                         <div key={i} className={`text-xs p-2 rounded ${
                           d.severity === 'critical' ? 'bg-red-100 text-red-800' :
                           d.severity === 'high' ? 'bg-orange-100 text-orange-800' :

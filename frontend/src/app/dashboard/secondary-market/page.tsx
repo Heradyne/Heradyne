@@ -189,7 +189,7 @@ export default function SecondaryMarketPage() {
 
   const handleCreateListing = async () => {
     try {
-      const selectedLoan = myLoans.find(l => l.id === newListing.loan_id);
+      const selectedLoan = (myLoans || []).find(l => l.id === newListing.loan_id);
       if (!selectedLoan) {
         alert('Please select a loan');
         return;
@@ -300,7 +300,7 @@ export default function SecondaryMarketPage() {
 
   // Reinsurance functions
   const calculatePoolAnalytics = (dealIds: number[]): PoolAnalytics => {
-    const selectedDealsList = insuredDeals.filter(d => dealIds.includes(d.id));
+    const selectedDealsList = (insuredDeals || []).filter(d => dealIds.includes(d.id));
     
     if (selectedDealsList.length === 0) {
       return {
@@ -318,9 +318,9 @@ export default function SecondaryMarketPage() {
       };
     }
     
-    const total_exposure = selectedDealsList.reduce((sum, d) => sum + d.guaranteed_amount, 0);
-    const total_premium = selectedDealsList.reduce((sum, d) => sum + d.annual_premium, 0);
-    const weighted_pd = selectedDealsList.reduce((sum, d) => 
+    const total_exposure = (selectedDealsList || []).reduce((sum, d) => sum + d.guaranteed_amount, 0);
+    const total_premium = (selectedDealsList || []).reduce((sum, d) => sum + d.annual_premium, 0);
+    const weighted_pd = (selectedDealsList || []).reduce((sum, d) => 
       sum + (d.probability_of_default * d.guaranteed_amount), 0) / total_exposure;
     const expected_loss = selectedDealsList.reduce((sum, d) => sum + d.expected_loss, 0);
     const loss_ratio = total_premium > 0 ? expected_loss / total_premium : 0;
@@ -735,7 +735,7 @@ export default function SecondaryMarketPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(myListings || []).map((listing) => (
+                  {myListings.map((listing) => (
                     <tr key={listing.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="font-medium">{listing.title}</div>
@@ -817,7 +817,7 @@ export default function SecondaryMarketPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(myOffers || []).map((offer) => (
+                  {myOffers.map((offer) => (
                     <tr key={offer.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4 font-medium">{offer.listing_title}</td>
                       <td className="py-3 px-4 text-right">{formatCurrency(offer.offer_price)}</td>
@@ -880,7 +880,7 @@ export default function SecondaryMarketPage() {
                 <p className="text-gray-500 text-center py-8">No insured deals found.</p>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {(insuredDeals || []).map((deal) => (
+                  {insuredDeals.map((deal) => (
                     <div 
                       key={deal.id}
                       onClick={() => toggleDealSelection(deal.id)}
@@ -946,7 +946,7 @@ export default function SecondaryMarketPage() {
                 <div className="mb-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Industry Distribution</p>
                   <div className="space-y-2">
-                    {(selectedPoolAnalytics.industries || []).slice(0, 5).map((ind) => (
+                    {selectedPoolAnalytics.industries.slice(0, 5).map((ind) => (
                       <div key={ind.name} className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div 
@@ -965,7 +965,7 @@ export default function SecondaryMarketPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">Geographic Distribution</p>
                   <div className="space-y-2">
-                    {(selectedPoolAnalytics.states || []).slice(0, 5).map((state) => (
+                    {selectedPoolAnalytics.states.slice(0, 5).map((state) => (
                       <div key={state.name} className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div 
@@ -994,7 +994,7 @@ export default function SecondaryMarketPage() {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {(reinsurancePools || []).map((pool) => {
+                  {reinsurancePools.map((pool) => {
                     const poolAnalytics = calculatePoolAnalytics(pool.deal_ids);
                     return (
                       <div key={pool.id} className="border rounded-lg p-4">
@@ -1083,7 +1083,7 @@ export default function SecondaryMarketPage() {
                   className="input w-full"
                 >
                   <option value={0}>Select...</option>
-                  {(myLoans || []).map((loan) => (
+                  {myLoans.map((loan) => (
                     <option key={loan.id} value={loan.id}>
                       {loan.loan_number} - {formatCurrency(loan.current_principal_balance)} ({loan.industry})
                     </option>
@@ -1225,7 +1225,7 @@ export default function SecondaryMarketPage() {
               <p className="text-gray-500 text-center py-8">No offers yet.</p>
             ) : (
               <div className="space-y-4">
-                {(listingOffers || []).map((offer) => (
+                {listingOffers.map((offer) => (
                   <div key={offer.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -1410,7 +1410,7 @@ export default function SecondaryMarketPage() {
                         Industry Breakdown
                       </h3>
                       <div className="space-y-2">
-                        {(analytics.industries || []).map((ind) => (
+                        {analytics.industries.map((ind) => (
                           <div key={ind.name} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                             <span className="text-sm">{ind.name}</span>
                             <div className="text-right">
@@ -1428,7 +1428,7 @@ export default function SecondaryMarketPage() {
                         Geographic Breakdown
                       </h3>
                       <div className="space-y-2">
-                        {(analytics.states || []).map((state) => (
+                        {analytics.states.map((state) => (
                           <div key={state.name} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                             <span className="text-sm">{state.name}</span>
                             <div className="text-right">

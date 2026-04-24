@@ -141,11 +141,11 @@ export default function UsersPage() {
   };
 
   // Filter users by role
-  const lenders = users.filter(u => u.role === 'lender');
-  const loanOfficers = users.filter(u => u.role === 'loan_officer');
-  const creditCommittee = users.filter(u => u.role === 'credit_committee');
-  const insurers = users.filter(u => u.role === 'insurer');
-  const borrowers = users.filter(u => u.role === 'borrower');
+  const lenders = (users || []).filter(u => u.role === 'lender');
+  const loanOfficers = (users || []).filter(u => u.role === 'loan_officer');
+  const creditCommittee = (users || []).filter(u => u.role === 'credit_committee');
+  const insurers = (users || []).filter(u => u.role === 'insurer');
+  const borrowers = (users || []).filter(u => u.role === 'borrower');
   const admins = users.filter(u => u.role === 'admin');
 
   const getRoleBadgeColor = (role: string) => {
@@ -421,7 +421,7 @@ export default function UsersPage() {
                     required={needsOrganization}
                   >
                     <option value="">Select organization...</option>
-                    {(lenderOrgs || []).map(org => (
+                    {lenderOrgs.map(org => (
                       <option key={org.id} value={org.id}>
                         {org.company || org.name} ({org.email})
                       </option>

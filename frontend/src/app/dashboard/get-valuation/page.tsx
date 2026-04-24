@@ -38,7 +38,7 @@ export default function GetValuationPage() {
       const res = await fetch(`${API}/api/v1/deals/`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const all = await res.json();
-      const valued = all.filter((d: any) => VALUED.includes(d.status));
+      const valued = (all || []).filter((d: any) => VALUED.includes(d.status));
       setDeals(valued);
       valued.forEach(async (deal: any) => {
         try {
@@ -68,7 +68,7 @@ export default function GetValuationPage() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Your Valued Deals</h2>
           <div className="space-y-3">
-            {(deals || []).map(deal => {
+            {deals.map(deal => {
               const uw = uwData[deal.id];
               const verdict = uw?.deal_killer?.verdict;
               const hs = uw?.health_score?.score;
@@ -158,7 +158,7 @@ export default function GetValuationPage() {
                 </div>
               </div>
               <ul className="space-y-2 mb-6">
-                {(tier.features || []).map((f,i) => (
+                {tier.features.map((f,i) => (
                   <li key={i} className="flex items-start gap-2">
                     <CheckCircle className={`h-4 w-4 shrink-0 mt-0.5 ${tier.id==='diligence'?'text-indigo-500':'text-blue-500'}`}/>
                     <span className="text-sm text-gray-700">{f}</span>

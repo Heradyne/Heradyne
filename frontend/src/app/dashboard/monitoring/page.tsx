@@ -38,7 +38,7 @@ export default function MonitoringPage() {
       const dealsRes = await fetch(`${API}/api/v1/deals/`, { headers });
       if (!dealsRes.ok) return;
       const deals = await dealsRes.json();
-      const funded = deals.filter((d: any) => d.status === 'funded');
+      const funded = (deals || []).filter((d: any) => d.status === 'funded');
 
       // Load UW data for each
       const loansWithUW = await Promise.all(funded.map(async (deal: any) => {
@@ -73,7 +73,7 @@ export default function MonitoringPage() {
       const token = localStorage.getItem('token');
       const cf = cashflows[loan.id] || [];
       const latest = cf[cf.length - 1] || {};
-      const prev3 = cf.slice(-4, -1);
+      const prev3 = (cf || []).slice(-4, -1);
       const avgRev = prev3.length ? prev3.reduce((s: number, c: any) => s + c.revenue, 0) / prev3.length : latest.revenue;
 
       const payload = {
@@ -271,7 +271,7 @@ export default function MonitoringPage() {
                         )}
                         {mon.active_alerts?.length > 0 && (
                           <div className="space-y-2 mb-3">
-                            {(mon.active_alerts || []).map((alert: any, i: number) => (
+                            {mon.active_alerts.map((alert: any, i: number) => (
                               <div key={i} className="flex gap-2 bg-red-50 border border-red-100 rounded-lg p-2">
                                 <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5"/>
                                 <div>
@@ -300,7 +300,7 @@ export default function MonitoringPage() {
                     <div>
                       <p className="text-sm font-semibold text-gray-700 mb-2">Active Playbooks</p>
                       <div className="space-y-2">
-                        {(loan.uw.playbooks || []).map((pb: any, i: number) => (
+                        {loan.uw.playbooks.map((pb: any, i: number) => (
                           <div key={i} className={`rounded-lg border p-3 ${pb.severity === 'critical' ? 'bg-red-50 border-red-200' : pb.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
                             <div className="flex justify-between items-start">
                               <p className="text-sm font-medium text-gray-800">{pb.title}</p>
