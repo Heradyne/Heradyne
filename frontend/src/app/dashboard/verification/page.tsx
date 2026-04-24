@@ -305,7 +305,7 @@ export default function VerificationPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <div className="card bg-gray-50">
           <p className="text-sm text-gray-600">Total Matches</p>
-          <p className="text-2xl font-bold">{(matches || []).length}</p>
+          <p className="text-2xl font-bold">{matches.length}</p>
         </div>
         <div className="card bg-yellow-50">
           <p className="text-sm text-yellow-600">Pending Review</p>
