@@ -60,11 +60,12 @@ export default function MatchesPage() {
 
   const loadMatches = async () => {
     try {
-      const matchData = await api.getMyMatches();
+      const rawData = await api.getMyMatches();
+      const matchData = Array.isArray(rawData) ? rawData : ((rawData as any)?.matches ?? []);
       setMatches(matchData);
 
       // Load deal details, risk reports, and verification for each match
-      const dealIds = [...new Set((matchData || []).map(m => m.deal_id))];
+      const dealIds = [...new Set(matchData.map(m => m.deal_id))];
       const dealPromises = dealIds.map(id => api.getDeal(id).catch(() => null));
       const verifyPromises = dealIds.map(id => api.getVerificationStatus(id).catch(() => null));
       const reportPromises = dealIds.map(id => api.getLatestRiskReport(id).catch(() => null));
@@ -549,7 +550,7 @@ export default function MatchesPage() {
                     </div>
 
                     {/* Addbacks */}
-                    {deal.addbacks && (deal.addbacks || []).length > 0 && (
+                    {deal.addbacks && deal.addbacks.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">EBITDA Addbacks</h4>
                         <div className="bg-white rounded border p-3">
@@ -580,7 +581,7 @@ export default function MatchesPage() {
                     )}
 
                     {/* Business Assets */}
-                    {deal.business_assets && (deal.business_assets || []).length > 0 && (
+                    {deal.business_assets && deal.business_assets.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Business Assets (Collateral)</h4>
                         <div className="bg-white rounded border p-3">
@@ -613,7 +614,7 @@ export default function MatchesPage() {
                     )}
 
                     {/* Personal Assets */}
-                    {deal.personal_assets && (deal.personal_assets || []).length > 0 && (
+                    {deal.personal_assets && deal.personal_assets.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Personal Assets (Collateral)</h4>
                         <div className="bg-white rounded border p-3">
@@ -836,7 +837,7 @@ export default function MatchesPage() {
                     </div>
 
                     {/* Documents */}
-                    {deal.documents && (deal.documents || []).length > 0 && (
+                    {deal.documents && deal.documents.length > 0 && (
                       <div>
                         <h4 className="font-medium text-gray-900 mb-2">Uploaded Documents ({(deal.documents || []).length})</h4>
                         <div className="bg-white rounded border p-3">
