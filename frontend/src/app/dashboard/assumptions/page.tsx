@@ -60,7 +60,7 @@ export default function AssumptionsPage() {
         api.getAllUsers().catch(() => [])
       ]);
       setAssumptions(assumptionsData);
-      setUsers(usersData.filter(u => u.role === 'lender' || u.role === 'insurer'));
+      setUsers((usersData || []).filter(u => u.role === 'lender' || u.role === 'insurer'));
       
       // Load users with overrides
       try {
@@ -79,7 +79,7 @@ export default function AssumptionsPage() {
       }
       
       // Expand all categories by default
-      const categories = new Set(assumptionsData.map(a => a.category));
+      const categories = new Set((assumptionsData || []).map(a => a.category));
       setExpandedCategories(categories);
     } catch (err) {
       setError('Failed to load data');
@@ -491,7 +491,7 @@ export default function AssumptionsPage() {
 
             {expandedCategories.has(category) && (
               <div className="mt-4 space-y-4">
-                {items.map((assumption) => {
+                {(items || []).map((assumption) => {
                   const isOverride = viewMode === 'user' && assumption.user_id !== null;
                   
                   return (
@@ -583,7 +583,7 @@ export default function AssumptionsPage() {
               <div className="mb-6">
                 <h3 className="font-medium text-gray-700 mb-2">Users with Overrides</h3>
                 <div className="space-y-2">
-                  {usersWithOverrides.map(user => (
+                  {(usersWithOverrides || []).map(user => (
                     <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                       <div>
                         <p className="font-medium">{user.full_name}</p>
@@ -613,8 +613,8 @@ export default function AssumptionsPage() {
             <div>
               <h3 className="font-medium text-gray-700 mb-2">All Lenders & Insurers</h3>
               <div className="space-y-2 max-h-64 overflow-y-auto">
-                {users.map(user => {
-                  const hasOverrides = usersWithOverrides.some(u => u.id === user.id);
+                {(users || []).map(user => {
+                  const hasOverrides = (usersWithOverrides || []).some(u => u.id === user.id);
                   return (
                     <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                       <div>

@@ -106,7 +106,7 @@ export default function PortfolioInsightsPage() {
             <div className="bg-white border border-gray-200 rounded-xl p-5">
               <h3 className="font-semibold text-gray-800 mb-3">🎯 Top Priority Actions</h3>
               <div className="space-y-2">
-                {insights.top_3_actions.map((action: string, i: number) => (
+                {(insights.top_3_actions || []).map((action: string, i: number) => (
                   <div key={i} className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg">
                     <span className="text-blue-700 font-bold text-sm shrink-0">{i + 1}</span>
                     <p className="text-sm text-blue-800">{action}</p>
@@ -125,7 +125,7 @@ export default function PortfolioInsightsPage() {
               </h3>
               {insights.early_warnings?.length > 0 ? (
                 <div className="space-y-3">
-                  {insights.early_warnings.map((w: any, i: number) => (
+                  {(insights.early_warnings || []).map((w: any, i: number) => (
                     <div key={i} className={`rounded-lg border p-3 ${URGENCY_BG[w.urgency] || 'bg-gray-50 border-gray-200'}`}>
                       <div className="flex items-start justify-between mb-1">
                         <p className="text-sm font-semibold text-gray-800">{w.loan_identifier}</p>
@@ -156,7 +156,7 @@ export default function PortfolioInsightsPage() {
               </h3>
               {insights.concentration_risks?.length > 0 ? (
                 <div className="space-y-3">
-                  {insights.concentration_risks.map((c: any, i: number) => (
+                  {(insights.concentration_risks || []).map((c: any, i: number) => (
                     <div key={i} className="border border-gray-100 rounded-lg p-3">
                       <div className="flex items-start justify-between mb-1">
                         <div>
@@ -235,7 +235,7 @@ export default function PortfolioInsightsPage() {
               <div className="bg-white border border-gray-200 rounded-xl p-5">
                 <h3 className="font-semibold text-gray-800 mb-3">💡 Deployment Opportunities</h3>
                 <ul className="space-y-2">
-                  {insights.deployment_opportunities.map((opp: string, i: number) => (
+                  {(insights.deployment_opportunities || []).map((opp: string, i: number) => (
                     <li key={i} className="flex gap-2 text-sm text-gray-700">
                       <span className="text-green-500 shrink-0 mt-0.5">→</span>{opp}
                     </li>

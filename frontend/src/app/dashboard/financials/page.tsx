@@ -77,7 +77,7 @@ export default function FinancialsPage() {
         ]);
         setAdminStats(stats);
         setLoans(loanData);
-        setUsers(usersData.filter(u => u.role === 'lender' || u.role === 'insurer'));
+        setUsers((usersData || []).filter(u => u.role === 'lender' || u.role === 'insurer'));
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load financial data');

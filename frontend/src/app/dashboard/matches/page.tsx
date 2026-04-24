@@ -64,10 +64,10 @@ export default function MatchesPage() {
       setMatches(matchData);
 
       // Load deal details, risk reports, and verification for each match
-      const dealIds = [...new Set(matchData.map(m => m.deal_id))];
-      const dealPromises = dealIds.map(id => api.getDeal(id).catch(() => null));
-      const verifyPromises = dealIds.map(id => api.getVerificationStatus(id).catch(() => null));
-      const reportPromises = dealIds.map(id => api.getLatestRiskReport(id).catch(() => null));
+      const dealIds = [...new Set((matchData || []).map(m => m.deal_id))];
+      const dealPromises = (dealIds || []).map(id => api.getDeal(id).catch(() => null));
+      const verifyPromises = (dealIds || []).map(id => api.getVerificationStatus(id).catch(() => null));
+      const reportPromises = (dealIds || []).map(id => api.getLatestRiskReport(id).catch(() => null));
       
       const [dealResults, verifyResults, reportResults] = await Promise.all([
         Promise.all(dealPromises),
@@ -79,19 +79,19 @@ export default function MatchesPage() {
       const verifyMap: Record<number, VerificationStatus> = {};
       const reportMap: Record<number, DealRiskReport> = {};
       
-      dealResults.forEach((deal, index) => {
+      (dealResults || []).forEach((deal, index) => {
         if (deal) {
           dealMap[dealIds[index]] = deal;
         }
       });
       
-      verifyResults.forEach((verify, index) => {
+      (verifyResults || []).forEach((verify, index) => {
         if (verify) {
           verifyMap[dealIds[index]] = verify;
         }
       });
       
-      reportResults.forEach((report, index) => {
+      (reportResults || []).forEach((report, index) => {
         if (report) {
           reportMap[dealIds[index]] = report;
         }
@@ -561,7 +561,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.addbacks.map((addback: any, i: number) => (
+                              {(deal.addbacks || []).map((addback: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2">{addback.description}</td>
                                   <td className="py-2 text-right font-medium">{formatCurrency(addback.amount)}</td>
@@ -570,7 +570,7 @@ export default function MatchesPage() {
                               <tr className="font-medium bg-gray-50">
                                 <td className="py-2">Total Addbacks</td>
                                 <td className="py-2 text-right">
-                                  {formatCurrency(deal.addbacks.reduce((sum: number, a: any) => sum + a.amount, 0))}
+                                  {formatCurrency((deal.addbacks || []).reduce((sum: number, a: any) => sum + a.amount, 0))}
                                 </td>
                               </tr>
                             </tbody>
@@ -593,7 +593,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.business_assets.map((asset: any, i: number) => (
+                              {(deal.business_assets || []).map((asset: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2 capitalize">{asset.type?.replace('_', ' ')}</td>
                                   <td className="py-2 text-gray-600">{asset.description || '-'}</td>
@@ -603,7 +603,7 @@ export default function MatchesPage() {
                               <tr className="font-medium bg-gray-50">
                                 <td className="py-2" colSpan={2}>Total Business Assets</td>
                                 <td className="py-2 text-right">
-                                  {formatCurrency(deal.business_assets.reduce((sum: number, a: any) => sum + a.value, 0))}
+                                  {formatCurrency((deal.business_assets || []).reduce((sum: number, a: any) => sum + a.value, 0))}
                                 </td>
                               </tr>
                             </tbody>
@@ -626,7 +626,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.personal_assets.map((asset: any, i: number) => (
+                              {(deal.personal_assets || []).map((asset: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2 capitalize">{asset.type?.replace('_', ' ')}</td>
                                   <td className="py-2 text-gray-600">{asset.description || '-'}</td>
@@ -636,7 +636,7 @@ export default function MatchesPage() {
                               <tr className="font-medium bg-gray-50">
                                 <td className="py-2" colSpan={2}>Total Personal Assets</td>
                                 <td className="py-2 text-right">
-                                  {formatCurrency(deal.personal_assets.reduce((sum: number, a: any) => sum + a.value, 0))}
+                                  {formatCurrency((deal.personal_assets || []).reduce((sum: number, a: any) => sum + a.value, 0))}
                                 </td>
                               </tr>
                             </tbody>
@@ -797,7 +797,7 @@ export default function MatchesPage() {
                             <div className="mb-3">
                               <p className="text-xs font-medium text-gray-700 mb-1">Risk Flags:</p>
                               <div className="space-y-1">
-                                {aiAnalyses[match.deal_id].risk_flags.slice(0, 3).map((flag: any, i: number) => (
+                                {(aiAnalyses[match.deal_id].risk_flags || []).slice(0, 3).map((flag: any, i: number) => (
                                   <p key={i} className="text-xs text-orange-700 flex items-start">
                                     <AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof flag === 'object' ? `${flag.flag}${flag.value ? ` (${flag.value})` : ''}` : flag}
@@ -811,7 +811,7 @@ export default function MatchesPage() {
                             <div>
                               <p className="text-xs font-medium text-gray-700 mb-1">Positive Factors:</p>
                               <div className="space-y-1">
-                                {aiAnalyses[match.deal_id].positive_factors.slice(0, 3).map((factor: any, i: number) => (
+                                {(aiAnalyses[match.deal_id].positive_factors || []).slice(0, 3).map((factor: any, i: number) => (
                                   <p key={i} className="text-xs text-green-700 flex items-start">
                                     <CheckCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof factor === 'object' ? `${factor.factor}${factor.value ? ` (${factor.value})` : ''}` : factor}
@@ -850,7 +850,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.documents.map((doc: any) => (
+                              {(deal.documents || []).map((doc: any) => (
                                 <tr key={doc.id} className="border-b last:border-0">
                                   <td className="py-2 flex items-center">
                                     <FileText className="h-4 w-4 mr-2 text-gray-400" />
@@ -899,7 +899,7 @@ export default function MatchesPage() {
                       Document Verification Flags
                     </p>
                     <div className="space-y-2">
-                      {verification.discrepancies.map((d, i) => (
+                      {(verification.discrepancies || []).map((d, i) => (
                         <div key={i} className={`text-xs p-2 rounded ${
                           d.severity === 'critical' ? 'bg-red-100 text-red-800' :
                           d.severity === 'high' ? 'bg-orange-100 text-orange-800' :

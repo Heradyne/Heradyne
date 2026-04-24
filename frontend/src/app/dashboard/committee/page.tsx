@@ -96,7 +96,7 @@ export default function CommitteePresentationPage() {
         <div className="col-span-1">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
           <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button key={deal.id} onClick={() => selectDeal(deal)}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                 <p className="font-medium text-gray-900 truncate">{deal.name}</p>
@@ -153,7 +153,7 @@ export default function CommitteePresentationPage() {
                     {presentation.approval_conditions?.length > 0 && (
                       <div className="mt-3 pt-3 border-t border-black border-opacity-10">
                         <p className="text-xs font-bold uppercase mb-1 opacity-70">Conditions</p>
-                        {presentation.approval_conditions.map((c: string, i: number) => <p key={i} className="text-sm">• {c}</p>)}
+                        {(presentation.approval_conditions || []).map((c: string, i: number) => <p key={i} className="text-sm">• {c}</p>)}
                       </div>
                     )}
                   </div>
@@ -163,7 +163,7 @@ export default function CommitteePresentationPage() {
                     <div className="card">
                       {/* Slide nav */}
                       <div className="flex items-center gap-1 mb-4 flex-wrap">
-                        {slides.map((slide: any, i: number) => (
+                        {(slides || []).map((slide: any, i: number) => (
                           <button key={i} onClick={() => setActiveSlide(i)}
                             className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all ${activeSlide === i ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                             <span>{SLIDE_TYPE_ICON[slide.type] || '📄'}</span>
@@ -187,7 +187,7 @@ export default function CommitteePresentationPage() {
                           {/* Key points */}
                           {currentSlide.key_points?.length > 0 && (
                             <ul className="space-y-2 mb-4">
-                              {currentSlide.key_points.map((pt: string, i: number) => (
+                              {(currentSlide.key_points || []).map((pt: string, i: number) => (
                                 <li key={i} className="flex gap-2 text-slate-200">
                                   <span className="text-blue-400 shrink-0 mt-0.5">›</span>{pt}
                                 </li>
@@ -198,7 +198,7 @@ export default function CommitteePresentationPage() {
                           {/* Data table */}
                           {currentSlide.data_table?.length > 0 && (
                             <div className="grid grid-cols-2 gap-2 mt-4">
-                              {currentSlide.data_table.map((row: any, i: number) => (
+                              {(currentSlide.data_table || []).map((row: any, i: number) => (
                                 <div key={i} className="bg-slate-800 rounded-lg p-3">
                                   <p className="text-xs text-slate-400">{row.label}</p>
                                   <p className="font-bold text-white">{row.value}</p>
@@ -229,7 +229,7 @@ export default function CommitteePresentationPage() {
                   {presentation.questions_committee_will_ask?.length > 0 && (
                     <div className="card bg-yellow-50 border-yellow-200">
                       <p className="text-sm font-semibold text-yellow-800 mb-2">⚡ Questions the Committee Will Likely Ask</p>
-                      {presentation.questions_committee_will_ask.map((q: string, i: number) => (
+                      {(presentation.questions_committee_will_ask || []).map((q: string, i: number) => (
                         <p key={i} className="text-sm text-yellow-700 flex gap-2 mb-1"><span className="shrink-0 font-bold">{i+1}.</span>{q}</p>
                       ))}
                     </div>

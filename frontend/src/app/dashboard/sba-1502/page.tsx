@@ -113,7 +113,7 @@ export default function SBA1502Page() {
             <div>
               <label className="label">Reporting Month</label>
               <select value={form.month} onChange={e => setForm({...form, month: +e.target.value})} className="input">
-                {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+                {(MONTHS || []).map((m, i) => <option key={i} value={i+1}>{m}</option>)}
               </select>
             </div>
             <div>
@@ -147,7 +147,7 @@ export default function SBA1502Page() {
             <p className="text-sm text-gray-400">No reports yet</p>
           ) : (
             <div className="space-y-2">
-              {reports.map(r => (
+              {(reports || []).map(r => (
                 <button key={r.id} onClick={() => loadReport(r.id)}
                   className={`w-full text-left p-3 rounded-xl border transition-all ${
                     activeReport?.report_id === r.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
@@ -214,7 +214,7 @@ export default function SBA1502Page() {
                 {activeReport.validation_errors?.length > 0 && (
                   <div className="mt-3 bg-red-100 border border-red-200 rounded-lg p-3">
                     <p className="text-sm font-bold text-red-800 mb-1">⛔ {activeReport.validation_errors.length} Validation Errors — Fix Before Submitting</p>
-                    {activeReport.validation_errors.map((e: string, i: number) => (
+                    {(activeReport.validation_errors || []).map((e: string, i: number) => (
                       <p key={i} className="text-sm text-red-700">• {e}</p>
                     ))}
                   </div>
@@ -222,7 +222,7 @@ export default function SBA1502Page() {
                 {activeReport.warnings?.length > 0 && (
                   <div className="mt-2 bg-yellow-100 border border-yellow-200 rounded-lg p-3">
                     <p className="text-xs font-bold text-yellow-800 mb-1">⚠ Data Quality Warnings</p>
-                    {activeReport.warnings.map((w: string, i: number) => (
+                    {(activeReport.warnings || []).map((w: string, i: number) => (
                       <p key={i} className="text-xs text-yellow-700">• {w}</p>
                     ))}
                   </div>
@@ -263,7 +263,7 @@ export default function SBA1502Page() {
                       <span className="text-center">Status</span>
                       <span className="text-right">Interest Accrued</span>
                     </div>
-                    {activeReport.loan_rows.map((loan: any, i: number) => {
+                    {(activeReport.loan_rows || []).map((loan: any, i: number) => {
                       const isExp = expandedLoans.has(loan.sba_loan_number);
                       const pCode = PAYMENT_CODE_LABEL[loan.payment_status_code] || { label: loan.payment_status_code, color: 'text-gray-600 bg-gray-50' };
                       return (
@@ -296,7 +296,7 @@ export default function SBA1502Page() {
                               <div><span className="font-medium">DPD:</span> {loan.days_past_due || 0}</div>
                               {loan.flags?.length > 0 && (
                                 <div className="col-span-3">
-                                  {loan.flags.map((f: string, fi: number) => (
+                                  {(loan.flags || []).map((f: string, fi: number) => (
                                     <p key={fi} className="text-red-600">⚠ {f}</p>
                                   ))}
                                 </div>

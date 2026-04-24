@@ -192,7 +192,7 @@ export default function OwnerKPIPage() {
               <CheckCircle className="h-12 w-12 text-green-400 mx-auto mb-3" />
               <p className="text-gray-500 font-medium">All caught up — no pending submissions</p>
             </div>
-          ) : queue.map(contrib => {
+          ) : (queue || []).map(contrib => {
             const ev = contrib.ai_evaluation;
             const form = reviewForms[contrib.id] || { decision: '', notes: '', adjusted_value: '' };
             const isExp = expandedContrib === contrib.id;
@@ -247,19 +247,19 @@ export default function OwnerKPIPage() {
                         {/* Reasoning steps */}
                         {ev.reasoning?.length > 0 && (
                           <div className="space-y-1 mb-2">
-                            {ev.reasoning.map((step: any, i: number) => (
+                            {(ev.reasoning || []).map((step: any, i: number) => (
                               <p key={i} className="text-xs text-blue-800"><span className="font-bold">{step.label}:</span> {step.detail} {step.value && `→ ${step.value}`}</p>
                             ))}
                           </div>
                         )}
                         <p className={`text-xs font-medium ${CONFIDENCE_COLOR[ev.confidence]}`}>Confidence: {ev.confidence} — {ev.confidence_reason}</p>
                         {ev.linked_kpis?.length > 0 && (
-                          <p className="text-xs text-blue-600 mt-1">Affects: {ev.linked_kpis.map((k: any) => k.kpi_name).join(', ')}</p>
+                          <p className="text-xs text-blue-600 mt-1">Affects: {(ev.linked_kpis || []).map((k: any) => k.kpi_name).join(', ')}</p>
                         )}
                         {ev.clarifying_questions?.length > 0 && (
                           <div className="mt-2 bg-yellow-50 border border-yellow-200 rounded p-2">
                             <p className="text-xs font-medium text-yellow-800">Could improve estimate with:</p>
-                            {ev.clarifying_questions.map((q: string, i: number) => <p key={i} className="text-xs text-yellow-700">• {q}</p>)}
+                            {(ev.clarifying_questions || []).map((q: string, i: number) => <p key={i} className="text-xs text-yellow-700">• {q}</p>)}
                           </div>
                         )}
                       </div>
@@ -310,7 +310,7 @@ export default function OwnerKPIPage() {
                     {contrib.discussion?.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-gray-500 uppercase">Discussion</p>
-                        {contrib.discussion.map((msg: any, i: number) => (
+                        {(contrib.discussion || []).map((msg: any, i: number) => (
                           <div key={i} className={`p-2 rounded-lg text-sm ${msg.user_id === contrib.employee_id ? 'bg-gray-50' : 'bg-blue-50'}`}>
                             <p className="text-xs text-gray-400 mb-0.5">{msg.user_id === contrib.employee_id ? 'Employee' : 'You'} · {new Date(msg.created_at).toLocaleDateString()}</p>
                             {msg.message}
@@ -379,7 +379,7 @@ export default function OwnerKPIPage() {
             <div className="card">
               <h3 className="font-semibold text-gray-800 mb-3">Top Contributors</h3>
               <div className="space-y-2">
-                {dashboard.top_contributors.map((emp: any, i: number) => (
+                {(dashboard.top_contributors || []).map((emp: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-3">
                       <span className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 text-sm font-bold flex items-center justify-center">{i+1}</span>
@@ -441,7 +441,7 @@ export default function OwnerKPIPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
-              {employees.map(emp => (
+              {(employees || []).map(emp => (
                 <div key={emp.id} className="card">
                   <div className="flex items-start justify-between">
                     <div>
@@ -484,14 +484,14 @@ export default function OwnerKPIPage() {
                     <label className="label">Employee</label>
                     <select value={assignForm.employee_id} onChange={e => setAssignForm({...assignForm, employee_id: e.target.value})} className="input">
                       <option value="">Select employee</option>
-                      {employees.map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
+                      {(employees || []).map(e => <option key={e.id} value={e.id}>{e.full_name}</option>)}
                     </select>
                   </div>
                   <div>
                     <label className="label">Business KPI</label>
                     <select value={assignForm.business_kpi_id} onChange={e => setAssignForm({...assignForm, business_kpi_id: e.target.value})} className="input">
                       <option value="">Select KPI</option>
-                      {kpis.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                      {(kpis || []).map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
                     </select>
                   </div>
                   <div>
@@ -560,7 +560,7 @@ export default function OwnerKPIPage() {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
-              {kpis.map(kpi => (
+              {(kpis || []).map(kpi => (
                 <div key={kpi.id} className="card">
                   <div className="flex items-start justify-between">
                     <div>

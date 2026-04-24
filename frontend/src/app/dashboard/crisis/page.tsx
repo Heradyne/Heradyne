@@ -103,7 +103,7 @@ export default function CrisisPage() {
         <div className="col-span-1">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
           <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button key={deal.id} onClick={() => selectDeal(deal)}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                 <p className="font-medium text-gray-900 truncate">{deal.name}</p>
@@ -118,7 +118,7 @@ export default function CrisisPage() {
                 <>
                   <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Crisis History</p>
                   <div className="space-y-1 mb-3">
-                    {crises.map(c => (
+                    {(crises || []).map(c => (
                       <button key={c.id} onClick={() => setActiveEvent(c)}
                         className={`w-full text-left px-3 py-2 rounded-lg border text-xs transition-all ${activeEvent?.id === c.id || activeEvent?.event_id === c.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                         <div className="flex items-center justify-between">
@@ -149,7 +149,7 @@ export default function CrisisPage() {
                 <div>
                   <label className="label text-red-800">What type of crisis?</label>
                   <div className="grid grid-cols-1 gap-2">
-                    {CRISIS_TYPES.map(ct => (
+                    {(CRISIS_TYPES || []).map(ct => (
                       <button key={ct.value} onClick={() => setForm({...form, crisis_type: ct.value})}
                         className={`text-left p-3 rounded-xl border transition-all ${form.crisis_type === ct.value ? 'border-red-500 bg-red-100' : 'bg-white border-gray-200 hover:border-gray-300'}`}>
                         <p className="font-medium text-sm">{ct.label}</p>
@@ -238,13 +238,13 @@ export default function CrisisPage() {
                 <div className="card">
                   <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><Clock className="h-5 w-5 text-red-500" />Stabilize — First 24 Hours</h3>
                   {['1-4', '4-12', '12-24'].map(hour => {
-                    const actions = response.stabilize_actions.filter((a: any) => a.hour === hour);
+                    const actions = (response.stabilize_actions || []).filter((a: any) => a.hour === hour);
                     if (!actions.length) return null;
                     return (
                       <div key={hour} className="mb-4">
                         <p className="text-xs font-bold text-gray-500 uppercase mb-2">{HOUR_LABELS[hour]}</p>
                         <div className="space-y-2">
-                          {actions.map((action: any, i: number) => (
+                          {(actions || []).map((action: any, i: number) => (
                             <div key={i} className="flex gap-3 p-3 bg-red-50 border border-red-100 rounded-xl">
                               <div className="w-6 h-6 rounded-full bg-red-600 text-white text-xs font-bold flex items-center justify-center shrink-0">{i+1}</div>
                               <div className="flex-1">
@@ -268,7 +268,7 @@ export default function CrisisPage() {
                 <div className="card">
                   <h3 className="font-semibold text-gray-800 mb-3">Recover — Days 2–14</h3>
                   <div className="space-y-2">
-                    {response.recovery_actions.map((action: any, i: number) => (
+                    {(response.recovery_actions || []).map((action: any, i: number) => (
                       <div key={i} className="flex gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl">
                         <span className="text-xs bg-blue-600 text-white px-2 py-1 rounded-full font-medium shrink-0">{action.day}</span>
                         <div>
@@ -285,7 +285,7 @@ export default function CrisisPage() {
               {response.cash_preservation_steps?.length > 0 && (
                 <div className="card bg-green-50 border-green-200">
                   <p className="text-sm font-semibold text-green-800 mb-2">💵 Cash Preservation Steps</p>
-                  {response.cash_preservation_steps.map((s: string, i: number) => <p key={i} className="text-sm text-green-700 flex gap-2 mb-1"><span className="shrink-0">•</span>{s}</p>)}
+                  {(response.cash_preservation_steps || []).map((s: string, i: number) => <p key={i} className="text-sm text-green-700 flex gap-2 mb-1"><span className="shrink-0">•</span>{s}</p>)}
                 </div>
               )}
 
@@ -293,7 +293,7 @@ export default function CrisisPage() {
               {response.mistakes_to_avoid?.length > 0 && (
                 <div className="card bg-yellow-50 border-yellow-200">
                   <p className="text-sm font-semibold text-yellow-800 mb-2">⚠️ Common Mistakes to Avoid</p>
-                  {response.mistakes_to_avoid.map((m: string, i: number) => <p key={i} className="text-sm text-yellow-700 flex gap-2 mb-1"><X className="h-4 w-4 shrink-0 mt-0.5" />{m}</p>)}
+                  {(response.mistakes_to_avoid || []).map((m: string, i: number) => <p key={i} className="text-sm text-yellow-700 flex gap-2 mb-1"><X className="h-4 w-4 shrink-0 mt-0.5" />{m}</p>)}
                 </div>
               )}
 
@@ -302,7 +302,7 @@ export default function CrisisPage() {
                 <div className="card">
                   <p className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2"><Users className="h-4 w-4" />Resources to Engage</p>
                   <div className="flex flex-wrap gap-2">
-                    {response.resources_to_engage.map((r: string, i: number) => (
+                    {(response.resources_to_engage || []).map((r: string, i: number) => (
                       <span key={i} className="text-xs bg-gray-100 border border-gray-200 text-gray-700 px-3 py-1 rounded-full">{r}</span>
                     ))}
                   </div>

@@ -119,7 +119,7 @@ export default function AnnualReviewPage() {
         <div className="col-span-1">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
           <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button key={deal.id} onClick={() => selectDeal(deal)}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
                   selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
@@ -143,7 +143,7 @@ export default function AnnualReviewPage() {
               {/* History + new button */}
               <div className="flex items-center justify-between">
                 <div className="flex gap-2 flex-wrap">
-                  {reviews.map(r => (
+                  {(reviews || []).map(r => (
                     <button key={r.id}
                       onClick={async () => {
                         if (r.ai_report) { setActiveReview(r); setLenderNotes(r.lender_notes || ''); }

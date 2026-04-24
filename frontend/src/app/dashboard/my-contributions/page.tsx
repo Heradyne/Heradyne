@@ -264,7 +264,7 @@ export default function EmployeeDashboardPage() {
                 <Target className="h-5 w-5 text-blue-600" /> My KPIs
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {kpis.map(kpi => {
+                {(kpis || []).map(kpi => {
                   const bkpi = kpi.business_kpi;
                   const pct = kpi.progress_pct || 0;
                   return (
@@ -429,7 +429,7 @@ export default function EmployeeDashboardPage() {
               <p className="text-gray-400 mb-3">No contributions yet</p>
               <button onClick={() => setTab('submit')} className="btn btn-primary text-sm">Submit Your First Contribution</button>
             </div>
-          ) : contributions.map(contrib => {
+          ) : (contributions || []).map(contrib => {
             const ev = contrib.ai_evaluation;
             const review = contrib.manager_review;
             const statusInfo = STATUS_STYLE[contrib.status] || STATUS_STYLE.pending;
@@ -495,7 +495,7 @@ export default function EmployeeDashboardPage() {
                         {ev.reasoning?.length > 0 && (
                           <div className="space-y-1 mb-2">
                             <p className="text-xs font-medium text-blue-600 mb-1">Step-by-step reasoning:</p>
-                            {ev.reasoning.map((step: any, i: number) => (
+                            {(ev.reasoning || []).map((step: any, i: number) => (
                               <p key={i} className="text-xs text-blue-800 flex gap-2">
                                 <span className="font-bold shrink-0">{i+1}.</span>
                                 <span><strong>{step.label}:</strong> {step.detail}{step.value && ` → ${step.value}`}</span>
@@ -511,7 +511,7 @@ export default function EmployeeDashboardPage() {
                         {ev.clarifying_questions?.length > 0 && (
                           <div className="mt-2 bg-yellow-50 rounded p-2">
                             <p className="text-xs font-medium text-yellow-800">To improve the estimate, consider adding:</p>
-                            {ev.clarifying_questions.map((q: string, i: number) => <p key={i} className="text-xs text-yellow-700">• {q}</p>)}
+                            {(ev.clarifying_questions || []).map((q: string, i: number) => <p key={i} className="text-xs text-yellow-700">• {q}</p>)}
                           </div>
                         )}
                       </div>
@@ -535,7 +535,7 @@ export default function EmployeeDashboardPage() {
                     {contrib.discussion?.length > 0 && (
                       <div className="space-y-2">
                         <p className="text-xs font-semibold text-gray-500 uppercase">Discussion</p>
-                        {contrib.discussion.map((msg: any, i: number) => (
+                        {(contrib.discussion || []).map((msg: any, i: number) => (
                           <div key={i} className={`p-3 rounded-lg text-sm ${msg.user_id === contrib.employee_id ? 'bg-blue-50 ml-0 mr-8' : 'bg-gray-50 ml-8 mr-0'}`}>
                             <p className="text-xs text-gray-400 mb-0.5">{msg.user_id === contrib.employee_id ? 'You' : 'Owner'} · {new Date(msg.created_at).toLocaleDateString()}</p>
                             {msg.message}

@@ -50,7 +50,7 @@ export default function SBAQAPage() {
 
     try {
       const result = await api.askSBAQuestion(question, selectedDealId || undefined);
-      const selectedDeal = deals.find(d => d.id === selectedDealId);
+      const selectedDeal = (deals || []).find(d => d.id === selectedDealId);
       setMessages(prev => [...prev, {
         role: 'assistant',
         content: result.answer,
@@ -73,7 +73,7 @@ export default function SBAQAPage() {
     }
   };
 
-  const selectedDeal = deals.find(d => d.id === selectedDealId);
+  const selectedDeal = (deals || []).find(d => d.id === selectedDealId);
 
   return (
     <div className="max-w-4xl mx-auto h-full flex flex-col">
@@ -109,7 +109,7 @@ export default function SBAQAPage() {
             >
               No deal context (general question)
             </button>
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button
                 key={deal.id}
                 onClick={() => { setSelectedDealId(deal.id); setShowDeals(false); }}
@@ -133,7 +133,7 @@ export default function SBAQAPage() {
           </div>
         )}
 
-        {messages.map((msg, i) => (
+        {(messages || []).map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-3xl rounded-2xl px-4 py-3 ${
               msg.role === 'user'
@@ -164,7 +164,7 @@ export default function SBAQAPage() {
         <div className="mt-4">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Common Questions</p>
           <div className="flex flex-wrap gap-2">
-            {QUICK_QUESTIONS.slice(0, 6).map((q, i) => (
+            {(QUICK_QUESTIONS || []).slice(0, 6).map((q, i) => (
               <button
                 key={i}
                 onClick={() => ask(q)}

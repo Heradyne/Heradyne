@@ -90,7 +90,7 @@ export default function ValuationResultsPage() {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API}/api/v1/chat/deals/${dealId}/chat`, {
         method:'POST', headers:{'Content-Type':'application/json',Authorization:`Bearer ${token}`},
-        body: JSON.stringify({message:msg, history:chatMessages.slice(-6)}),
+        body: JSON.stringify({message:msg, history:(chatMessages || []).slice(-6)}),
       });
       if (res.ok) { const d = await res.json(); setChatMessages([...hist,{role:'assistant',content:d.reply}]); }
     } catch{} finally { setChatLoading(false); }
@@ -414,7 +414,7 @@ export default function ValuationResultsPage() {
                   ))}
                 </div>
               )}
-              {chatMessages.map((msg,i)=>(
+              {(chatMessages || []).map((msg,i)=>(
                 <div key={i} className={`flex ${msg.role==='user'?'justify-end':'justify-start'}`}>
                   <div className={`rounded-xl px-4 py-3 max-w-[85%] text-sm leading-relaxed ${msg.role==='user'?'bg-blue-600 text-white':'bg-gray-50 border text-gray-800'}`}>{msg.content}</div>
                 </div>

@@ -110,7 +110,7 @@ export default function PoliciesPage() {
       {!showForm && (
         <div className="grid gap-6">
           {policies.length > 0 ? (
-            policies.map((policy) => (
+            (policies || []).map((policy) => (
               <div key={policy.id} className="card">
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -382,7 +382,7 @@ function PolicyForm({
   const toggleIndustry = (industry: string) => {
     const current = formData.allowed_industries;
     if (current.includes(industry)) {
-      setFormData({ ...formData, allowed_industries: current.filter(i => i !== industry) });
+      setFormData({ ...formData, allowed_industries: (current || []).filter(i => i !== industry) });
     } else {
       setFormData({ ...formData, allowed_industries: [...current, industry] });
     }

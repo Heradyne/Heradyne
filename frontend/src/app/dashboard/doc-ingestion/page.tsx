@@ -82,7 +82,7 @@ export default function DocumentIngestionPage() {
           <div>
             <label className="label">Document Type *</label>
             <select value={docType} onChange={e => setDocType(e.target.value)} className="input">
-              {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+              {(DOC_TYPES || []).map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div>
@@ -108,7 +108,7 @@ export default function DocumentIngestionPage() {
           {history.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Recent</p>
-              {history.map((h, i) => (
+              {(history || []).map((h, i) => (
                 <div key={i} className="p-3 border border-gray-100 rounded-lg mb-2 cursor-pointer hover:bg-gray-50" onClick={() => setResult(h)}>
                   <p className="text-sm font-medium text-gray-800 truncate">{h.business_name}</p>
                   <p className="text-xs text-gray-400">{DOC_TYPES.find(t => t.value === h.doc_type)?.label} · {h.period_covered || 'N/A'}</p>
@@ -193,7 +193,7 @@ export default function DocumentIngestionPage() {
                 <div className="bg-white border border-gray-200 rounded-xl p-5">
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">EBITDA Addbacks</h3>
                   <div className="space-y-2">
-                    {result.addbacks.map((ab: any, i: number) => (
+                    {(result.addbacks || []).map((ab: any, i: number) => (
                       <div key={i} className="flex justify-between items-start py-2 border-b border-gray-50 last:border-0">
                         <div>
                           <p className="text-sm font-medium text-gray-800">{ab.item}</p>
@@ -204,7 +204,7 @@ export default function DocumentIngestionPage() {
                     ))}
                     <div className="flex justify-between items-center pt-2 font-semibold">
                       <span className="text-sm text-gray-800">Total Addbacks</span>
-                      <span className="text-sm text-green-700">+{formatCurrency(result.addbacks.reduce((s: number, a: any) => s + (a.amount || 0), 0))}</span>
+                      <span className="text-sm text-green-700">+{formatCurrency((result.addbacks || []).reduce((s: number, a: any) => s + (a.amount || 0), 0))}</span>
                     </div>
                   </div>
                 </div>
@@ -216,7 +216,7 @@ export default function DocumentIngestionPage() {
                   <p className="text-sm font-semibold text-yellow-800 mb-2 flex items-center gap-1">
                     <AlertTriangle className="h-4 w-4" /> Document Flags
                   </p>
-                  {result.flags.map((f: string, i: number) => (
+                  {(result.flags || []).map((f: string, i: number) => (
                     <p key={i} className="text-sm text-yellow-700 flex gap-2 mb-1"><span className="shrink-0">•</span>{f}</p>
                   ))}
                 </div>
@@ -228,7 +228,7 @@ export default function DocumentIngestionPage() {
                   <p className="text-sm font-semibold text-blue-800 mb-2 flex items-center gap-1">
                     <CheckCircle className="h-4 w-4" /> Lender Verification Required
                   </p>
-                  {result.verification_needed.map((v: string, i: number) => (
+                  {(result.verification_needed || []).map((v: string, i: number) => (
                     <p key={i} className="text-sm text-blue-700 flex gap-2 mb-1"><span className="shrink-0">□</span>{v}</p>
                   ))}
                 </div>

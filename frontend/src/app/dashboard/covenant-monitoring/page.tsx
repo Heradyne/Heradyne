@@ -151,7 +151,7 @@ export default function CovenantMonitoringPage() {
             <AlertTriangle className="h-5 w-5 text-yellow-500" /> Portfolio Alerts
           </h2>
           <div className="space-y-2">
-            {dashboard.alerts.map((alert: any, i: number) => (
+            {(dashboard.alerts || []).map((alert: any, i: number) => (
               <div key={i} className={`flex items-center justify-between p-3 rounded-lg border ${STATUS_STYLE[alert.status]}`}>
                 <div>
                   <p className="font-medium text-sm">{alert.deal_name} — {alert.covenant_name}</p>
@@ -173,7 +173,7 @@ export default function CovenantMonitoringPage() {
         <div className="col-span-1">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
           <div className="space-y-2 max-h-[600px] overflow-y-auto">
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button key={deal.id} onClick={() => selectDeal(deal)}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
                   selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
@@ -214,7 +214,7 @@ export default function CovenantMonitoringPage() {
                     <div>
                       <label className="label">Type</label>
                       <select value={newCovenant.covenant_type} onChange={e => setNewCovenant({...newCovenant, covenant_type: e.target.value})} className="input">
-                        {COVENANT_TYPES.map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
+                        {(COVENANT_TYPES || []).map(t => <option key={t} value={t}>{t.toUpperCase()}</option>)}
                       </select>
                     </div>
                     <div>
@@ -226,7 +226,7 @@ export default function CovenantMonitoringPage() {
                     <div>
                       <label className="label">Frequency</label>
                       <select value={newCovenant.frequency} onChange={e => setNewCovenant({...newCovenant, frequency: e.target.value})} className="input">
-                        {FREQUENCIES.map(f => <option key={f} value={f}>{f.charAt(0).toUpperCase()+f.slice(1)}</option>)}
+                        {(FREQUENCIES || []).map(f => <option key={f} value={f}>{f.charAt(0).toUpperCase()+f.slice(1)}</option>)}
                       </select>
                     </div>
                     <div>
@@ -251,7 +251,7 @@ export default function CovenantMonitoringPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {covenants.map(cov => {
+                  {(covenants || []).map(cov => {
                     const latest = cov.latest_check;
                     const isExp = expanded === cov.id;
                     const form = checkForm[cov.id] || { value: '', notes: '' };

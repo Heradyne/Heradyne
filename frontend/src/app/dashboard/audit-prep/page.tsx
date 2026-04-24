@@ -90,7 +90,7 @@ export default function AuditPrepPage() {
         <div className="col-span-1">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
           <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button key={deal.id} onClick={() => selectDeal(deal)}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
                   selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
@@ -169,7 +169,7 @@ export default function AuditPrepPage() {
                       <p className="text-sm font-bold text-red-800 mb-2 flex items-center gap-2">
                         <XCircle className="h-5 w-5" /> Critical Gaps — Could Result in Guarantee Denial
                       </p>
-                      {pkg.critical_gaps.map((gap: string, i: number) => (
+                      {(pkg.critical_gaps || []).map((gap: string, i: number) => (
                         <p key={i} className="text-sm text-red-700 flex gap-2 mb-1">
                           <span className="shrink-0">•</span>{gap}
                         </p>
@@ -184,7 +184,7 @@ export default function AuditPrepPage() {
                         <AlertTriangle className="h-5 w-5 text-yellow-500" /> Priority Actions
                       </h3>
                       <div className="space-y-2">
-                        {pkg.high_priority_actions.map((action: any, i: number) => (
+                        {(pkg.high_priority_actions || []).map((action: any, i: number) => (
                           <div key={i} className="flex items-start justify-between p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                             <div className="flex-1">
                               <p className="text-sm font-medium text-gray-800">{action.action}</p>
@@ -287,7 +287,7 @@ export default function AuditPrepPage() {
                       <h3 className="font-semibold text-gray-800 mb-2 flex items-center gap-2">
                         <CheckCircle className="h-5 w-5 text-green-500" /> Well-Documented Areas
                       </h3>
-                      {pkg.strengths.map((s: string, i: number) => (
+                      {(pkg.strengths || []).map((s: string, i: number) => (
                         <p key={i} className="text-sm text-gray-700 flex gap-2 mb-1">
                           <span className="text-green-500 shrink-0">✓</span>{s}
                         </p>

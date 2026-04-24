@@ -667,7 +667,7 @@ export default function AIAgentPage() {
         )}
         
         <div className="space-y-3">
-          {categories.map((cat) => {
+          {(categories || []).map((cat) => {
             const isExpanded = expandedCategories.has(cat.key);
             const categoryVars = variables[cat.key] || [];
             const catSettings = categorySettings[cat.key] || { weight: 15, enabled: true };

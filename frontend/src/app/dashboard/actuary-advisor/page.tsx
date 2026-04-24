@@ -87,7 +87,7 @@ export default function ActuaryAdvisorPage() {
     try {
       setLoading(true);
       const dealsData = await api.getDeals().catch(() => []);
-      setDeals(dealsData.filter((d: Deal) => d.status !== 'draft'));
+      setDeals((dealsData || []).filter((d: Deal) => d.status !== 'draft'));
     } catch (err) {
       setError('Failed to load deals');
     } finally {
@@ -108,7 +108,7 @@ export default function ActuaryAdvisorPage() {
       if (typeof errorMsg === 'string') {
         setError(errorMsg);
       } else if (Array.isArray(errorMsg)) {
-        setError(errorMsg.map((e: any) => typeof e === 'string' ? e : e.msg).join(', '));
+        setError((errorMsg || []).map((e: any) => typeof e === 'string' ? e : e.msg).join(', '));
       } else {
         setError('Pricing failed');
       }
@@ -151,7 +151,7 @@ export default function ActuaryAdvisorPage() {
         if (result.detail) {
           if (Array.isArray(result.detail)) {
             // Pydantic validation errors
-            const errorMessages = result.detail.map((e: any) => 
+            const errorMessages = (result.detail || []).map((e: any) => 
               typeof e === 'string' ? e : `${e.loc?.join('.')}: ${e.msg}`
             ).join(', ');
             throw new Error(errorMessages);
@@ -306,7 +306,7 @@ export default function ActuaryAdvisorPage() {
                 {deals.length === 0 ? (
                   <p className="text-sm text-gray-500">No deals available</p>
                 ) : (
-                  deals.map(deal => (
+                  (deals || []).map(deal => (
                     <button
                       key={deal.id}
                       onClick={() => priceDeal(deal.id)}

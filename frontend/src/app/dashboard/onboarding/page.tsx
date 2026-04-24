@@ -73,7 +73,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-          {PLATFORM_FEATURES.filter((_, i) => isAdmin || isLender ? true : [0, 1, 2, 3, 4, 5].includes(i)).map(f => (
+          {(PLATFORM_FEATURES || []).filter((_, i) => isAdmin || isLender ? true : [0, 1, 2, 3, 4, 5].includes(i)).map(f => (
             <div key={f.label} className="bg-white bg-opacity-5 border border-white border-opacity-10 rounded-xl p-4 text-center">
               <p className="text-2xl mb-1">{f.icon}</p>
               <p className="text-sm font-semibold text-white">{f.label}</p>
@@ -106,7 +106,7 @@ export default function OnboardingPage() {
         </div>
 
         <div className="space-y-4 mb-8">
-          {steps.map((s, i) => {
+          {(steps || []).map((s, i) => {
             const done = completedActions.has(i);
             return (
               <div key={i} className={`bg-white rounded-2xl border p-5 transition-all ${done ? 'border-green-300 bg-green-50' : 'border-gray-200'}`}>

@@ -96,8 +96,8 @@ export default function CollateralMonitoringPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><RefreshCw className="h-8 w-8 animate-spin" /></div>;
 
   const alerts = monitoring?.alerts || [];
-  const critical = alerts.filter((a: any) => a.severity === 'critical');
-  const high = alerts.filter((a: any) => a.severity === 'high');
+  const critical = (alerts || []).filter((a: any) => a.severity === 'critical');
+  const high = (alerts || []).filter((a: any) => a.severity === 'high');
 
   return (
     <div>
@@ -161,7 +161,7 @@ export default function CollateralMonitoringPage() {
             {critical.length > 0 && <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-medium">{critical.length} critical</span>}
           </h2>
           <div className="space-y-2">
-            {alerts.map((alert: any, i: number) => (
+            {(alerts || []).map((alert: any, i: number) => (
               <div key={i} className={`p-3 rounded-xl border ${SEVERITY_STYLE[alert.severity] || SEVERITY_STYLE.medium}`}>
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-2">
@@ -188,7 +188,7 @@ export default function CollateralMonitoringPage() {
         <div className="card">
           <h2 className="font-semibold text-gray-800 mb-3">Asset Registry ({assets.length} assets)</h2>
           <div className="space-y-2">
-            {assets.map((asset: any) => {
+            {(assets || []).map((asset: any) => {
               const isExp = expandedAsset === asset.id;
               return (
                 <div key={asset.id} className="border border-gray-200 rounded-xl overflow-hidden">

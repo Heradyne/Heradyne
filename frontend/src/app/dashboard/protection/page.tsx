@@ -257,7 +257,7 @@ export default function ProtectionPage() {
           {/* Left: Protection List */}
           <div className="lg:col-span-1 space-y-4">
             <h2 className="font-semibold text-gray-700">Your Loans</h2>
-            {protections.map((protection) => {
+            {(protections || []).map((protection) => {
               const StatusIcon = getStatusBadge(protection.status).icon;
               return (
                 <div
@@ -514,7 +514,7 @@ export default function ProtectionPage() {
                     <p className="text-gray-500 text-sm">No events recorded yet.</p>
                   ) : (
                     <div className="space-y-3 max-h-64 overflow-y-auto">
-                      {events.map((event) => (
+                      {(events || []).map((event) => (
                         <div key={event.id} className="flex items-start gap-3 text-sm">
                           <div className="w-2 h-2 mt-2 rounded-full bg-gray-400" />
                           <div>

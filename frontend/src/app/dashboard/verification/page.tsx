@@ -80,10 +80,10 @@ export default function VerificationPage() {
       setMatches(matchData);
 
       // Load deal details, risk reports, and verification for each match
-      const dealIds = [...new Set(matchData.map(m => m.deal_id))];
-      const dealPromises = dealIds.map(id => api.getDeal(id).catch(() => null));
-      const verifyPromises = dealIds.map(id => api.getDealVerificationStatus(id).catch(() => null));
-      const reportPromises = dealIds.map(id => api.getLatestRiskReport(id).catch(() => null));
+      const dealIds = [...new Set((matchData || []).map(m => m.deal_id))];
+      const dealPromises = (dealIds || []).map(id => api.getDeal(id).catch(() => null));
+      const verifyPromises = (dealIds || []).map(id => api.getDealVerificationStatus(id).catch(() => null));
+      const reportPromises = (dealIds || []).map(id => api.getLatestRiskReport(id).catch(() => null));
       
       const [dealResults, verifyResults, reportResults] = await Promise.all([
         Promise.all(dealPromises),
@@ -95,15 +95,15 @@ export default function VerificationPage() {
       const verifyMap: Record<number, VerificationStatus> = {};
       const reportMap: Record<number, DealRiskReport> = {};
       
-      dealResults.forEach((deal, index) => {
+      (dealResults || []).forEach((deal, index) => {
         if (deal) dealMap[dealIds[index]] = deal;
       });
       
-      verifyResults.forEach((verify, index) => {
+      (verifyResults || []).forEach((verify, index) => {
         if (verify) verifyMap[dealIds[index]] = verify;
       });
       
-      reportResults.forEach((report, index) => {
+      (reportResults || []).forEach((report, index) => {
         if (report) reportMap[dealIds[index]] = report;
       });
       
@@ -162,7 +162,7 @@ export default function VerificationPage() {
     
     setActionLoading(`flag-${dealId}`);
     try {
-      const match = matches.find(m => m.deal_id === dealId);
+      const match = (matches || []).find(m => m.deal_id === dealId);
       // Use the dedicated verification flag endpoint
       await api.createVerificationFlag({
         deal_id: dealId,
@@ -200,7 +200,7 @@ export default function VerificationPage() {
     const verify = verifications[dealId];
     
     // Check if already verified by loan officer
-    const match = matches.find(m => m.deal_id === dealId);
+    const match = (matches || []).find(m => m.deal_id === dealId);
     if (match?.decision_notes?.includes('[VERIFIED BY LOAN OFFICER]')) {
       return (
         <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
@@ -245,7 +245,7 @@ export default function VerificationPage() {
     );
   };
 
-  const filteredMatches = matches.filter(match => {
+  const filteredMatches = (matches || []).filter(match => {
     if (filter === 'all') return true;
     const hasVerifiedNote = match.decision_notes?.includes('[VERIFIED BY LOAN OFFICER]');
     const hasFlagNote = match.decision_notes?.includes('[FLAG');

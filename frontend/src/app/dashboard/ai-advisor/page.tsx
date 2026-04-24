@@ -94,7 +94,7 @@ export default function RecommendationsPage() {
         <div className="col-span-2">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Your Deals</p>
           {loading && <div className="text-sm text-gray-400">Loading...</div>}
-          {deals.map(deal => (
+          {(deals || []).map(deal => (
             <div key={deal.id} onClick={() => loadRecommendations(deal)}
               className={`p-4 rounded-xl border cursor-pointer transition-all mb-2 ${
                 selectedDeal?.id === deal.id ? 'border-indigo-500 bg-indigo-50' : 'border-gray-200 bg-white hover:border-gray-300'
@@ -155,7 +155,7 @@ export default function RecommendationsPage() {
                       <p className="text-sm font-semibold text-red-700 mb-2 flex items-center gap-1">
                         <AlertTriangle className="h-4 w-4" /> Deal Killers — Address Immediately
                       </p>
-                      {recs.deal_killers.map((d: string, i: number) => (
+                      {(recs.deal_killers || []).map((d: string, i: number) => (
                         <p key={i} className="text-sm text-red-700 flex gap-2 mb-1"><span className="shrink-0">⚠</span>{d}</p>
                       ))}
                     </div>
@@ -205,7 +205,7 @@ export default function RecommendationsPage() {
                     <div className="bg-white border border-gray-200 rounded-xl p-4">
                       <p className="text-sm font-semibold text-gray-700 mb-3">📋 Your Next 30-Day Checklist</p>
                       <div className="space-y-2">
-                        {recs.next_30_days_checklist.map((item: string, i: number) => (
+                        {(recs.next_30_days_checklist || []).map((item: string, i: number) => (
                           <div key={i} className="flex items-start gap-2 text-sm text-gray-700">
                             <span className="mt-0.5 h-4 w-4 border border-gray-300 rounded shrink-0 flex items-center justify-center text-xs text-gray-400">{i + 1}</span>
                             {item}

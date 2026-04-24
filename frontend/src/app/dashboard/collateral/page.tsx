@@ -259,7 +259,7 @@ export default function CollateralPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredAssets.map((asset) => {
+          {(filteredAssets || []).map((asset) => {
             const Icon = getCategoryIcon(asset.category);
             const badge = getVerificationBadge(asset.verification_status);
             const BadgeIcon = badge.icon;
@@ -328,7 +328,7 @@ export default function CollateralPage() {
                 <label className="label">Category *</label>
                 <select value={form.category} onChange={(e) => setForm(f => ({ ...f, category: e.target.value }))} className="input" required>
                   <option value="">Select category...</option>
-                  {filteredCategories.map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
+                  {(filteredCategories || []).map(cat => <option key={cat.value} value={cat.value}>{cat.label}</option>)}
                 </select>
                 {selectedCategory && <p className="text-xs text-gray-500 mt-1">{selectedCategory.description} • {(selectedCategory.haircut * 100).toFixed(0)}% haircut</p>}
               </div>
@@ -415,11 +415,11 @@ function InsurerCollateralView() {
       const res = await fetch(`${API}/api/v1/deals/`, { headers: h });
       if (!res.ok) return;
       const allDeals = await res.json();
-      const active = allDeals.filter((d: any) =>
+      const active = (allDeals || []).filter((d: any) =>
         ['analyzed','matched','funded','approved','pending_lender','pending_insurer'].includes(d.status)
       );
       setDeals(active);
-      active.forEach(async (deal: any) => {
+      (active || []).forEach(async (deal: any) => {
         try {
           const [colRes, uwRes] = await Promise.all([
             fetch(`${API}/api/v1/collateral/for-deal/${deal.id}`, { headers: h }),
@@ -484,16 +484,16 @@ function InsurerCollateralView() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {deals.map(deal => {
+          {(deals || []).map(deal => {
             const col = collateral[deal.id];
             const uwDeal = uw[deal.id];
             const business = col?.business_assets || [];
             const personal = col?.personal_assets || [];
             const loan = deal.loan_amount_requested || 0;
 
-            const bizStated = business.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+            const bizStated = (business || []).reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
             const bizCollateral = uwDeal?.business_nolv || business.reduce((s: number, a: any) => s + (a.collateral_value || (a.value || a.stated_value || 0) * 0.6), 0);
-            const persStated = personal.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+            const persStated = (personal || []).reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
             const persCollateral = uwDeal?.personal_nolv || personal.reduce((s: number, a: any) => s + (a.collateral_value || (a.value || a.stated_value || 0) * 0.7), 0);
             const totalRecovery = bizCollateral + persCollateral;
             const recoveryPct = loan > 0 ? Math.min((totalRecovery / loan) * 100, 100) : 0;
@@ -581,7 +581,7 @@ function InsurerCollateralView() {
                         </p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {business.map((a: any, i: number) => (
+                          {(business || []).map((a: any, i: number) => (
                             <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--navy-faint)', border: '1px solid var(--navy-light)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--navy)', textTransform: 'capitalize' }}>{a.description || a.name || a.type?.replace(/_/g,' ')}</p>
@@ -613,7 +613,7 @@ function InsurerCollateralView() {
                         </p>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                          {personal.map((a: any, i: number) => (
+                          {(personal || []).map((a: any, i: number) => (
                             <div key={i} style={{ padding: '0.625rem 0.75rem', borderRadius: '3px', background: 'var(--yellow-bg)', border: '1px solid var(--yellow-border)' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                 <p style={{ fontSize: '0.82rem', fontWeight: 500, color: 'var(--yellow)', textTransform: 'capitalize' }}>{a.description || a.name || a.type?.replace(/_/g,' ')}</p>
@@ -658,13 +658,13 @@ function LenderCollateralView() {
       const res = await fetch(`${API}/api/v1/deals/`, { headers: h });
       if (!res.ok) return;
       const allDeals = await res.json();
-      const active = allDeals.filter((d: any) =>
+      const active = (allDeals || []).filter((d: any) =>
         ['analyzed','matched','funded','approved','pending_lender','pending_insurer'].includes(d.status)
       );
       setDeals(active);
 
       // Load collateral and UW for each deal
-      active.forEach(async (deal: any) => {
+      (active || []).forEach(async (deal: any) => {
         try {
           const [colRes, uwRes] = await Promise.all([
             fetch(`${API}/api/v1/collateral/for-deal/${deal.id}`, { headers: h }),
@@ -707,7 +707,7 @@ function LenderCollateralView() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {deals.map(deal => {
+          {(deals || []).map(deal => {
             const col = collateral[deal.id];
             const uwDeal = uw[deal.id];
             const personal = col?.personal_assets || [];
@@ -723,12 +723,12 @@ function LenderCollateralView() {
 
             // Exclude cash/liquid assets from LTV denominator — they aren't pledged collateral
             const NON_COLLATERAL_TYPES = ['cash', 'checking', 'savings', 'liquid'];
-            const pledgedAssets = allAssets.filter((a: any) => {
+            const pledgedAssets = (allAssets || []).filter((a: any) => {
               const t = (a.type || a.category || '').toLowerCase();
-              return !NON_COLLATERAL_TYPES.some(nc => t.includes(nc));
+              return !(NON_COLLATERAL_TYPES || []).some(nc => t.includes(nc));
             });
-            const totalStated    = pledgedAssets.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
-            const totalStatedAll = allAssets.reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+            const totalStated    = (pledgedAssets || []).reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
+            const totalStatedAll = (allAssets || []).reduce((s: number, a: any) => s + (a.value || a.stated_value || 0), 0);
 
             // Prefer NOLV from UW report for LTV denominator; fall back to stated pledged assets
             const ltvDenominator = totalNOLV || totalStated;
@@ -808,7 +808,7 @@ function LenderCollateralView() {
                         </tr>
                       </thead>
                       <tbody>
-                        {allAssets.map((asset: any, i: number) => {
+                        {(allAssets || []).map((asset: any, i: number) => {
                           // Handle both {type,value,description} and full PreQualifiedAsset shapes
                           const name   = asset.description || asset.name || asset.type?.replace(/_/g,' ') || '—';
                           const type   = asset.type || asset.asset_type || asset.category || '—';

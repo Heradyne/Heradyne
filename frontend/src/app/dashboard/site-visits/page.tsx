@@ -100,7 +100,7 @@ export default function SiteVisitPage() {
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
             <div className="space-y-2 max-h-72 overflow-y-auto">
-              {deals.map(deal => (
+              {(deals || []).map(deal => (
                 <button key={deal.id} onClick={() => { setSelectedDeal(deal); setPrep(null); }}
                   className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${
                     selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
@@ -116,7 +116,7 @@ export default function SiteVisitPage() {
             <div>
               <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Visit Type</p>
               <div className="space-y-1">
-                {VISIT_TYPES.map(vt => (
+                {(VISIT_TYPES || []).map(vt => (
                   <button key={vt.value} onClick={() => setVisitType(vt.value)}
                     className={`w-full text-left px-3 py-2 rounded-lg border text-sm transition-all ${
                       visitType === vt.value ? 'border-blue-500 bg-blue-50 text-blue-800 font-medium' : 'border-gray-200 text-gray-700'
@@ -165,7 +165,7 @@ export default function SiteVisitPage() {
               {prep.items_to_verify_onsite?.length > 0 && (
                 <Section id="verify" title="Items to Verify Onsite" count={prep.items_to_verify_onsite.length}>
                   <div className="space-y-3">
-                    {prep.items_to_verify_onsite.map((item: any, i: number) => (
+                    {(prep.items_to_verify_onsite || []).map((item: any, i: number) => (
                       <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
                         <input type="checkbox" className="mt-1 h-4 w-4 rounded border-gray-300 text-blue-600 shrink-0" />
                         <div>
@@ -183,7 +183,7 @@ export default function SiteVisitPage() {
               {prep.financial_questions?.length > 0 && (
                 <Section id="financial_questions" title="Financial Questions to Ask" count={prep.financial_questions.length}>
                   <div className="space-y-3">
-                    {prep.financial_questions.map((q: any, i: number) => (
+                    {(prep.financial_questions || []).map((q: any, i: number) => (
                       <div key={i} className="p-3 bg-blue-50 border border-blue-100 rounded-lg">
                         <p className="text-sm font-semibold text-blue-900">Q{i+1}: {q.question}</p>
                         <p className="text-xs text-blue-700 mt-1">{q.context}</p>
@@ -197,7 +197,7 @@ export default function SiteVisitPage() {
               {prep.risk_flags_to_address?.length > 0 && (
                 <Section id="flags" title="Risk Flags to Address" count={prep.risk_flags_to_address.length}>
                   <div className="space-y-2">
-                    {prep.risk_flags_to_address.map((flag: any, i: number) => (
+                    {(prep.risk_flags_to_address || []).map((flag: any, i: number) => (
                       <div key={i} className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <p className="text-sm font-semibold text-yellow-900 flex gap-2">
                           <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />{flag.flag}
@@ -213,7 +213,7 @@ export default function SiteVisitPage() {
               {prep.operational_questions?.length > 0 && (
                 <Section id="ops" title="Operational Questions">
                   <ul className="space-y-2">
-                    {prep.operational_questions.map((q: string, i: number) => (
+                    {(prep.operational_questions || []).map((q: string, i: number) => (
                       <li key={i} className="text-sm text-gray-700 flex gap-2">
                         <span className="text-blue-500 shrink-0 font-bold">{i+1}.</span>{q}
                       </li>
@@ -226,7 +226,7 @@ export default function SiteVisitPage() {
               {prep.documents_to_request?.length > 0 && (
                 <Section id="docs" title="Documents to Request / Collect">
                   <div className="space-y-2">
-                    {prep.documents_to_request.map((doc: string, i: number) => (
+                    {(prep.documents_to_request || []).map((doc: string, i: number) => (
                       <div key={i} className="flex items-center gap-2">
                         <input type="checkbox" className="h-4 w-4 rounded border-gray-300 text-blue-600" />
                         <span className="text-sm text-gray-700">{doc}</span>
@@ -240,7 +240,7 @@ export default function SiteVisitPage() {
               {prep.positive_topics?.length > 0 && (
                 <Section id="positive" title="Positive Topics to Acknowledge">
                   <ul className="space-y-1">
-                    {prep.positive_topics.map((t: string, i: number) => (
+                    {(prep.positive_topics || []).map((t: string, i: number) => (
                       <li key={i} className="text-sm text-gray-700 flex gap-2">
                         <CheckCircle className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />{t}
                       </li>

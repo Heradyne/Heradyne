@@ -448,10 +448,10 @@ export default function BusinessValuePage() {
                           <p className="text-2xl font-bold">{formatCurrency(growthPlan.upside_scenario.projected_value_mid || 0)}</p>
                         </div>
                       </div>
-                      {growthPlan.upside_scenario.key_assumptions?.length > 0 && (
+                      {(growthPlan.upside_scenario?.key_assumptions || []).length > 0 && (
                         <div className="mt-3 pt-3 border-t border-green-700">
                           <p className="text-xs text-green-300 mb-1">Key Assumptions</p>
-                          {growthPlan.upside_scenario.key_assumptions.map((a: string, i: number) => (
+                          {(growthPlan.upside_scenario?.key_assumptions || []).map((a: string, i: number) => (
                             <p key={i} className="text-xs text-green-200">• {a}</p>
                           ))}
                         </div>

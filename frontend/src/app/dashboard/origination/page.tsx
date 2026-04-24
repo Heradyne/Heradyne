@@ -156,7 +156,7 @@ export default function OriginationPage() {
             </div>
           ) : (
             <div style={{display:'flex',flexDirection:'column',gap:'1.25rem'}}>
-              {queue.map(item => {
+              {(queue || []).map(item => {
                 const ts = item.term_sheet || {};
                 const dealKey = `${item.match_id}`;
                 const checked = checkCount(dealKey);

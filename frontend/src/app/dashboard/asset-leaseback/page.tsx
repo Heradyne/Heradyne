@@ -431,7 +431,7 @@ export default function AssetLeasebackPage() {
                 {contract.contract_content?.attorney_review_notes?.length > 0 && (
                   <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
                     <p className="text-xs font-bold text-yellow-800 mb-1">⚠ Review with an attorney before signing</p>
-                    {contract.contract_content.attorney_review_notes.map((note: string, i: number) => (
+                    {(contract.contract_content?.attorney_review_notes || []).map((note: string, i: number) => (
                       <p key={i} className="text-xs text-yellow-700">• {note}</p>
                     ))}
                   </div>

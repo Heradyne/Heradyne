@@ -94,7 +94,7 @@ export default function BankerMemoPage() {
             <div className="text-sm text-gray-400">No deals available</div>
           ) : (
             <div className="space-y-2">
-              {deals.map(deal => (
+              {(deals || []).map(deal => (
                 <div
                   key={deal.id}
                   onClick={() => generateMemo(deal)}

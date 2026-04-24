@@ -80,9 +80,9 @@ export default function AppetitePage() {
   const defaultAppetite = isLender ? LENDER_APPETITE_DEFAULTS : INSURER_APPETITE_DEFAULTS;
 
   const [visibleModules, setVisibleModules] = useState<string[]>(() => {
-    if (typeof window === 'undefined') return modules.map(m => m.id);
+    if (typeof window === 'undefined') return (modules || []).map(m => m.id);
     const saved = localStorage.getItem(`heradyne_modules_${role}`);
-    return saved ? JSON.parse(saved) : modules.map(m => m.id);
+    return saved ? JSON.parse(saved) : (modules || []).map(m => m.id);
   });
 
   const [appetite, setAppetite] = useState<any>(() => {
@@ -106,7 +106,7 @@ export default function AppetitePage() {
       return {
         ...prev,
         [key]: list.includes(industry)
-          ? list.filter((i: string) => i !== industry)
+          ? (list || []).filter((i: string) => i !== industry)
           : [...list, industry],
       };
     });
@@ -122,7 +122,7 @@ export default function AppetitePage() {
   };
 
   const resetDefaults = () => {
-    setVisibleModules(modules.map(m => m.id));
+    setVisibleModules((modules || []).map(m => m.id));
     setAppetite(defaultAppetite);
   };
 
@@ -161,7 +161,7 @@ export default function AppetitePage() {
           Toggle which sections appear in your sidebar. Hidden sections can always be re-enabled here.
         </p>
         <div className="space-y-2">
-          {modules.map(mod => (
+          {(modules || []).map(mod => (
             <div key={mod.id} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${visibleModules.includes(mod.id) ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
               <div>
                 <p className={`text-sm font-semibold ${visibleModules.includes(mod.id) ? 'text-blue-900' : 'text-gray-500'}`}>
@@ -247,7 +247,7 @@ export default function AppetitePage() {
               {['acquisition','expansion','refinance','working_capital'].map(dt => (
                 <button key={dt} onClick={() => {
                   const list = appetite.deal_types || [];
-                  upd('deal_types', list.includes(dt) ? list.filter((d: string) => d !== dt) : [...list, dt]);
+                  upd('deal_types', list.includes(dt) ? (list || []).filter((d: string) => d !== dt) : [...list, dt]);
                 }}
                   className={`text-xs px-3 py-1.5 rounded-full border font-medium transition-colors ${(appetite.deal_types || []).includes(dt) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-500 border-gray-200 hover:border-gray-400'}`}>
                   {dt.replace(/_/g, ' ')}

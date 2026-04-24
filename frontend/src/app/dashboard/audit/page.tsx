@@ -56,8 +56,8 @@ export default function AuditLogsPage() {
     return 'text-gray-600 bg-gray-50';
   };
 
-  const uniqueEntityTypes = [...new Set(logs.map(l => l.entity_type))];
-  const uniqueActions = [...new Set(logs.map(l => l.action))];
+  const uniqueEntityTypes = [...new Set((logs || []).map(l => l.entity_type))];
+  const uniqueActions = [...new Set((logs || []).map(l => l.action))];
 
   return (
     <div>
@@ -146,7 +146,7 @@ export default function AuditLogsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {logs.map((log) => (
+                  {(logs || []).map((log) => (
                     <tr key={log.id} className="hover:bg-gray-50">
                       <td className="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">
                         {formatDateTime(log.created_at)}

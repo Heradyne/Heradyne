@@ -146,7 +146,7 @@ export default function UsersPage() {
   const creditCommittee = (users || []).filter(u => u.role === 'credit_committee');
   const insurers = (users || []).filter(u => u.role === 'insurer');
   const borrowers = (users || []).filter(u => u.role === 'borrower');
-  const admins = users.filter(u => u.role === 'admin');
+  const admins = (users || []).filter(u => u.role === 'admin');
 
   const getRoleBadgeColor = (role: string) => {
     const colors: Record<string, string> = {
@@ -162,7 +162,7 @@ export default function UsersPage() {
 
   const getOrgName = (orgId: number | null | undefined) => {
     if (!orgId) return null;
-    const org = lenderOrgs.find(o => o.id === orgId);
+    const org = (lenderOrgs || []).find(o => o.id === orgId);
     return org ? org.company || org.name : `Org #${orgId}`;
   };
 
@@ -292,7 +292,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {users.map((user) => (
+                {(users || []).map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div>
@@ -421,7 +421,7 @@ export default function UsersPage() {
                     required={needsOrganization}
                   >
                     <option value="">Select organization...</option>
-                    {lenderOrgs.map(org => (
+                    {(lenderOrgs || []).map(org => (
                       <option key={org.id} value={org.id}>
                         {org.company || org.name} ({org.email})
                       </option>

@@ -38,10 +38,10 @@ export default function MonitoringPage() {
       const dealsRes = await fetch(`${API}/api/v1/deals/`, { headers });
       if (!dealsRes.ok) return;
       const deals = await dealsRes.json();
-      const funded = deals.filter((d: any) => d.status === 'funded');
+      const funded = (deals || []).filter((d: any) => d.status === 'funded');
 
       // Load UW data for each
-      const loansWithUW = await Promise.all(funded.map(async (deal: any) => {
+      const loansWithUW = await Promise.all((funded || []).map(async (deal: any) => {
         try {
           const uwRes = await fetch(`${API}/api/v1/underwriting/deals/${deal.id}/full-underwriting`, { headers });
           const uw = uwRes.ok ? await uwRes.json() : null;
@@ -74,7 +74,7 @@ export default function MonitoringPage() {
       const cf = cashflows[loan.id] || [];
       const latest = cf[cf.length - 1] || {};
       const prev3 = cf.slice(-4, -1);
-      const avgRev = prev3.length ? prev3.reduce((s: number, c: any) => s + c.revenue, 0) / prev3.length : latest.revenue;
+      const avgRev = prev3.length ? (prev3 || []).reduce((s: number, c: any) => s + c.revenue, 0) / prev3.length : latest.revenue;
 
       const payload = {
         loan_id: loan.id,
@@ -119,7 +119,7 @@ export default function MonitoringPage() {
 
   // Summary counts
   const alertCounts = { none: 0, watch: 0, advisory: 0, escalation: 0, pre_claim: 0 };
-  loans.forEach(l => {
+  (loans || []).forEach(l => {
     const score = l.uw?.health_score?.score || 80;
     const level = score >= 80 ? 'none' : score >= 65 ? 'watch' : score >= 50 ? 'advisory' : score >= 35 ? 'escalation' : 'pre_claim';
     alertCounts[level as keyof typeof alertCounts]++;
@@ -149,7 +149,7 @@ export default function MonitoringPage() {
 
       {/* Loan List */}
       <div className="space-y-3">
-        {loans.map(loan => {
+        {(loans || []).map(loan => {
           const score = loan.uw?.health_score?.score || 80;
           const alertLevel = score >= 80 ? 'none' : score >= 65 ? 'watch' : score >= 50 ? 'advisory' : score >= 35 ? 'escalation' : 'pre_claim';
           const cfg = ALERT_CONFIG[alertLevel];

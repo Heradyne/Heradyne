@@ -113,7 +113,7 @@ export default function DealDetailPage() {
         {
           method: 'POST',
           headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
-          body: JSON.stringify({message: userMsg, history: chatMessages.slice(-6)}),
+          body: JSON.stringify({message: userMsg, history: (chatMessages || []).slice(-6)}),
         }
       );
       if (res.ok) {
@@ -248,7 +248,7 @@ export default function DealDetailPage() {
   const latestReport = deal.risk_reports?.[0];
   
   // Find matches with info requests
-  const infoRequests = matches.filter(m => m.status === 'info_requested');
+  const infoRequests = (matches || []).filter(m => m.status === 'info_requested');
   const hasInfoRequests = infoRequests.length > 0;
 
   return (
@@ -417,7 +417,7 @@ export default function DealDetailPage() {
                 Action Required: {infoRequests.length} Information Request{infoRequests.length > 1 ? 's' : ''}
               </h3>
               <div className="space-y-3">
-                {infoRequests.map((match) => (
+                {(infoRequests || []).map((match) => (
                   <div key={match.id} className="bg-white rounded-lg p-3 border border-amber-200">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm font-medium text-gray-700">
@@ -774,7 +774,7 @@ export default function DealDetailPage() {
                       ))}
                     </div>
                   )}
-                  {chatMessages.map((msg, i) => (
+                  {(chatMessages || []).map((msg, i) => (
                     <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                       <div className={`rounded-xl px-4 py-3 max-w-[85%] text-sm leading-relaxed ${
                         msg.role === 'user'
@@ -903,7 +903,7 @@ export default function DealDetailPage() {
                 )}
               </h2>
               <div className="space-y-4">
-                {matches.map((match) => (
+                {(matches || []).map((match) => (
                   <MatchCard 
                     key={match.id} 
                     match={match} 
@@ -1039,10 +1039,10 @@ export default function DealDetailPage() {
                   <span>Info requested</span>
                 </div>
               )}
-              {matches.some(m => m.status === 'accepted') && (
+              {(matches || []).some(m => m.status === 'accepted') && (
                 <div className="flex items-center">
                   <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                  <span>Accepted by {matches.filter(m => m.status === 'accepted').length} reviewer(s)</span>
+                  <span>Accepted by {(matches || []).filter(m => m.status === 'accepted').length} reviewer(s)</span>
                 </div>
               )}
             </div>

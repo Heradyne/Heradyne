@@ -68,7 +68,7 @@ export default function LoanHealthPage() {
       const res = await fetch(`${API}/api/v1/chat/deals/${loan.id}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ message: msg, history: chatMessages.slice(-6) }),
+        body: JSON.stringify({ message: msg, history: (chatMessages || []).slice(-6) }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -165,14 +165,14 @@ export default function LoanHealthPage() {
             {/* EBITDA line */}
             <polyline points={ebitdaPoints} fill="none" stroke="#16a34a" strokeWidth="2" strokeLinejoin="round" strokeDasharray="4,2"/>
             {/* Data points */}
-            {cashflow.map((c: any, i: number) => (
+            {(cashflow || []).map((c: any, i: number) => (
               <g key={i}>
                 <circle cx={xScale(i)} cy={yScale(c.revenue)} r="3" fill="#2563eb"/>
                 <circle cx={xScale(i)} cy={yScale(c.ebitda)} r="2.5" fill="#16a34a"/>
               </g>
             ))}
             {/* Month labels — show every 3rd */}
-            {cashflow.map((c: any, i: number) => i % 3 === 0 && (
+            {(cashflow || []).map((c: any, i: number) => i % 3 === 0 && (
               <text key={i} x={xScale(i)} y={chartH} textAnchor="middle" fontSize="9" fill="#9ca3af">
                 {c.month}/{String(c.year).slice(2)}
               </text>
@@ -220,7 +220,7 @@ export default function LoanHealthPage() {
           <h2 className="text-lg font-semibold mb-1">Action Items</h2>
           <p className="text-xs text-gray-400 mb-4">AI-generated recommendations based on your current financials</p>
           <div className="space-y-3">
-            {playbooks.map((pb: any, i: number) => (
+            {(playbooks || []).map((pb: any, i: number) => (
               <div key={i} className={`rounded-lg border p-4 ${pb.severity === 'critical' ? 'bg-red-50 border-red-200' : pb.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' : 'bg-blue-50 border-blue-200'}`}>
                 <div className="flex items-start justify-between cursor-pointer" onClick={() => setExpandedPlaybook(expandedPlaybook === i ? null : i)}>
                   <div className="flex items-start gap-3">
@@ -276,7 +276,7 @@ export default function LoanHealthPage() {
               ))}
             </div>
           )}
-          {chatMessages.map((msg, i) => (
+          {(chatMessages || []).map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
               <div className={`rounded-xl px-4 py-3 max-w-[85%] text-sm leading-relaxed ${msg.role === 'user' ? 'bg-blue-600 text-white' : 'bg-gray-50 border border-gray-200 text-gray-800'}`}>
                 {msg.content}

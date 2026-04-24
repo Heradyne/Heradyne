@@ -242,7 +242,7 @@ export default function AdminLeasebackPage() {
                             </div>
                           ))}
                         </div>
-                        {selectedAsset.ai_evaluation.investor_summary.highlights?.map((h: string, i: number) => (
+                        {(selectedAsset.ai_evaluation?.investor_summary?.highlights || []).map((h: string, i: number) => (
                           <p key={i} className="text-xs text-gray-600 flex gap-1 mb-0.5"><TrendingUp className="h-3 w-3 text-green-500 shrink-0 mt-0.5" />{h}</p>
                         ))}
                       </div>
@@ -268,7 +268,7 @@ export default function AdminLeasebackPage() {
                     {selectedAsset.ai_evaluation.due_diligence_required?.length > 0 && (
                       <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
                         <p className="text-xs font-bold text-yellow-800 uppercase mb-1">Due Diligence Required</p>
-                        {selectedAsset.ai_evaluation.due_diligence_required.map((d: string, i: number) => (
+                        {(selectedAsset.ai_evaluation?.due_diligence_required || []).map((d: string, i: number) => (
                           <p key={i} className="text-xs text-yellow-700">• {d}</p>
                         ))}
                       </div>

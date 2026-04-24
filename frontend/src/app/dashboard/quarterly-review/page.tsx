@@ -98,7 +98,7 @@ export default function QBRPage() {
         <div className="col-span-1">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
           <div className="space-y-2 mb-4 max-h-48 overflow-y-auto">
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button key={deal.id} onClick={() => selectDeal(deal)}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                 <p className="font-medium text-gray-900 truncate">{deal.name}</p>
@@ -111,7 +111,7 @@ export default function QBRPage() {
             <>
               <p className="text-xs font-semibold text-gray-400 uppercase mb-2">Past Reviews</p>
               <div className="space-y-1 mb-3">
-                {reviews.map(r => (
+                {(reviews || []).map(r => (
                   <button key={r.id} onClick={async () => {
                     try { const full = await api.generateQBR(selectedDeal.id, r.quarter, r.year); setActiveReview(full); } catch { /* use cached */ }
                     setActiveReview(r);
@@ -182,7 +182,7 @@ export default function QBRPage() {
                 <div className="card">
                   <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2"><Target className="h-5 w-5 text-blue-600" />Next Quarter Priorities</h3>
                   <div className="space-y-2">
-                    {meta.q_priorities.map((p: any, i: number) => (
+                    {(meta.q_priorities || []).map((p: any, i: number) => (
                       <div key={i} className="flex gap-3 p-3 bg-gray-50 rounded-xl">
                         <div className={`w-7 h-7 rounded-full ${PRIORITY_COLOR[i] || PRIORITY_COLOR[4]} text-white text-sm font-bold flex items-center justify-center shrink-0`}>{p.priority}</div>
                         <div className="flex-1">
@@ -206,7 +206,7 @@ export default function QBRPage() {
                   {review.financial_highlights?.length > 0 && (
                     <Section id="financials" title="Financial Highlights">
                       <div className="space-y-3">
-                        {review.financial_highlights.map((h: any, i: number) => (
+                        {(review.financial_highlights || []).map((h: any, i: number) => (
                           <div key={i} className="flex items-start justify-between p-3 bg-gray-50 rounded-lg">
                             <div>
                               <p className="text-sm font-semibold text-gray-800">{h.metric}</p>
@@ -228,7 +228,7 @@ export default function QBRPage() {
 
                   {review.whats_working?.length > 0 && (
                     <Section id="working" title="What's Working">
-                      {review.whats_working.map((w: string, i: number) => (
+                      {(review.whats_working || []).map((w: string, i: number) => (
                         <p key={i} className="text-sm text-gray-700 flex gap-2 mb-2"><CheckCircle className="h-4 w-4 text-green-500 shrink-0 mt-0.5" />{w}</p>
                       ))}
                     </Section>
@@ -236,7 +236,7 @@ export default function QBRPage() {
 
                   {review.areas_for_improvement?.length > 0 && (
                     <Section id="improve" title="Areas for Improvement">
-                      {review.areas_for_improvement.map((a: any, i: number) => (
+                      {(review.areas_for_improvement || []).map((a: any, i: number) => (
                         <div key={i} className="p-3 bg-yellow-50 border border-yellow-100 rounded-lg mb-2">
                           <p className="text-sm font-semibold text-yellow-900">{a.area}</p>
                           <p className="text-sm text-yellow-800 mt-0.5">{a.observation}</p>
@@ -248,7 +248,7 @@ export default function QBRPage() {
 
                   {review.risk_flags?.length > 0 && (
                     <Section id="risks" title="Risk Flags">
-                      {review.risk_flags.map((r: string, i: number) => (
+                      {(review.risk_flags || []).map((r: string, i: number) => (
                         <p key={i} className="text-sm text-red-700 flex gap-2 mb-1"><AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />{r}</p>
                       ))}
                     </Section>
@@ -263,7 +263,7 @@ export default function QBRPage() {
                   {meta.questions_for_owner?.length > 0 && (
                     <div className="card bg-purple-50 border-purple-200">
                       <p className="text-sm font-semibold text-purple-800 mb-2">🤔 Questions Worth Reflecting On</p>
-                      {meta.questions_for_owner.map((q: string, i: number) => (
+                      {(meta.questions_for_owner || []).map((q: string, i: number) => (
                         <p key={i} className="text-sm text-purple-700 mb-1">• {q}</p>
                       ))}
                     </div>

@@ -54,7 +54,7 @@ export default function SBACompliancePage() {
         api.getDeals().catch(() => []),
         api.getSBARequirements().catch(() => null),
       ]);
-      setDeals(dealsData.filter((d: Deal) => d.status !== 'draft'));
+      setDeals((dealsData || []).filter((d: Deal) => d.status !== 'draft'));
       setRequirements(reqData);
     } catch (err) {
       setError('Failed to load data');
@@ -119,7 +119,7 @@ export default function SBACompliancePage() {
   };
 
   const groupChecksByCategory = (checks: ComplianceCheck[]) => {
-    return checks.reduce((acc, check) => {
+    return (checks || []).reduce((acc, check) => {
       if (!acc[check.category]) {
         acc[check.category] = [];
       }
@@ -180,7 +180,7 @@ export default function SBACompliancePage() {
               {deals.length === 0 ? (
                 <p className="text-sm text-gray-500">No deals available</p>
               ) : (
-                deals.map(deal => (
+                (deals || []).map(deal => (
                   <button
                     key={deal.id}
                     onClick={() => checkCompliance(deal.id)}
@@ -412,7 +412,7 @@ export default function SBACompliancePage() {
                           {section.replace('_', ' ')}
                         </h3>
                         <div className="space-y-2">
-                          {items.map((item: any, i: number) => (
+                          {(items || []).map((item: any, i: number) => (
                             <label
                               key={i}
                               className="flex items-start gap-3 p-2 rounded hover:bg-gray-50 cursor-pointer"

@@ -87,7 +87,7 @@ export default function GuarantyPackagePage() {
         <div className="col-span-1">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Select Deal</p>
           <div className="space-y-2 max-h-[70vh] overflow-y-auto">
-            {deals.map(deal => (
+            {(deals || []).map(deal => (
               <button key={deal.id} onClick={() => selectDeal(deal)}
                 className={`w-full text-left p-3 rounded-xl border text-sm transition-all ${selectedDeal?.id === deal.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'}`}>
                 <p className="font-medium text-gray-900 truncate">{deal.name}</p>
@@ -179,7 +179,7 @@ export default function GuarantyPackagePage() {
                     {pkg.servicing_deficiencies?.length > 0 && (
                       <div className="mt-3 bg-red-100 border border-red-300 rounded-lg p-3">
                         <p className="text-xs font-bold text-red-800 uppercase mb-1">⚠ Servicing Deficiencies — Could Reduce Guarantee</p>
-                        {pkg.servicing_deficiencies.map((d: string, i: number) => <p key={i} className="text-sm text-red-700">• {d}</p>)}
+                        {(pkg.servicing_deficiencies || []).map((d: string, i: number) => <p key={i} className="text-sm text-red-700">• {d}</p>)}
                       </div>
                     )}
                   </div>
@@ -188,7 +188,7 @@ export default function GuarantyPackagePage() {
                   <div className="card">
                     <h3 className="font-semibold text-gray-800 mb-3">10-Tab Package</h3>
                     <div className="space-y-2">
-                      {tabs.map((tab: any) => {
+                      {(tabs || []).map((tab: any) => {
                         const isComplete = pkg.tabs_complete?.[String(tab.tab_number)] || false;
                         const isExp = expandedTab === tab.tab_number;
                         return (
@@ -254,7 +254,7 @@ export default function GuarantyPackagePage() {
                   {pkg.next_steps?.length > 0 && (
                     <div className="card bg-blue-50 border-blue-200">
                       <p className="text-sm font-semibold text-blue-800 mb-2">Next Steps ({pkg.estimated_preparation_hours}h estimated)</p>
-                      {pkg.next_steps.map((s: string, i: number) => <p key={i} className="text-sm text-blue-700 flex gap-2 mb-1"><span className="font-bold shrink-0">{i+1}.</span>{s}</p>)}
+                      {(pkg.next_steps || []).map((s: string, i: number) => <p key={i} className="text-sm text-blue-700 flex gap-2 mb-1"><span className="font-bold shrink-0">{i+1}.</span>{s}</p>)}
                     </div>
                   )}
                 </div>
