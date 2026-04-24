@@ -310,19 +310,19 @@ export default function VerificationPage() {
         <div className="card bg-yellow-50">
           <p className="text-sm text-yellow-600">Pending Review</p>
           <p className="text-2xl font-bold text-yellow-700">
-            {matches.filter(m => m.status === 'pending' && !m.decision_notes?.includes('[VERIFIED')).length}
+            {(matches || []).filter(m => m.status === 'pending' && !m.decision_notes?.includes('[VERIFIED')).length}
           </p>
         </div>
         <div className="card bg-green-50">
           <p className="text-sm text-green-600">Verified</p>
           <p className="text-2xl font-bold text-green-700">
-            {matches.filter(m => m.decision_notes?.includes('[VERIFIED BY LOAN OFFICER]')).length}
+            {(matches || []).filter(m => m.decision_notes?.includes('[VERIFIED BY LOAN OFFICER]')).length}
           </p>
         </div>
         <div className="card bg-red-50">
           <p className="text-sm text-red-600">Flagged / Info Requested</p>
           <p className="text-2xl font-bold text-red-700">
-            {matches.filter(m => m.decision_notes?.includes('[FLAG') || m.status === 'info_requested').length}
+            {(matches || []).filter(m => m.decision_notes?.includes('[FLAG') || m.status === 'info_requested').length}
           </p>
         </div>
       </div>
@@ -350,7 +350,7 @@ export default function VerificationPage() {
         </div>
       ) : (
         <div className="space-y-4">
-          {filteredMatches.map((match) => {
+          {(filteredMatches || []).map((match) => {
             const deal = deals[match.deal_id];
             const report = riskReports[match.deal_id];
             const verify = verifications[match.deal_id];

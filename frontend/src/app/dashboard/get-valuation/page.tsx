@@ -68,7 +68,7 @@ export default function GetValuationPage() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-3">Your Valued Deals</h2>
           <div className="space-y-3">
-            {deals.map(deal => {
+            {(deals || []).map(deal => {
               const uw = uwData[deal.id];
               const verdict = uw?.deal_killer?.verdict;
               const hs = uw?.health_score?.score;

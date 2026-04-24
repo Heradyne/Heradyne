@@ -354,7 +354,7 @@ export default function OriginationPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {loans.map(loan => (
+                  {(loans || []).map(loan => (
                     <tr key={loan.id}>
                       <td style={{fontFamily:'"DM Mono",monospace',fontWeight:500}}>{loan.loan_number}</td>
                       <td>{loan.borrower_name}</td>

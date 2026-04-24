@@ -229,7 +229,7 @@ export default function InsurerTermSheetsPage() {
               </button>
             </div>
           )}
-          {matches.map(match => {
+          {(matches || []).map(match => {
             const tsStatus = match.term_sheet_status;
             const isActive = selected?.match_id === match.match_id;
             return (

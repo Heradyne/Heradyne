@@ -57,7 +57,7 @@ export default function ActuarialPricingPage() {
         <div className="col-span-2 space-y-2">
           <p className="text-xs font-semibold text-gray-400 uppercase mb-3">Deals for Pricing</p>
           {loading && <div className="text-sm text-gray-400">Loading...</div>}
-          {deals.map(deal => (
+          {(deals || []).map(deal => (
             <div key={deal.id} onClick={() => selectDeal(deal)}
               className={`p-4 rounded-xl border cursor-pointer transition-all ${selected?.id === deal.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200 bg-white hover:border-gray-300'}`}>
               <p className="text-sm font-semibold text-gray-900 truncate">{deal.name}</p>

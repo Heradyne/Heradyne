@@ -752,7 +752,7 @@ export default function AIAgentPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {categoryVars.map((v: Variable) => {
+                        {(categoryVars || []).map((v: Variable) => {
                           const varSettings = variableSettings[v.id] || { enabled: true, customWeight: DEFAULT_VARIABLE_WEIGHTS[v.weight] || 50 };
                           return (
                             <tr key={v.id} className={`border-b last:border-0 hover:bg-gray-50 ${!varSettings.enabled ? 'opacity-50' : ''}`}>

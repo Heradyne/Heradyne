@@ -421,7 +421,7 @@ export default function UsersPage() {
                     required={needsOrganization}
                   >
                     <option value="">Select organization...</option>
-                    {lenderOrgs.map(org => (
+                    {(lenderOrgs || []).map(org => (
                       <option key={org.id} value={org.id}>
                         {org.company || org.name} ({org.email})
                       </option>

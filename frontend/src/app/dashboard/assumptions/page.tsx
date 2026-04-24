@@ -583,7 +583,7 @@ export default function AssumptionsPage() {
               <div className="mb-6">
                 <h3 className="font-medium text-gray-700 mb-2">Users with Overrides</h3>
                 <div className="space-y-2">
-                  {usersWithOverrides.map(user => (
+                  {(usersWithOverrides || []).map(user => (
                     <div key={user.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
                       <div>
                         <p className="font-medium">{user.full_name}</p>

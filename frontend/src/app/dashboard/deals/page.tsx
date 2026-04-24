@@ -146,7 +146,7 @@ export default function DealsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {filteredDeals.map((deal) => {
+                {(filteredDeals || []).map((deal) => {
                   const hasInfoRequests = dealInfoRequests[deal.id]?.length > 0;
                   return (
                     <tr key={deal.id} className={`hover:bg-gray-50 ${hasInfoRequests ? 'bg-amber-50' : ''}`}>

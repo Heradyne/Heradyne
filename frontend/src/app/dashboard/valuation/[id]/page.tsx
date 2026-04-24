@@ -266,7 +266,7 @@ export default function ValuationResultsPage() {
             Risk Flags {!isFull&&<span className="text-sm font-normal text-gray-400">(showing 2 of {pbs.length})</span>}
           </h2>
           <div className="space-y-3">
-            {pbs.slice(0,isFull?pbs.length:2).map((pb:any,i:number)=>(
+            {(pbs || []).slice(0,isFull?pbs.length:2).map((pb:any,i:number)=>(
               <div key={i} className={`rounded-lg border p-4 ${pb.severity==='critical'?'bg-red-50 border-red-200':pb.severity==='warning'?'bg-yellow-50 border-yellow-200':'bg-blue-50 border-blue-200'}`}>
                 <div className="flex items-start justify-between cursor-pointer" onClick={()=>isFull&&setExpandedPlaybook(expandedPlaybook===i?null:i)}>
                   <div className="flex gap-3">
@@ -282,7 +282,7 @@ export default function ValuationResultsPage() {
                 </div>
                 {isFull&&expandedPlaybook===i&&pb.actions&&(
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
-                    {(pb.actions || []).map((a:any)=>(
+                    {pb.actions.map((a:any)=>(
                       <div key={a.step} className="flex gap-3">
                         <span className="w-7 h-7 rounded-full bg-white border-2 text-xs font-bold flex items-center justify-center shrink-0">{a.step}</span>
                         <div>

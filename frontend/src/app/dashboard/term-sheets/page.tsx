@@ -224,7 +224,7 @@ export default function TermSheetsPage() {
             </div>
           )}
           <div style={{display:'flex',flexDirection:'column',gap:'0.5rem'}}>
-            {matches.map(match => {
+            {(matches || []).map(match => {
               const tsStatus = match.term_sheet_status;
               const isActive = selected?.match_id === match.match_id;
               return (

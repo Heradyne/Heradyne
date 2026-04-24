@@ -333,7 +333,7 @@ export default function SBACompliancePage() {
                           <span className="ml-2 text-sm text-gray-500">({checks.length} checks)</span>
                         </div>
                         <div className="flex items-center gap-2">
-                          {checks.map((c: ComplianceCheck) => (
+                          {(checks || []).map((c: ComplianceCheck) => (
                             <span key={c.id} className="w-3 h-3">
                               {getStatusIcon(c.status)}
                             </span>
@@ -348,7 +348,7 @@ export default function SBACompliancePage() {
 
                       {expandedCategories.has(category) && (
                         <div className="mt-4 space-y-3">
-                          {checks.map((check: ComplianceCheck) => (
+                          {(checks || []).map((check: ComplianceCheck) => (
                             <div
                               key={check.id}
                               className={`p-3 rounded-lg border ${getStatusColor(check.status)}`}

@@ -890,7 +890,7 @@ export default function FinancialsPage() {
                 </tr>
               </thead>
               <tbody>
-                {loans.map((loan) => (
+                {(loans || []).map((loan) => (
                   <tr key={loan.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-2 font-mono text-xs">{loan.loan_number}</td>
                     <td className="py-3 px-2">{loan.borrower_name || `ID: ${loan.borrower_id}`}</td>

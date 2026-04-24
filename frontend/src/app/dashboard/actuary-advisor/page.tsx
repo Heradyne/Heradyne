@@ -882,7 +882,7 @@ export default function ActuaryAdvisorPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {scenarios.map((s, i) => (
+                    {(scenarios || []).map((s, i) => (
                       <tr key={i} className="border-b hover:bg-gray-50">
                         <td className="py-2">{formatCurrency(s.attachment_point)}</td>
                         <td className="py-2">{formatCurrency(s.limit)}</td>

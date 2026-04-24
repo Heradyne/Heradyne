@@ -735,7 +735,7 @@ export default function SecondaryMarketPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {myListings.map((listing) => (
+                  {(myListings || []).map((listing) => (
                     <tr key={listing.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4">
                         <div className="font-medium">{listing.title}</div>
@@ -817,7 +817,7 @@ export default function SecondaryMarketPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {myOffers.map((offer) => (
+                  {(myOffers || []).map((offer) => (
                     <tr key={offer.id} className="border-b hover:bg-gray-50">
                       <td className="py-3 px-4 font-medium">{offer.listing_title}</td>
                       <td className="py-3 px-4 text-right">{formatCurrency(offer.offer_price)}</td>
@@ -880,7 +880,7 @@ export default function SecondaryMarketPage() {
                 <p className="text-gray-500 text-center py-8">No insured deals found.</p>
               ) : (
                 <div className="space-y-2 max-h-96 overflow-y-auto">
-                  {insuredDeals.map((deal) => (
+                  {(insuredDeals || []).map((deal) => (
                     <div 
                       key={deal.id}
                       onClick={() => toggleDealSelection(deal.id)}
@@ -994,7 +994,7 @@ export default function SecondaryMarketPage() {
                 </p>
               ) : (
                 <div className="space-y-4">
-                  {reinsurancePools.map((pool) => {
+                  {(reinsurancePools || []).map((pool) => {
                     const poolAnalytics = calculatePoolAnalytics(pool.deal_ids);
                     return (
                       <div key={pool.id} className="border rounded-lg p-4">
@@ -1083,7 +1083,7 @@ export default function SecondaryMarketPage() {
                   className="input w-full"
                 >
                   <option value={0}>Select...</option>
-                  {myLoans.map((loan) => (
+                  {(myLoans || []).map((loan) => (
                     <option key={loan.id} value={loan.id}>
                       {loan.loan_number} - {formatCurrency(loan.current_principal_balance)} ({loan.industry})
                     </option>
@@ -1225,7 +1225,7 @@ export default function SecondaryMarketPage() {
               <p className="text-gray-500 text-center py-8">No offers yet.</p>
             ) : (
               <div className="space-y-4">
-                {listingOffers.map((offer) => (
+                {(listingOffers || []).map((offer) => (
                   <div key={offer.id} className="border rounded-lg p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
