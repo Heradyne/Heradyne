@@ -127,16 +127,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     if (mustChangePassword) router.push('/change-password');
   }, [mustChangePassword, router]);
 
-  // Onboarding redirect — first login only
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && user && typeof window !== 'undefined') {
-      const onboarded = localStorage.getItem('heradyne_onboarded');
-      const path = window.location.pathname;
-      if (!onboarded && !path.includes('/onboarding') && !path.includes('/change-password')) {
-        router.push('/dashboard/onboarding');
-      }
-    }
-  }, [isLoading, isAuthenticated, user, router]);
 
   // Load appetite preferences
   useEffect(() => {
