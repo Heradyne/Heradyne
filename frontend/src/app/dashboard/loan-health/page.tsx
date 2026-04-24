@@ -237,7 +237,7 @@ export default function LoanHealthPage() {
                 </div>
                 {expandedPlaybook === i && pb.actions && (
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-2">
-                    {pb.actions.map((a: any) => (
+                    {(pb.actions || []).map((a: any) => (
                       <div key={a.step} className="flex gap-3">
                         <span className="w-6 h-6 rounded-full bg-white border text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{a.step}</span>
                         <div>

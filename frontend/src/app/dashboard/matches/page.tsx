@@ -561,7 +561,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.addbacks.map((addback: any, i: number) => (
+                              {(deal.addbacks || []).map((addback: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2">{addback.description}</td>
                                   <td className="py-2 text-right font-medium">{formatCurrency(addback.amount)}</td>
@@ -593,7 +593,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.business_assets.map((asset: any, i: number) => (
+                              {(deal.business_assets || []).map((asset: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2 capitalize">{asset.type?.replace('_', ' ')}</td>
                                   <td className="py-2 text-gray-600">{asset.description || '-'}</td>
@@ -626,7 +626,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.personal_assets.map((asset: any, i: number) => (
+                              {(deal.personal_assets || []).map((asset: any, i: number) => (
                                 <tr key={i} className="border-b last:border-0">
                                   <td className="py-2 capitalize">{asset.type?.replace('_', ' ')}</td>
                                   <td className="py-2 text-gray-600">{asset.description || '-'}</td>
@@ -793,7 +793,7 @@ export default function MatchesPage() {
                             </div>
                           </div>
                           
-                          {(aiAnalyses[match.deal_id].risk_flags || []).length > 0 && (
+                          {aiAnalyses[match.deal_id].risk_flags?.length > 0 && (
                             <div className="mb-3">
                               <p className="text-xs font-medium text-gray-700 mb-1">Risk Flags:</p>
                               <div className="space-y-1">
@@ -807,7 +807,7 @@ export default function MatchesPage() {
                             </div>
                           )}
                           
-                          {(aiAnalyses[match.deal_id].positive_factors || []).length > 0 && (
+                          {aiAnalyses[match.deal_id].positive_factors?.length > 0 && (
                             <div>
                               <p className="text-xs font-medium text-gray-700 mb-1">Positive Factors:</p>
                               <div className="space-y-1">
@@ -850,7 +850,7 @@ export default function MatchesPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {deal.documents.map((doc: any) => (
+                              {(deal.documents || []).map((doc: any) => (
                                 <tr key={doc.id} className="border-b last:border-0">
                                   <td className="py-2 flex items-center">
                                     <FileText className="h-4 w-4 mr-2 text-gray-400" />
@@ -899,7 +899,7 @@ export default function MatchesPage() {
                       Document Verification Flags
                     </p>
                     <div className="space-y-2">
-                      {verification.discrepancies.map((d, i) => (
+                      {(verification.discrepancies || []).map((d, i) => (
                         <div key={i} className={`text-xs p-2 rounded ${
                           d.severity === 'critical' ? 'bg-red-100 text-red-800' :
                           d.severity === 'high' ? 'bg-orange-100 text-orange-800' :
@@ -919,7 +919,7 @@ export default function MatchesPage() {
                   <div className="mb-4">
                     <p className="text-sm font-medium text-gray-700 mb-2">Constraint Analysis</p>
                     <div className="flex flex-wrap gap-2">
-                      {match.constraints_met?.slice(0, 3).map((c: any, i: number) => {
+                      {(match.constraints_met || []).slice(0, 3).map((c: any, i: number) => {
                         const label = typeof c === 'string' ? c : String(c.constraint || c.name || 'constraint');
                         return (
                           <span key={`met-${i}`} className="inline-flex items-center text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
@@ -928,7 +928,7 @@ export default function MatchesPage() {
                           </span>
                         );
                       })}
-                      {match.constraints_failed?.slice(0, 3).map((c: any, i: number) => {
+                      {(match.constraints_failed || []).slice(0, 3).map((c: any, i: number) => {
                         const label = typeof c === 'string' ? c : String(c.constraint || c.name || 'constraint');
                         return (
                           <span key={`failed-${i}`} className="inline-flex items-center text-xs bg-red-50 text-red-700 px-2 py-1 rounded">

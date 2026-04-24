@@ -676,7 +676,7 @@ export default function ActuaryAdvisorPage() {
                       <div>
                         <p className="font-medium mb-2">Required Conditions:</p>
                         <ul className="space-y-1">
-                          {pricingResult.required_conditions.map((cond: string, i: number) => (
+                          {(pricingResult.required_conditions || []).map((cond: string, i: number) => (
                             <li key={i} className="flex items-start text-sm">
                               <AlertTriangle className="h-4 w-4 mr-2 mt-0.5 text-yellow-500 flex-shrink-0" />
                               {cond}

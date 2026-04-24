@@ -551,7 +551,7 @@ export default function FinancialsPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {insurerStats.lender_concentration.map((lender, i) => (
+                        {(insurerStats.lender_concentration || []).map((lender, i) => (
                           <tr key={lender.lender_id} className="border-b">
                             <td className="py-2">{lender.lender_name}</td>
                             <td className="text-right py-2">{lender.count}</td>

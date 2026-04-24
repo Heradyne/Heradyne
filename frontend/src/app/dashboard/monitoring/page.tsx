@@ -271,7 +271,7 @@ export default function MonitoringPage() {
                         )}
                         {mon.active_alerts?.length > 0 && (
                           <div className="space-y-2 mb-3">
-                            {mon.active_alerts.map((alert: any, i: number) => (
+                            {(mon.active_alerts || []).map((alert: any, i: number) => (
                               <div key={i} className="flex gap-2 bg-red-50 border border-red-100 rounded-lg p-2">
                                 <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5"/>
                                 <div>

@@ -1,5 +1,4 @@
-'use client'; // v2-sprint-a
-
+'use client';
 
 export const dynamic = 'force-dynamic';
 
@@ -77,8 +76,7 @@ export default function VerificationPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const matchRaw = await api.getMyMatches();
-      const matchData: any[] = Array.isArray(matchRaw) ? matchRaw : ((matchRaw as any)?.matches ?? []);
+      const matchData = await api.getMyMatches();
       setMatches(matchData);
 
       // Load deal details, risk reports, and verification for each match
@@ -552,7 +550,7 @@ export default function VerificationPage() {
                               </tr>
                             </thead>
                             <tbody>
-                              {verify.discrepancies.map((d, i) => (
+                              {(verify.discrepancies || []).map((d, i) => (
                                 <tr key={i} className="border-t border-yellow-200">
                                   <td className="py-2 font-medium">{d.field}</td>
                                   <td className="py-2">{formatCurrency(d.reported)}</td>
@@ -586,7 +584,7 @@ export default function VerificationPage() {
                           <div className="bg-green-50 rounded-lg p-4">
                             <p className="font-medium text-green-700 mb-2">✓ Constraints Met</p>
                             <ul className="text-sm text-green-600 space-y-1">
-                              {match.constraints_met.map((c: any, i: number) => {
+                              {(match.constraints_met || []).map((c: any, i: number) => {
                                 // Handle both string and object formats
                                 const label = typeof c === 'string' 
                                   ? c 
@@ -600,7 +598,7 @@ export default function VerificationPage() {
                           <div className="bg-red-50 rounded-lg p-4">
                             <p className="font-medium text-red-700 mb-2">✗ Constraints Failed</p>
                             <ul className="text-sm text-red-600 space-y-1">
-                              {match.constraints_failed.map((c: any, i: number) => {
+                              {(match.constraints_failed || []).map((c: any, i: number) => {
                                 // Handle both string and object formats
                                 if (typeof c === 'string') {
                                   return <li key={i}>{c}</li>;
@@ -628,7 +626,7 @@ export default function VerificationPage() {
                       </h4>
                       {deal.documents && deal.documents.length > 0 ? (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                          {deal.documents.map((doc: any) => (
+                          {(deal.documents || []).map((doc: any) => (
                             <div key={doc.id} className="flex items-center justify-between bg-gray-50 rounded p-2">
                               <div className="flex items-center">
                                 <FileText className="h-4 w-4 mr-2 text-gray-400" />
