@@ -1010,7 +1010,7 @@ export default function SecondaryMarketPage() {
                             pool.status === 'sold' ? 'bg-purple-100 text-purple-700' :
                             'bg-red-100 text-red-700'
                           }`}>
-                            {pool.status.charAt(0).toUpperCase() + (pool.status || []).slice(1)}
+                            {pool.status.charAt(0).toUpperCase() + pool.status.slice(1)}
                           </span>
                         </div>
                         
