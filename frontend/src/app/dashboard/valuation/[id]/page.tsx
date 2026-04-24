@@ -160,7 +160,7 @@ export default function ValuationResultsPage() {
               <div>
                 <p className="text-xs font-bold uppercase text-green-700 mb-2">Top Strengths</p>
                 <ul className="space-y-1.5">
-                  {analysis.top_3_success_factors.map((f:string,i:number) => (
+                  {(analysis.top_3_success_factors || []).map((f:string,i:number) => (
                     <li key={i} className="flex gap-2 text-sm text-gray-700">
                       <CheckCircle className="h-4 w-4 text-green-500 shrink-0 mt-0.5"/>
                       {f}
@@ -173,7 +173,7 @@ export default function ValuationResultsPage() {
               <div>
                 <p className="text-xs font-bold uppercase text-red-700 mb-2">Top Risks</p>
                 <ul className="space-y-1.5">
-                  {analysis.top_3_risk_factors.map((f:string,i:number) => (
+                  {(analysis.top_3_risk_factors || []).map((f:string,i:number) => (
                     <li key={i} className="flex gap-2 text-sm text-gray-700">
                       <XCircle className="h-4 w-4 text-red-500 shrink-0 mt-0.5"/>
                       {f}
@@ -231,7 +231,7 @@ export default function ValuationResultsPage() {
         <div className="bg-white rounded-xl border p-6">
           <h2 className="text-lg font-semibold mb-4">5-Method Valuation</h2>
           <div className="space-y-2 mb-4">
-            {val.methods.map((m:any,i:number)=>(
+            {(val.methods || []).map((m:any,i:number)=>(
               <div key={i} className="flex justify-between items-center py-2.5 border-b border-gray-50 last:border-0">
                 <div><p className="text-sm font-medium text-gray-800">{m.method}</p>{m.multiple_used&&<p className="text-xs text-gray-400">{m.multiple_used}x multiple</p>}</div>
                 <div className="text-right"><p className="font-semibold">{fmt(m.enterprise_value)}</p><p className="text-xs text-gray-400">{fmt(m.equity_value)} equity</p></div>
@@ -282,7 +282,7 @@ export default function ValuationResultsPage() {
                 </div>
                 {isFull&&expandedPlaybook===i&&pb.actions&&(
                   <div className="mt-3 pt-3 border-t border-gray-200 space-y-3">
-                    {pb.actions.map((a:any)=>(
+                    {(pb.actions || []).map((a:any)=>(
                       <div key={a.step} className="flex gap-3">
                         <span className="w-7 h-7 rounded-full bg-white border-2 text-xs font-bold flex items-center justify-center shrink-0">{a.step}</span>
                         <div>
@@ -320,7 +320,7 @@ export default function ValuationResultsPage() {
                 <h2 className="text-lg font-semibold">Your Next Steps</h2>
               </div>
               <div className="space-y-3">
-                {analysis.borrower_next_steps.map((s:any,i:number)=>(
+                {(analysis.borrower_next_steps || []).map((s:any,i:number)=>(
                   <div key={i} className="flex gap-4 p-3 rounded-lg bg-gray-50">
                     <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-sm shrink-0">{s.step}</div>
                     <div>
@@ -340,7 +340,7 @@ export default function ValuationResultsPage() {
               <h2 className="text-lg font-semibold mb-3">When Talking to Lenders</h2>
               <p className="text-xs text-gray-400 mb-3">Lead with these points — they address what SBA lenders care about most.</p>
               <ul className="space-y-2">
-                {analysis.lender_talking_points.map((pt:string,i:number)=>(
+                {(analysis.lender_talking_points || []).map((pt:string,i:number)=>(
                   <li key={i} className="flex gap-2 text-sm text-gray-700">
                     <span className="w-5 h-5 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold shrink-0">{i+1}</span>
                     {pt}

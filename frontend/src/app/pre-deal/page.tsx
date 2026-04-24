@@ -114,7 +114,7 @@ export default function PreDealPage() {
               </div>
 
               <ul className="space-y-3 mb-8">
-                {tier.features.map((f, i) => (
+                {(tier.features || []).map((f, i) => (
                   <li key={i} className="flex items-start gap-2.5">
                     <CheckCircle className={`h-4 w-4 shrink-0 mt-0.5 ${tier.id === 'diligence' ? 'text-indigo-500' : 'text-blue-500'}`} />
                     <span className="text-sm text-gray-700">{f}</span>

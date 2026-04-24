@@ -544,7 +544,7 @@ export default function ActuarialWorkbenchPage() {
                     Concentration Alerts
                   </h2>
                   <ul className="space-y-1">
-                    {portfolioMetrics.concentration.flags.map((flag: string, i: number) => (
+                    {portfolioMetrics.(concentration.flags || []).map((flag: string, i: number) => (
                       <li key={i} className="text-sm text-yellow-700 flex items-center">
                         <AlertTriangle className="h-4 w-4 mr-2" />
                         {flag}

@@ -158,7 +158,7 @@ export default function GetValuationPage() {
                 </div>
               </div>
               <ul className="space-y-2 mb-6">
-                {tier.features.map((f,i) => (
+                {(tier.features || []).map((f,i) => (
                   <li key={i} className="flex items-start gap-2">
                     <CheckCircle className={`h-4 w-4 shrink-0 mt-0.5 ${tier.id==='diligence'?'text-indigo-500':'text-blue-500'}`}/>
                     <span className="text-sm text-gray-700">{f}</span>

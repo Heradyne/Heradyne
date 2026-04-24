@@ -90,16 +90,16 @@ export default function NewDealPage() {
         equity_injection: formData.equity_injection ? parseFloat(formData.equity_injection) : undefined,
         owner_credit_score: formData.owner_credit_score ? parseInt(formData.owner_credit_score) : undefined,
         owner_experience_years: formData.owner_experience_years ? parseInt(formData.owner_experience_years) : undefined,
-        addbacks: formData.addbacks.filter(a => a.description && a.amount).map(a => ({
+        addbacks: (formData.addbacks || []).filter(a => a.description && a.amount).map(a => ({
           description: a.description,
           amount: parseFloat(a.amount),
         })),
-        business_assets: formData.business_assets.filter(a => a.type && a.value).map(a => ({
+        business_assets: (formData.business_assets || []).filter(a => a.type && a.value).map(a => ({
           type: a.type,
           value: parseFloat(a.value),
           description: a.description || undefined,
         })),
-        personal_assets: formData.personal_assets.filter(a => a.type && a.value).map(a => ({
+        personal_assets: (formData.personal_assets || []).filter(a => a.type && a.value).map(a => ({
           type: a.type,
           value: parseFloat(a.value),
           description: a.description || undefined,
@@ -318,7 +318,7 @@ export default function NewDealPage() {
                   + Add addback
                 </button>
               </div>
-              {formData.addbacks.map((addback, i) => (
+              {(formData.addbacks || []).map((addback, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <input
                     type="text"
@@ -377,7 +377,7 @@ export default function NewDealPage() {
                   + Add asset
                 </button>
               </div>
-              {formData.business_assets.map((asset, i) => (
+              {(formData.business_assets || []).map((asset, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <select
                     value={asset.type}
@@ -416,7 +416,7 @@ export default function NewDealPage() {
                   + Add asset
                 </button>
               </div>
-              {formData.personal_assets.map((asset, i) => (
+              {(formData.personal_assets || []).map((asset, i) => (
                 <div key={i} className="flex gap-2 mb-2">
                   <select
                     value={asset.type}

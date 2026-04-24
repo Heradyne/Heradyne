@@ -1,5 +1,4 @@
-'use client'; // v2-sprint-a
-
+'use client';
 
 export const dynamic = 'force-dynamic';
 
@@ -103,8 +102,7 @@ export default function SignaturesPage() {
         setUploadedDocs(uploads);
         
         // Load matched deals they can upload to
-        const matchRaw = await api.getMyMatches();
-        const matches: any[] = Array.isArray(matchRaw) ? matchRaw : ((matchRaw as any)?.matches ?? []);
+        const matches = await api.getMyMatches();
         const acceptedMatches = matches.filter((m: any) => 
           m.status === 'accepted' || m.status === 'counter_accepted'
         );

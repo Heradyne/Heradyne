@@ -327,7 +327,7 @@ export default function FinancialsPage() {
                   Geographic Concentration
                 </h4>
                 <div className="space-y-2">
-                  {lenderStats.geographic_concentration.slice(0, 10).map((geo, i) => (
+                  {(lenderStats.geographic_concentration || []).slice(0, 10).map((geo, i) => (
                     <div key={geo.state} className="flex items-center">
                       <span className="w-12 text-sm font-medium">{geo.state}</span>
                       <div className="flex-1 mx-2">
@@ -352,7 +352,7 @@ export default function FinancialsPage() {
                   Industry Concentration
                 </h4>
                 <div className="space-y-2">
-                  {lenderStats.industry_concentration.slice(0, 10).map((ind, i) => (
+                  {(lenderStats.industry_concentration || []).slice(0, 10).map((ind, i) => (
                     <div key={ind.industry} className="flex items-center">
                       <span className="w-24 text-sm font-medium capitalize truncate">{ind.industry.replace('_', ' ')}</span>
                       <div className="flex-1 mx-2">
@@ -586,7 +586,7 @@ export default function FinancialsPage() {
                   Geographic Concentration
                 </h4>
                 <div className="space-y-2">
-                  {insurerStats.geographic_concentration.slice(0, 10).map((geo) => (
+                  {(insurerStats.geographic_concentration || []).slice(0, 10).map((geo) => (
                     <div key={geo.state} className="flex items-center">
                       <span className="w-12 text-sm font-medium">{geo.state}</span>
                       <div className="flex-1 mx-2">
@@ -610,7 +610,7 @@ export default function FinancialsPage() {
                   Industry Concentration
                 </h4>
                 <div className="space-y-2">
-                  {insurerStats.industry_concentration.slice(0, 10).map((ind) => (
+                  {(insurerStats.industry_concentration || []).slice(0, 10).map((ind) => (
                     <div key={ind.industry} className="flex items-center">
                       <span className="w-24 text-sm font-medium capitalize truncate">{ind.industry.replace('_', ' ')}</span>
                       <div className="flex-1 mx-2">
@@ -701,7 +701,7 @@ export default function FinancialsPage() {
               Lenders ({adminStats.active_lenders} active of {adminStats.total_lenders})
             </h3>
             <div className="space-y-3">
-              {adminStats.lender_stats.slice(0, 5).map((lender) => (
+              {(adminStats.lender_stats || []).slice(0, 5).map((lender) => (
                 <div key={lender.lender_id} className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{lender.lender_name}</span>
@@ -739,7 +739,7 @@ export default function FinancialsPage() {
               Insurers ({adminStats.active_insurers} active of {adminStats.total_insurers})
             </h3>
             <div className="space-y-3">
-              {adminStats.insurer_stats.slice(0, 5).map((insurer) => (
+              {(adminStats.insurer_stats || []).slice(0, 5).map((insurer) => (
                 <div key={insurer.insurer_id} className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex justify-between items-center">
                     <span className="font-medium">{insurer.insurer_name}</span>
@@ -812,7 +812,7 @@ export default function FinancialsPage() {
                 Geographic
               </h4>
               <div className="space-y-2">
-                {adminStats.geographic_concentration.slice(0, 8).map((geo) => (
+                {(adminStats.geographic_concentration || []).slice(0, 8).map((geo) => (
                   <div key={geo.state} className="flex items-center">
                     <span className="w-12 text-sm font-medium">{geo.state}</span>
                     <div className="flex-1 mx-2">
@@ -836,7 +836,7 @@ export default function FinancialsPage() {
                 Industry
               </h4>
               <div className="space-y-2">
-                {adminStats.industry_concentration.slice(0, 8).map((ind) => (
+                {(adminStats.industry_concentration || []).slice(0, 8).map((ind) => (
                   <div key={ind.industry} className="flex items-center">
                     <span className="w-24 text-sm font-medium capitalize truncate">{ind.industry.replace('_', ' ')}</span>
                     <div className="flex-1 mx-2">

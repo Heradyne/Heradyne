@@ -390,7 +390,7 @@ export default function ProtectionPage() {
                   <div className="mt-4 bg-gray-50 rounded-lg p-3">
                     <p className="text-sm font-medium text-gray-700 mb-2">Business Assets:</p>
                     <div className="space-y-1">
-                      {selectedProtection.tier_1.assets.map((asset, idx) => (
+                      {selectedProtection.(tier_1.assets || []).map((asset, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
                           <span className="text-gray-600">
                             {asset.type}{asset.description ? `: ${asset.description}` : ''}
@@ -480,7 +480,7 @@ export default function ProtectionPage() {
                   <div className="mt-4 bg-red-50 rounded-lg p-3">
                     <p className="text-sm font-medium text-gray-700 mb-2">Personal Assets at Risk:</p>
                     <div className="space-y-1">
-                      {selectedProtection.tier_3.assets.map((asset, idx) => (
+                      {selectedProtection.(tier_3.assets || []).map((asset, idx) => (
                         <div key={idx} className="flex justify-between text-sm">
                           <span className="text-gray-600">
                             {asset.type}{asset.description ? `: ${asset.description}` : ''}

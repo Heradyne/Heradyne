@@ -946,7 +946,7 @@ export default function SecondaryMarketPage() {
                 <div className="mb-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Industry Distribution</p>
                   <div className="space-y-2">
-                    {selectedPoolAnalytics.industries.slice(0, 5).map((ind) => (
+                    {(selectedPoolAnalytics.industries || []).slice(0, 5).map((ind) => (
                       <div key={ind.name} className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div 
@@ -965,7 +965,7 @@ export default function SecondaryMarketPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-700 mb-2">Geographic Distribution</p>
                   <div className="space-y-2">
-                    {selectedPoolAnalytics.states.slice(0, 5).map((state) => (
+                    {(selectedPoolAnalytics.states || []).slice(0, 5).map((state) => (
                       <div key={state.name} className="flex items-center gap-2">
                         <div className="flex-1 bg-gray-200 rounded-full h-2">
                           <div 
@@ -1010,7 +1010,7 @@ export default function SecondaryMarketPage() {
                             pool.status === 'sold' ? 'bg-purple-100 text-purple-700' :
                             'bg-red-100 text-red-700'
                           }`}>
-                            {pool.status.charAt(0).toUpperCase() + pool.status.slice(1)}
+                            {pool.status.charAt(0).toUpperCase() + (pool.status || []).slice(1)}
                           </span>
                         </div>
                         
@@ -1410,7 +1410,7 @@ export default function SecondaryMarketPage() {
                         Industry Breakdown
                       </h3>
                       <div className="space-y-2">
-                        {analytics.industries.map((ind) => (
+                        {(analytics.industries || []).map((ind) => (
                           <div key={ind.name} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                             <span className="text-sm">{ind.name}</span>
                             <div className="text-right">
@@ -1428,7 +1428,7 @@ export default function SecondaryMarketPage() {
                         Geographic Breakdown
                       </h3>
                       <div className="space-y-2">
-                        {analytics.states.map((state) => (
+                        {(analytics.states || []).map((state) => (
                           <div key={state.name} className="flex items-center justify-between bg-gray-50 p-2 rounded">
                             <span className="text-sm">{state.name}</span>
                             <div className="text-right">

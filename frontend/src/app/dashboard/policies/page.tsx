@@ -210,19 +210,6 @@ function LenderPolicyDetails({ policy }: { policy: LenderPolicy }) {
         </div>
       </div>
       
-      {policy.custom_criteria && policy.custom_criteria.length > 0 && (
-        <div className="border-t pt-3 mt-3">
-          <p className="text-sm text-gray-500 mb-2 font-medium">Custom Criteria</p>
-          <div className="flex flex-wrap gap-2">
-            {policy.custom_criteria.map((c: any, i: number) => (
-              <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-800 rounded-full text-sm">
-                <span className="font-medium">{c.label}:</span> {c.value}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Auto-Decision Settings Display */}
       {policy.auto_decision_enabled && (
         <div className="bg-blue-50 rounded-lg p-3 text-sm">
@@ -288,18 +275,6 @@ function InsurerPolicyDetails({ policy }: { policy: InsurerPolicy }) {
             : 'All industries'}
         </p>
       </div>
-      {policy.custom_criteria && policy.custom_criteria.length > 0 && (
-        <div className="col-span-4 border-t pt-3 mt-1">
-          <p className="text-gray-500 mb-2 font-medium text-sm">Custom Criteria</p>
-          <div className="flex flex-wrap gap-2">
-            {policy.custom_criteria.map((c: any, i: number) => (
-              <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-800 rounded-full text-sm">
-                <span className="font-medium">{c.label}:</span> {c.value}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -340,7 +315,6 @@ function PolicyForm({
     auto_reject_threshold: policy?.auto_reject_threshold?.toString() || '',
     counter_offer_min: policy?.counter_offer_min?.toString() || '',
     counter_offer_max: policy?.counter_offer_max?.toString() || '',
-    custom_criteria: (policy?.custom_criteria as {label: string; value: string}[]) || [],
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -358,7 +332,6 @@ function PolicyForm({
         allowed_deal_types: formData.allowed_deal_types,
         // Auto-decision settings
         auto_decision_enabled: formData.auto_decision_enabled,
-        custom_criteria: formData.custom_criteria.length > 0 ? formData.custom_criteria : null,
       };
 
       // Add auto-decision thresholds if enabled
@@ -687,65 +660,6 @@ function PolicyForm({
               >
                 {industry.replace('_', ' ')}
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Custom Criteria */}
-        <div className="border-t pt-4">
-          <div className="flex justify-between items-center mb-3">
-            <div>
-              <h3 className="font-medium text-gray-900">Custom Matching Criteria</h3>
-              <p className="text-sm text-gray-500">Add any additional requirements to be considered when matching deals</p>
-            </div>
-            <button
-              type="button"
-              onClick={() => setFormData({ ...formData, custom_criteria: [...formData.custom_criteria, { label: '', value: '' }] })}
-              className="btn btn-secondary inline-flex items-center text-sm"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Criteria
-            </button>
-          </div>
-          {formData.custom_criteria.length === 0 && (
-            <p className="text-sm text-gray-400 italic">No custom criteria added yet.</p>
-          )}
-          <div className="space-y-2">
-            {formData.custom_criteria.map((criterion, index) => (
-              <div key={index} className="flex gap-2 items-center">
-                <input
-                  type="text"
-                  value={criterion.label}
-                  onChange={(e) => {
-                    const updated = [...formData.custom_criteria];
-                    updated[index] = { ...updated[index], label: e.target.value };
-                    setFormData({ ...formData, custom_criteria: updated });
-                  }}
-                  className="input flex-1"
-                  placeholder="Criteria name (e.g. Min Years in Business)"
-                />
-                <input
-                  type="text"
-                  value={criterion.value}
-                  onChange={(e) => {
-                    const updated = [...formData.custom_criteria];
-                    updated[index] = { ...updated[index], value: e.target.value };
-                    setFormData({ ...formData, custom_criteria: updated });
-                  }}
-                  className="input flex-1"
-                  placeholder="Requirement (e.g. At least 3 years)"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const updated = formData.custom_criteria.filter((_, i) => i !== index);
-                    setFormData({ ...formData, custom_criteria: updated });
-                  }}
-                  className="p-2 text-gray-400 hover:text-red-500"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
             ))}
           </div>
         </div>

@@ -6,7 +6,6 @@ import { useEffect, useState } from 'react';
 import { Brain, AlertTriangle, TrendingUp, Shield, CheckCircle, XCircle, Activity, BarChart3, RefreshCw, Target, Zap, ChevronDown, ChevronUp, Save, RotateCcw, Settings } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { api } from '@/lib/api';
-import { AIDisclaimer } from '@/components/ai-disclaimer';
 import { formatCurrency, formatPercent } from '@/lib/utils';
 
 interface Variable {
@@ -155,10 +154,6 @@ export default function AIAgentPage() {
   const [success, setSuccess] = useState('');
   const [scoringResult, setScoringResult] = useState<any>(null);
   const [scoringLoading, setScoringLoading] = useState(false);
-  const [expandedScoreCategories, setExpandedScoreCategories] = useState<Set<string>>(new Set());
-  const [deals, setDeals] = useState<any[]>([]);
-  const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
-  const [dealLoading, setDealLoading] = useState(false);
   
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
@@ -177,7 +172,7 @@ export default function AIAgentPage() {
     business_age: 12, equity_injection: 20, dscr: 1.45, borrower_credit_score: 720,
   });
 
-  useEffect(() => { loadData(); api.getDeals().then(setDeals).catch(() => {}); }, []);
+  useEffect(() => { loadData(); }, []);
 
   const loadData = async () => {
     try {
@@ -312,48 +307,13 @@ export default function AIAgentPage() {
     return categoryVars.filter(v => variableSettings[v.id]?.enabled !== false).length;
   };
 
-  const loadDealIntoForm = async (dealId: number) => {
-    setDealLoading(true);
-    setSelectedDealId(dealId);
-    try {
-      const [deal, rpt] = await Promise.all([
-        api.getDeal(dealId),
-        api.getLatestRiskReport(dealId).catch(() => null),
-      ]);
-      setDemoData({
-        loan_amount: deal.loan_amount_requested || 1500000,
-        loan_purpose: 'acquisition',
-        naics_industry: deal.industry || '621',
-        business_age: deal.owner_experience_years || 5,
-        equity_injection: deal.equity_injection && deal.purchase_price
-          ? Math.round((deal.equity_injection / deal.purchase_price) * 100)
-          : 20,
-        dscr: rpt?.dscr_base || 1.25,
-        borrower_credit_score: deal.owner_credit_score || 700,
-      });
-    } catch {
-      setError('Failed to load deal data');
-    } finally {
-      setDealLoading(false);
-    }
-  };
-
   const runScoringDemo = async () => {
     setScoringLoading(true);
-    setScoringResult(null);
     try {
       const result = await api.scoreWithAIAgent(demoData);
-      if (result && result.composite_score !== undefined) {
-        setScoringResult(result);
-      } else {
-        setError('Unexpected response from scoring engine');
-      }
+      setScoringResult(result);
     } catch (err: any) {
-      const detail = err.response?.data?.detail;
-      const msg = Array.isArray(detail)
-        ? detail.map((d: any) => `${d.loc?.join('.')} — ${d.msg}`).join(', ')
-        : (typeof detail === 'string' ? detail : 'Scoring failed');
-      setError(msg);
+      setError(err.response?.data?.detail || 'Scoring failed');
     } finally {
       setScoringLoading(false);
     }
@@ -453,32 +413,7 @@ export default function AIAgentPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left: Risk Scoring Demo */}
         <div className="card">
-          <h2 className="text-lg font-semibold mb-4 flex items-center"><Zap className="h-5 w-5 mr-2 text-yellow-500" />Risk Scoring</h2>
-
-          {/* Deal selector */}
-          <div className="mb-4">
-            <label className="text-xs font-semibold text-gray-500 uppercase mb-2 block">Score a Deal</label>
-            <div className="flex gap-2">
-              <select
-                value={selectedDealId || ''}
-                onChange={e => e.target.value ? loadDealIntoForm(Number(e.target.value)) : setSelectedDealId(null)}
-                className="input flex-1 text-sm"
-                disabled={dealLoading}
-              >
-                <option value="">— Enter values manually —</option>
-                {deals.map(deal => (
-                  <option key={deal.id} value={deal.id}>
-                    {deal.name} ({deal.industry})
-                  </option>
-                ))}
-              </select>
-              {dealLoading && <span className="text-xs text-gray-400 self-center">Loading...</span>}
-            </div>
-            {selectedDealId && (
-              <p className="text-xs text-blue-600 mt-1">✓ Deal data loaded — fields pre-filled from deal record</p>
-            )}
-          </div>
-
+          <h2 className="text-lg font-semibold mb-4 flex items-center"><Zap className="h-5 w-5 mr-2 text-yellow-500" />Risk Scoring Demo</h2>
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <label className="text-xs text-gray-500">Loan Amount</label>
@@ -517,11 +452,6 @@ export default function AIAgentPage() {
                 <div>
                   <p className="text-3xl font-bold">{scoringResult.composite_score?.toFixed(1)}</p>
                   <p className="text-sm text-gray-500">Composite Score</p>
-                  {scoringResult.variables_missing?.length > 0 && (
-                    <p className="text-xs text-amber-600 mt-1">
-                      ⚠ {scoringResult.variables_missing.length} of {(scoringResult.variables_evaluated || 0) + (scoringResult.variables_missing?.length || 0)} variables missing data — score reflects available inputs only
-                    </p>
-                  )}
                 </div>
                 <div className={`px-4 py-2 rounded-lg border ${getTierColor(scoringResult.tier)}`}>
                   <p className="font-semibold">{scoringResult.tier_display}</p>
@@ -545,95 +475,24 @@ export default function AIAgentPage() {
                 <div className="bg-white p-2 rounded"><span className="text-gray-500">Monitoring:</span> <span className="font-medium capitalize">{scoringResult.monitoring_frequency}</span></div>
               </div>
 
-              {/* Category scores with drill-down */}
+              {/* Category scores with rationale */}
               {scoringResult.category_scores && Object.keys(scoringResult.category_scores).length > 0 && (
                 <div>
-                  <p className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown — click to drill down</p>
+                  <p className="text-sm font-semibold text-gray-700 mb-2">Category Breakdown</p>
                   <div className="space-y-2">
                     {Object.entries(scoringResult.category_scores).map(([cat, data]: [string, any]) => {
                       const score = typeof data === 'object' ? data.score : data;
-                      const varScores: any[] = data.variable_scores || [];
-                      const flags: string[] = data.flags || [];
-                      const isExpanded = expandedScoreCategories.has(cat);
-                      const scoreColor = score >= 70 ? 'text-green-700' : score >= 50 ? 'text-yellow-700' : 'text-red-600';
-                      const barColor = score >= 70 ? '#15803d' : score >= 50 ? '#ca8a04' : '#dc2626';
+                      const rationale = typeof data === 'object' ? data.rationale : null;
                       return (
-                        <div key={cat} className="bg-white rounded-lg border border-gray-100 overflow-hidden">
-                          <button
-                            className="w-full p-3 text-left hover:bg-gray-50 transition-colors"
-                            onClick={() => {
-                              setExpandedScoreCategories(prev => {
-                                const next = new Set(prev);
-                                next.has(cat) ? next.delete(cat) : next.add(cat);
-                                return next;
-                              });
-                            }}
-                          >
-                            <div className="flex justify-between items-center mb-1.5">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold capitalize">{cat}</span>
-                                <span className="text-xs text-gray-400">{data.weight ? `${(data.weight*100).toFixed(0)}% weight` : ''}</span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm font-bold ${scoreColor}`}>{score?.toFixed(1)}/100</span>
-                                <span className="text-gray-400 text-xs">{isExpanded ? '▲' : '▼'}</span>
-                              </div>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-2">
-                              <div className="h-2 rounded-full transition-all" style={{width:`${Math.min(score||0,100)}%`, backgroundColor: barColor}}/>
-                            </div>
-                            {flags.length > 0 && !isExpanded && (
-                              <p className="text-xs text-gray-500 mt-1 truncate">{flags[0]}</p>
-                            )}
-                          </button>
-
-                          {isExpanded && (
-                            <div className="border-t border-gray-100 bg-gray-50 px-3 py-2">
-                              {/* Scored/missing data summary */}
-                              <div className="flex gap-3 mb-2 text-xs text-gray-500">
-                                <span>Raw: {data.raw_score?.toFixed(1)}/{data.max_score?.toFixed(1)} pts</span>
-                                <span>Weighted contribution: {data.weighted_score?.toFixed(1)} pts</span>
-                              </div>
-
-                              {/* Per-variable breakdown */}
-                              {varScores.length > 0 && (
-                                <div className="space-y-1 mb-2">
-                                  {varScores.map((vs: any, i: number) => (
-                                    <div key={i} className={`flex items-start justify-between py-1.5 px-2 rounded text-xs ${
-                                      vs.flag === 'optimal' ? 'bg-green-50' :
-                                      vs.flag === 'caution' ? 'bg-yellow-50' :
-                                      vs.flag === 'reject' ? 'bg-red-50' :
-                                      'bg-gray-100'
-                                    }`}>
-                                      <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-gray-800 truncate">{vs.name}</p>
-                                        <p className="text-gray-500">{vs.notes || (vs.raw_value == null ? 'Data not provided' : `Value: ${vs.raw_value}`)}</p>
-                                      </div>
-                                      <div className="text-right shrink-0 ml-2">
-                                        <span className={`font-bold ${vs.flag === 'optimal' ? 'text-green-700' : vs.flag === 'caution' ? 'text-yellow-700' : vs.flag === 'reject' ? 'text-red-600' : 'text-gray-500'}`}>
-                                          {vs.score?.toFixed(1)}/{vs.max_score?.toFixed(1)}
-                                        </span>
-                                        {vs.flag && (
-                                          <p className={`text-xs uppercase font-medium ${vs.flag === 'optimal' ? 'text-green-600' : vs.flag === 'caution' ? 'text-yellow-600' : vs.flag === 'reject' ? 'text-red-600' : 'text-gray-400'}`}>
-                                            {vs.flag}
-                                          </p>
-                                        )}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              {/* Category flags */}
-                              {flags.length > 0 && (
-                                <div>
-                                  {flags.map((f: string, i: number) => (
-                                    <p key={i} className="text-xs text-amber-700 flex gap-1"><span className="shrink-0">⚠</span>{f}</p>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
+                        <div key={cat} className="bg-white rounded-lg p-3">
+                          <div className="flex justify-between items-center mb-1">
+                            <span className="text-sm font-medium capitalize">{cat}</span>
+                            <span className={`text-sm font-bold ${score >= 70 ? 'text-green-700' : score >= 50 ? 'text-yellow-700' : 'text-red-600'}`}>{score?.toFixed(0)}/100</span>
+                          </div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 mb-1">
+                            <div className="h-1.5 rounded-full" style={{width:`${score||0}%`, backgroundColor: score>=70?'#15803d':score>=50?'#ca8a04':'#dc2626'}}/>
+                          </div>
+                          {rationale && <p className="text-xs text-gray-500 italic">{rationale}</p>}
                         </div>
                       );
                     })}
@@ -646,7 +505,7 @@ export default function AIAgentPage() {
                 <div>
                   <p className="text-sm font-semibold text-gray-700 mb-2">Risk Flags</p>
                   <div className="space-y-2">
-                    {scoringResult.risk_flags.slice(0, 4).map((flag: any, i: number) => (
+                    {(scoringResult.risk_flags || []).slice(0, 4).map((flag: any, i: number) => (
                       <div key={i} className="bg-red-50 border border-red-100 rounded-lg p-2">
                         {typeof flag === 'object' ? (
                           <>
@@ -668,7 +527,7 @@ export default function AIAgentPage() {
                 <div>
                   <p className="text-sm font-semibold text-gray-700 mb-2">Positive Factors</p>
                   <div className="space-y-2">
-                    {scoringResult.positive_factors.slice(0, 3).map((factor: any, i: number) => (
+                    {(scoringResult.positive_factors || []).slice(0, 3).map((factor: any, i: number) => (
                       <div key={i} className="bg-green-50 border border-green-100 rounded-lg p-2">
                         {typeof factor === 'object' ? (
                           <>
@@ -689,7 +548,7 @@ export default function AIAgentPage() {
               {scoringResult.conditions?.length > 0 && (
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <p className="text-xs font-bold text-yellow-800 uppercase mb-1">Approval Conditions</p>
-                  {scoringResult.conditions.map((c: string, i: number) => (
+                  {(scoringResult.conditions || []).map((c: string, i: number) => (
                     <p key={i} className="text-xs text-yellow-700">• {c}</p>
                   ))}
                 </div>
@@ -748,7 +607,7 @@ export default function AIAgentPage() {
               {dashboard.top_alerts?.length > 0 && (
                 <div className="mt-4">
                   <p className="text-sm font-medium text-gray-700 mb-2">Top Alerts</p>
-                  {dashboard.top_alerts.slice(0, 3).map((alert: any, i: number) => (
+                  {(dashboard.top_alerts || []).slice(0, 3).map((alert: any, i: number) => (
                     <div key={i} className="flex justify-between items-center p-2 bg-gray-50 rounded mb-1 text-sm">
                       <span>{alert.loan_number} - {alert.borrower_name}</span>
                       <span className={`px-2 py-0.5 rounded text-xs ${

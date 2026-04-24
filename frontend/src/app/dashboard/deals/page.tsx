@@ -1,5 +1,4 @@
-'use client'; // v2-sprint-a
-
+'use client';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,8 +24,7 @@ export default function DealsPage() {
 
   const loadDeals = async () => {
     try {
-      const dataRaw = await api.getDeals(statusFilter || undefined);
-      const data: any[] = Array.isArray(dataRaw) ? dataRaw : ((dataRaw as any)?.deals ?? []);
+      const data = await api.getDeals(statusFilter || undefined);
       setDeals(data);
       
       // For borrowers, check each deal for info requests

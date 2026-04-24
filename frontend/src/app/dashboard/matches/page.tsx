@@ -797,7 +797,7 @@ export default function MatchesPage() {
                             <div className="mb-3">
                               <p className="text-xs font-medium text-gray-700 mb-1">Risk Flags:</p>
                               <div className="space-y-1">
-                                {(aiAnalyses[match.deal_id].risk_flags || []).slice(0, 3).map((flag: any, i: number) => (
+                                {aiAnalyses[match.deal_id].risk_flags.slice(0, 3).map((flag: any, i: number) => (
                                   <p key={i} className="text-xs text-orange-700 flex items-start">
                                     <AlertTriangle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof flag === 'object' ? `${flag.flag}${flag.value ? ` (${flag.value})` : ''}` : flag}
@@ -811,7 +811,7 @@ export default function MatchesPage() {
                             <div>
                               <p className="text-xs font-medium text-gray-700 mb-1">Positive Factors:</p>
                               <div className="space-y-1">
-                                {(aiAnalyses[match.deal_id].positive_factors || []).slice(0, 3).map((factor: any, i: number) => (
+                                {aiAnalyses[match.deal_id].positive_factors.slice(0, 3).map((factor: any, i: number) => (
                                   <p key={i} className="text-xs text-green-700 flex items-start">
                                     <CheckCircle className="h-3 w-3 mr-1 mt-0.5 flex-shrink-0" />
                                     {typeof factor === 'object' ? `${factor.factor}${factor.value ? ` (${factor.value})` : ''}` : factor}
@@ -919,7 +919,7 @@ export default function MatchesPage() {
                   <div className="mb-4">
                     <p className="text-sm font-medium text-gray-700 mb-2">Constraint Analysis</p>
                     <div className="flex flex-wrap gap-2">
-                      {(match.constraints_met || []).slice(0, 3).map((c: any, i: number) => {
+                      {match.constraints_met?.slice(0, 3).map((c: any, i: number) => {
                         const label = typeof c === 'string' ? c : String(c.constraint || c.name || 'constraint');
                         return (
                           <span key={`met-${i}`} className="inline-flex items-center text-xs bg-green-50 text-green-700 px-2 py-1 rounded">
@@ -928,7 +928,7 @@ export default function MatchesPage() {
                           </span>
                         );
                       })}
-                      {(match.constraints_failed || []).slice(0, 3).map((c: any, i: number) => {
+                      {match.constraints_failed?.slice(0, 3).map((c: any, i: number) => {
                         const label = typeof c === 'string' ? c : String(c.constraint || c.name || 'constraint');
                         return (
                           <span key={`failed-${i}`} className="inline-flex items-center text-xs bg-red-50 text-red-700 px-2 py-1 rounded">

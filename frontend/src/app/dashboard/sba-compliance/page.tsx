@@ -500,7 +500,7 @@ export default function SBACompliancePage() {
                     Documentation Gaps
                   </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {complianceResult.documentation_gaps.map((doc: string, i: number) => (
+                    {(complianceResult.documentation_gaps || []).map((doc: string, i: number) => (
                       <div key={i} className="flex items-center p-2 bg-yellow-50 rounded text-sm">
                         <FileText className="h-4 w-4 mr-2 text-yellow-600" />
                         {doc}
@@ -515,7 +515,7 @@ export default function SBACompliancePage() {
                 <div className="card">
                   <h3 className="font-semibold mb-3">Recommendations</h3>
                   <ul className="space-y-2">
-                    {complianceResult.recommendations.map((rec: string, i: number) => (
+                    {(complianceResult.recommendations || []).map((rec: string, i: number) => (
                       <li key={i} className="flex items-start text-sm">
                         <CheckCircle className="h-4 w-4 mr-2 mt-0.5 text-blue-500 flex-shrink-0" />
                         {rec}

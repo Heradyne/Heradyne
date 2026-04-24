@@ -151,7 +151,7 @@ export default function ActuaryAdvisorPage() {
         if (result.detail) {
           if (Array.isArray(result.detail)) {
             // Pydantic validation errors
-            const errorMessages = result.detail.map((e: any) => 
+            const errorMessages = (result.detail || []).map((e: any) => 
               typeof e === 'string' ? e : `${e.loc?.join('.')}: ${e.msg}`
             ).join(', ');
             throw new Error(errorMessages);
