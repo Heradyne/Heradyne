@@ -248,7 +248,7 @@ export default function DealDetailPage() {
   const latestReport = deal.risk_reports?.[0];
   
   // Find matches with info requests
-  const infoRequests = (matches || []).filter(m => m.status === 'info_requested');
+  const infoRequests = matches.filter(m => m.status === 'info_requested');
   const hasInfoRequests = infoRequests.length > 0;
 
   return (
@@ -370,7 +370,7 @@ export default function DealDetailPage() {
                       Risk Flags ({aiAnalysis.risk_flags.length})
                     </h4>
                     <ul className="space-y-1">
-                      {aiAnalysis.risk_flags.map((flag: any, i: number) => (
+                      {(aiAnalysis.risk_flags || []).map((flag: any, i: number) => (
                         <li key={i} className="text-sm text-orange-700 flex items-start">
                           <span className="mr-2">•</span>
                           <span>{typeof flag === 'object' ? `${flag.flag}${flag.value ? ` (${flag.value})` : ''}` : flag}</span>
@@ -386,7 +386,7 @@ export default function DealDetailPage() {
                       Positive Factors ({aiAnalysis.positive_factors.length})
                     </h4>
                     <ul className="space-y-1">
-                      {aiAnalysis.positive_factors.map((factor: any, i: number) => (
+                      {(aiAnalysis.positive_factors || []).map((factor: any, i: number) => (
                         <li key={i} className="text-sm text-green-700 flex items-start">
                           <span className="mr-2">•</span>
                           <span>{typeof factor === 'object' ? `${factor.factor}${factor.value ? ` (${factor.value})` : ''}` : factor}</span>
@@ -709,7 +709,7 @@ export default function DealDetailPage() {
                 <div className="card">
                   <h2 className="text-lg font-semibold mb-4">UnderwriteOS — Actionable Playbooks</h2>
                   <div className="space-y-3">
-                    {uwData.playbooks.map((pb: any, i: number) => (
+                    {(uwData.playbooks || []).map((pb: any, i: number) => (
                       <div key={i} className={`rounded-lg p-4 border ${
                         pb.severity === 'critical' ? 'bg-red-50 border-red-200' :
                         pb.severity === 'warning' ? 'bg-yellow-50 border-yellow-200' :
@@ -830,7 +830,7 @@ export default function DealDetailPage() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-100">
-                        {uwData.deal_killer.breakpoint_scenarios.map((s: any, i: number) => (
+                        {(uwData.deal_killer.breakpoint_scenarios || []).map((s: any, i: number) => (
                           <tr key={i} className={i === 0 ? 'bg-green-50' : ''}>
                             <td className="py-2 text-gray-700">{s.label}</td>
                             <td className={`py-2 text-right font-medium ${s.dscr >= 1.25 ? 'text-green-700' : s.dscr >= 1.0 ? 'text-yellow-600' : 'text-red-600'}`}>
@@ -863,7 +863,7 @@ export default function DealDetailPage() {
                     </span>
                   </div>
                   <div className="space-y-1.5">
-                    {uwData.sba_eligibility.checklist.map((item: any, i: number) => (
+                    {(uwData.sba_eligibility.checklist || []).map((item: any, i: number) => (
                       <div key={i} className={`flex items-start gap-3 p-2 rounded text-sm ${item.pass ? 'bg-green-50' : 'bg-red-50'}`}>
                         <span className={`flex-shrink-0 font-bold ${item.pass ? 'text-green-600' : 'text-red-600'}`}>
                           {item.pass ? '✓' : '✕'}
@@ -938,7 +938,7 @@ export default function DealDetailPage() {
             </h2>
             {deal.documents && deal.documents.length > 0 ? (
               <ul className="space-y-2 mb-4">
-                {deal.documents.map((doc: any) => (
+                {(deal.documents || []).map((doc: any) => (
                   <li key={doc.id} className="flex items-center justify-between text-sm p-2 bg-gray-50 rounded">
                     <div className="flex items-center min-w-0 flex-1">
                       <FileText className="h-4 w-4 text-gray-400 mr-2 flex-shrink-0" />
@@ -1211,7 +1211,7 @@ function MatchCard({
         <div className="mt-2">
           <p className="text-xs text-red-600 font-medium mb-1">Failed Constraints:</p>
           <ul className="text-xs text-gray-600">
-            {match.constraints_failed.slice(0, 3).map((c: any, i: number) => (
+            {(match.constraints_failed || []).slice(0, 3).map((c: any, i: number) => (
               <li key={i} className="flex items-center">
                 <XCircle className="h-3 w-3 text-red-500 mr-1" />
                 {c.reason}
