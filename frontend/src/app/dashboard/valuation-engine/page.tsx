@@ -141,7 +141,7 @@ export default function ValuationEnginePage() {
         has_tax_returns: p.has_tax_returns || prev.has_tax_returns,
       }));
       setSelectedDealId(dealId);
-      setStep('business');
+      setStep('integrations');  // Skip manual steps — data already pre-filled
     } catch { /* silent */ }
     finally { setPrefilling(false); }
   };
@@ -327,22 +327,27 @@ export default function ValuationEnginePage() {
                 {deals.length > 0 && (
                   <div className="bg-white bg-opacity-10 rounded-xl p-4 mb-4">
                     <p className="text-sm font-semibold text-blue-200 mb-2">📂 Pre-fill from an existing deal submission</p>
-                    <div className="flex gap-2">
-                      <select
-                        value={selectedDealId || ''}
-                        onChange={e => e.target.value && prefillFromDeal(+e.target.value)}
-                        className="flex-1 bg-white bg-opacity-20 border border-white border-opacity-20 rounded-lg px-3 py-2 text-white text-sm"
-                      >
-                        <option value="" className="text-gray-900">Select a deal to pre-fill...</option>
+                    {prefilling ? (
+                      <div className="flex items-center gap-2 text-white">
+                        <Loader className="h-5 w-5 animate-spin" />
+                        <span className="text-sm">Loading deal data...</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
                         {deals.map((d: any) => (
-                          <option key={d.id} value={d.id} className="text-gray-900">
-                            {d.name} — {d.industry}
-                          </option>
+                          <button key={d.id} onClick={() => prefillFromDeal(d.id)}
+                            className="w-full flex items-center justify-between bg-white bg-opacity-10 hover:bg-opacity-20 border border-white border-opacity-20 rounded-xl px-4 py-3 text-left transition-all">
+                            <div>
+                              <p className="font-semibold text-white">{d.name}</p>
+                              <p className="text-xs text-blue-300">{d.industry}</p>
+                            </div>
+                            <span className="text-xs bg-blue-500 text-white px-3 py-1 rounded-full font-medium flex items-center gap-1">
+                              Value This <ChevronRight className="h-3 w-3" />
+                            </span>
+                          </button>
                         ))}
-                      </select>
-                      {prefilling && <Loader className="h-5 w-5 animate-spin text-white self-center shrink-0" />}
-                    </div>
-                    {selectedDealId && <p className="text-xs text-green-300 mt-1">✓ Deal data pre-filled — review and adjust below</p>}
+                      </div>
+                    )}
                   </div>
                 )}
                 <button onClick={() => setStep('business')} className="btn bg-white text-slate-900 hover:bg-gray-100 font-semibold px-8 py-3 inline-flex items-center gap-2">
@@ -516,8 +521,51 @@ export default function ValuationEnginePage() {
               {/* Integrations step */}
               {step === 'integrations' && (
                 <div className="card space-y-4">
-                  <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Link className="h-5 w-5 text-blue-600" />Connect Your Data</h2>
-                  <p className="text-sm text-gray-500">Connecting real data significantly improves valuation accuracy. All optional — you can always run with manual inputs.</p>
+                  <h2 className="font-semibold text-gray-800 flex items-center gap-2"><Link className="h-5 w-5 text-blue-600" />Review & Run</h2>
+                  {selectedDealId ? (
+                    <div className="space-y-3">
+                      <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                        <p className="text-sm font-semibold text-green-800 flex items-center gap-2">
+                          <CheckCircle className="h-4 w-4" /> Financials pulled from your deal
+                        </p>
+                        <p className="text-sm text-green-700 mt-1">
+                          Just answer 2 quick questions about you as the owner — these directly affect your valuation multiple.
+                        </p>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="label">Your hours/week in the business</label>
+                          <select value={form.owner_hours_per_week} onChange={e => f('owner_hours_per_week', e.target.value)} className="input w-full">
+                            {[['10','10 hours or less'],['20','~20 hours'],['30','~30 hours'],['40','40 hours'],['50','50+ hours'],['60','60+ hours'],['70','70+ hours']].map(([v,l]) => <option key={v} value={v}>{l}</option>)}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="label">Does a manager run day-to-day?</label>
+                          <select value={form.has_management_team ? 'yes' : 'no'} onChange={e => f('has_management_team', e.target.value === 'yes')} className="input w-full">
+                            <option value="no">No — I run operations</option>
+                            <option value="yes">Yes — I have a manager</option>
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <label className="label">Do you have written SOPs / documented processes?</label>
+                          <select value={form.has_written_processes ? 'yes' : 'no'} onChange={e => f('has_written_processes', e.target.value === 'yes')} className="input w-full">
+                            <option value="no">No — it's mostly in my head</option>
+                            <option value="yes">Yes — key processes are documented</option>
+                          </select>
+                        </div>
+                        <div className="col-span-2">
+                          <label className="label">Recurring revenue % (subscriptions, contracts, retainers)</label>
+                          <div className="relative">
+                            <input type="number" value={form.recurring_revenue_pct} onChange={e => f('recurring_revenue_pct', e.target.value)}
+                              className="input w-full pr-8" placeholder="0" />
+                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500">Connecting real data significantly improves valuation accuracy. All optional — you can always run with manual inputs.</p>
+                  )}
 
                   <div className="space-y-3">
                     {/* Bank account */}
@@ -592,11 +640,20 @@ export default function ValuationEnginePage() {
 
                   <AIDisclaimer type="valuation" compact />
 
+                  <button onClick={runValuation} disabled={running}
+                    className="btn btn-primary w-full inline-flex items-center justify-center gap-2 py-4 text-lg">
+                    {running
+                      ? <><Loader className="h-5 w-5 animate-spin" />Running valuation...</>
+                      : <><Sparkles className="h-5 w-5" />{selectedDealId ? 'Run Valuation' : 'Run Valuation'}</>}
+                  </button>
+
                   <div className="flex gap-3">
-                    <button onClick={() => setStep('owner')} className="btn btn-secondary flex-1">← Back</button>
-                    <button onClick={runValuation} disabled={running} className="btn btn-primary flex-1 inline-flex items-center justify-center gap-2 py-3">
-                      {running ? <><Loader className="h-5 w-5 animate-spin" />Valuating your business...</> : <><Sparkles className="h-5 w-5" />Run Valuation</>}
+                    <button onClick={() => setStep(selectedDealId ? 'intro' : 'owner')} className="btn btn-secondary flex-1 text-sm">
+                      {selectedDealId ? '← Change Deal' : '← Back'}
                     </button>
+                    {!selectedDealId && (
+                      <button onClick={() => setStep('owner')} className="btn btn-secondary flex-1 text-sm">← Back to Owner</button>
+                    )}
                   </div>
                 </div>
               )}
