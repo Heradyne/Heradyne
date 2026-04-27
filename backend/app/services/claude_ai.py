@@ -2658,9 +2658,14 @@ Value this business using all applicable methods. Score owner dependency brutall
 Give the top 5 highest-leverage actions to increase value, with specific dollar impact.
 Project value at 12, 24, and 36 months if owner executes. JSON only."""
 
-    text = _call_claude(DEEP_VALUATION_SYSTEM, user_msg, max_tokens=4000)
+    text = _call_claude(DEEP_VALUATION_SYSTEM, user_msg, max_tokens=6000)
+    if not text:
+        log.error("VALUATION: Claude returned empty response")
+        return None
+    log.warning(f"VALUATION: Raw response length={len(text)}")
     result = _parse_json(text)
     if not result:
+        log.error(f"VALUATION: JSON parse failed. Last 200: {text[-200:]}")
         return None
     result["_powered_by"] = "claude"
     result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
@@ -2668,111 +2673,72 @@ Project value at 12, 24, and 36 months if owner executes. JSON only."""
 
 # ── ENGINE 30: Business Decision Forecaster ───────────────────────────────────
 
-FORECAST_SYSTEM = """You are a financial modeler and business strategist building a detailed forecast for a small business owner.
+FORECAST_SYSTEM = """You are a business financial modeler. Given a business and decisions the owner is considering, produce a 36-month forecast.
 
-The owner is considering specific decisions. Your job is to model exactly what happens to their business over 36 months if they execute each decision — or combination of decisions.
-
-You must model these metrics monthly:
-1. Revenue (with growth rates and seasonality if relevant)
-2. EBITDA and EBITDA margin
-3. SDE (Seller's Discretionary Earnings)
-4. Owner hours per week
-5. Customer concentration % (top customer)
-6. Recurring revenue %
-7. Employee count
-8. Cash position
-9. Business value (estimated, using appropriate multiple)
-10. Owner dependency score (0-100)
-
-Decision types and their typical effects:
-- HIRE_MANAGER: +$80-150K salary cost, -15-25 owner hours/week, +0.3-0.8 owner dependency score over 12 months, enables growth
-- ADD_SERVICE_LINE: +X% revenue after 6-9 month ramp, +margin impact, requires capital
-- CUT_COST_CENTER: immediate EBITDA improvement, potential revenue risk
-- RAISE_PRICES: immediate revenue/margin improvement, potential churn risk (model both outcomes)
-- ADD_RECURRING: revenue shift to recurring over time, multiple expansion, lower churn
-- REDUCE_CUSTOMER_CONCENTRATION: diversification takes 12-18 months, reduces risk multiple penalty
-- HIRE_SALES: 6-12 month ramp, +X% revenue after ramp, salary cost
-- DOCUMENT_PROCESSES: 3-6 month effort, +owner dependency score, enables delegation
-- ACQUIRE_BUSINESS: immediate revenue add, integration costs, synergies over time
-- REDUCE_OWNER_HOURS: model the constraint — what needs to be in place first
-
-Rules:
-1. Use actual numbers from the business — never use round numbers without justification
-2. Model the COST of each decision (time, money, distraction) not just the upside
-3. Show the J-curve: many decisions get worse before they get better
-4. Month 1-6 is typically execution/cost, Month 6-18 is inflection, Month 18-36 is harvest
-5. Run THREE scenarios for each set of decisions:
-   - Conservative (things take longer, cost more)
-   - Base case (as planned)
-   - Aggressive (everything works perfectly)
-6. Flag interdependencies: "you can't do A and B simultaneously"
-7. Show the valuation impact at Month 12, 24, and 36 for each scenario
-
-Respond with valid JSON only. No markdown.
+Return ONLY valid JSON, no markdown. Structure:
 
 {
   "forecast_summary": {
     "decisions_modeled": ["<decision>"],
-    "horizon_months": 36,
-    "key_insight": "<the most important thing the owner should know>",
-    "recommended_sequence": "<if multiple decisions, what order and why>"
+    "key_insight": "<most important thing owner should know, 1 sentence>",
+    "recommended_sequence": "<order to execute decisions>"
   },
   "scenarios": {
     "conservative": {
       "label": "Conservative",
-      "assumption": "<what would make this happen>",
+      "assumption": "<what causes this>",
       "monthly_data": [
-        {
-          "month": 1,
-          "revenue": <float>,
-          "ebitda": <float>,
-          "sde": <float>,
-          "owner_hours": <float>,
-          "customer_concentration_pct": <float>,
-          "recurring_revenue_pct": <float>,
-          "employees": <int>,
-          "cash_position": <float>,
-          "business_value": <float>,
-          "owner_dependency_score": <int>,
-          "key_event": "<what happens this month, or null>"
-        }
+        {"month": 1, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 6, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 12, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 24, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 36, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null}
       ],
-      "milestones": [
-        {"month": <int>, "event": "<milestone>", "impact": "<financial impact>"}
-      ],
-      "month_12_summary": {"revenue": <f>, "ebitda": <f>, "value": <f>, "owner_hours": <f>},
-      "month_24_summary": {"revenue": <f>, "ebitda": <f>, "value": <f>, "owner_hours": <f>},
-      "month_36_summary": {"revenue": <f>, "ebitda": <f>, "value": <f>, "owner_hours": <f>}
+      "milestones": [{"month": 0, "event": "", "impact": ""}],
+      "month_12_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0},
+      "month_24_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0},
+      "month_36_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0}
     },
-    "base": { "<same structure>" },
-    "aggressive": { "<same structure>" }
+    "base": {
+      "label": "Base Case",
+      "assumption": "<what causes this>",
+      "monthly_data": [
+        {"month": 1, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 6, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 12, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 24, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 36, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null}
+      ],
+      "milestones": [{"month": 0, "event": "", "impact": ""}],
+      "month_12_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0},
+      "month_24_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0},
+      "month_36_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0}
+    },
+    "aggressive": {
+      "label": "Aggressive",
+      "assumption": "<what causes this>",
+      "monthly_data": [
+        {"month": 1, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 6, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 12, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 24, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null},
+        {"month": 36, "revenue": 0, "ebitda": 0, "sde": 0, "owner_hours": 0, "customer_concentration_pct": 0, "recurring_revenue_pct": 0, "employees": 0, "cash_position": 0, "business_value": 0, "owner_dependency_score": 0, "key_event": null}
+      ],
+      "milestones": [{"month": 0, "event": "", "impact": ""}],
+      "month_12_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0},
+      "month_24_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0},
+      "month_36_summary": {"revenue": 0, "ebitda": 0, "value": 0, "owner_hours": 0}
+    }
   },
   "decision_analysis": [
-    {
-      "decision": "<decision name>",
-      "upfront_cost": <float>,
-      "monthly_cost": <float>,
-      "break_even_month": <int>,
-      "roi_36_month": "<X% return>",
-      "risks": ["<risk>"],
-      "prerequisites": ["<what must be in place first>"],
-      "j_curve": true
-    }
+    {"decision": "", "upfront_cost": 0, "monthly_cost": 0, "break_even_month": 0, "roi_36_month": "0%", "risks": [""], "prerequisites": [""], "j_curve": true}
   ],
-  "interdependencies": ["<decisions that affect each other>"],
-  "cash_requirements": {
-    "total_investment": <float>,
-    "peak_cash_need_month": <int>,
-    "peak_cash_amount": <float>,
-    "funding_options": ["<option>"]
-  },
-  "without_decisions": {
-    "month_36_value": <float>,
-    "month_36_revenue": <float>,
-    "note": "<what happens if they do nothing>"
-  }
-}"""
+  "interdependencies": [""],
+  "cash_requirements": {"total_investment": 0, "peak_cash_need_month": 0, "peak_cash_amount": 0, "funding_options": [""]},
+  "without_decisions": {"month_36_value": 0, "month_36_revenue": 0, "note": ""}
+}
 
+Fill in ALL zero values with real numbers based on the business data provided. Be specific and realistic. Keep all string values concise (under 80 chars). Return only the JSON object, nothing else."""
 
 def claude_business_forecast(
     # Current business state
@@ -2828,12 +2794,38 @@ DECISIONS TO MODEL:
 Build a full 36-month model with monthly data for all three scenarios.
 Show the J-curve where costs hit before benefits materialize.
 Be realistic — most small business initiatives take 2x longer and cost 1.5x more than planned.
-JSON only."""
+IMPORTANT: For monthly_data, only include months 1,3,6,9,12,15,18,21,24,27,30,33,36 (13 data points per scenario, not 36). Keep milestone and decision_analysis arrays concise. JSON only."""
 
-    text = _call_claude(FORECAST_SYSTEM, user_msg, max_tokens=4000)
+    text = _call_claude(FORECAST_SYSTEM, user_msg, max_tokens=7000)
+    if not text:
+        log.error("FORECAST: Claude returned empty response")
+        return None
+    log.warning(f"FORECAST: Raw response length={len(text)}, first 200 chars: {text[:200]}")
     result = _parse_json(text)
     if not result:
-        return None
+        log.error(f"FORECAST: JSON parse failed. Last 200 chars: {text[-200:]}")
+        # Try to salvage partial JSON
+        try:
+            import re as _re
+            # Find the outermost { } block
+            start = text.find('{')
+            if start >= 0:
+                # Count braces to find matching close
+                depth = 0
+                for idx in range(start, len(text)):
+                    if text[idx] == '{': depth += 1
+                    elif text[idx] == '}':
+                        depth -= 1
+                        if depth == 0:
+                            partial = text[start:idx+1]
+                            result = _parse_json(partial)
+                            if result:
+                                log.warning("FORECAST: Salvaged partial JSON")
+                                break
+        except Exception as parse_ex:
+            log.error(f"FORECAST: Salvage failed: {parse_ex}")
+        if not result:
+            return None
     result["_powered_by"] = "claude"
     result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
