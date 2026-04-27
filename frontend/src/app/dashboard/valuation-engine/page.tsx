@@ -98,6 +98,7 @@ export default function ValuationEnginePage() {
   const [result, setResult] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [deals, setDeals] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
   const [prefilling, setPrefilling] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -107,6 +108,7 @@ export default function ValuationEnginePage() {
   const [activeHistoryId, setActiveHistoryId] = useState<number | null>(null);
 
   useEffect(() => {
+    setMounted(true);
     loadHistory();
     loadDeals();
   }, []);
@@ -324,7 +326,7 @@ export default function ValuationEnginePage() {
                   Connect your bank, payroll, and upload tax returns for the most accurate valuation — or start with manual inputs.
                 </p>
                 {/* Deal selector */}
-                {deals.length > 0 && (
+                {mounted && deals.length > 0 && (
                   <div className="bg-white bg-opacity-10 rounded-xl p-4 mb-4">
                     <p className="text-sm font-semibold text-blue-200 mb-2">📂 Pre-fill from an existing deal submission</p>
                     {prefilling ? (
@@ -334,7 +336,7 @@ export default function ValuationEnginePage() {
                       </div>
                     ) : (
                       <div className="space-y-2">
-                        {deals.map((d: any) => (
+                        {(deals || []).map((d: any) => (
                           <button key={d.id} onClick={() => prefillFromDeal(d.id)}
                             className="w-full flex items-center justify-between bg-white bg-opacity-10 hover:bg-opacity-20 border border-white border-opacity-20 rounded-xl px-4 py-3 text-left transition-all">
                             <div>

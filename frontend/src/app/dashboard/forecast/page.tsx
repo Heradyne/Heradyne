@@ -42,6 +42,7 @@ const METRIC_OPTIONS = [
 export default function ForecastPage() {
   const [latestVal, setLatestVal] = useState<any>(null);
   const [deals, setDeals] = useState<any[]>([]);
+  const [mounted, setMounted] = useState(false);
   const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [showDecisionForm, setShowDecisionForm] = useState(false);
@@ -57,7 +58,11 @@ export default function ForecastPage() {
   const [customInputs, setCustomInputs] = useState<any>({});
   const [showCustomInputs, setShowCustomInputs] = useState(false);
 
-  useEffect(() => { loadData(); loadDeals(); }, []);
+  useEffect(() => {
+    setMounted(true);
+    loadData();
+    loadDeals();
+  }, []);
 
   const loadDeals = async () => {
     try {
@@ -218,7 +223,7 @@ export default function ForecastPage() {
           )}
 
           {/* Deal selector */}
-          {deals.length > 0 && (
+          {mounted && deals.length > 0 && (
             <div className="card">
               <p className="text-xs font-bold text-gray-500 uppercase mb-2">Pre-fill from Deal</p>
               <select value={selectedDeal?.deal_id || ''}
