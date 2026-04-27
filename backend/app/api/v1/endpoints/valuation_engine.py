@@ -25,6 +25,18 @@ from app.models.base import Base
 from app.services.claude_ai import claude_deep_valuation
 from app.services.audit import audit_service
 
+
+def _safe_asset_sum(deal, types):
+    """Safely sum asset values from encrypted business_assets field."""
+    try:
+        assets = deal.business_assets or []
+        return sum(
+            a.get('value', 0) for a in assets
+            if isinstance(a, dict) and a.get('type') in types
+        )
+    except Exception:
+        return 0
+
 router = APIRouter()
 
 
@@ -392,8 +404,9 @@ async def prefill_from_deal(
         addbacks_total = sum(a.get('amount', 0) for a in deal.addbacks if isinstance(a, dict))
 
     # SDE = normalized_sde from report or calculate manually
+    owner_draw = (rpt.owner_draw_annual if rpt and rpt.owner_draw_annual else 0)
     sde = (rpt.normalized_sde if rpt and rpt.normalized_sde else
-           (deal.ebitda + (deal.owner_draw_annual or 0) + addbacks_total))
+           (deal.ebitda + owner_draw + addbacks_total))
 
     return {
         "deal_id": deal_id,
@@ -404,18 +417,12 @@ async def prefill_from_deal(
             "annual_revenue": deal.annual_revenue,
             "gross_profit": deal.gross_profit or 0,
             "ebitda": deal.ebitda,
-            "owner_compensation": deal.owner_draw_annual or 0,
+            "owner_compensation": (rpt.owner_draw_annual if rpt and rpt.owner_draw_annual else 0),
             "owner_benefits": 0,
             "one_time_expenses": addbacks_total,
             "inventory_value": 0,
-            "equipment_value": sum(
-                a.get('value', 0) for a in (deal.business_assets or [])
-                if isinstance(a, dict) and a.get('type') in ('equipment', 'machinery', 'vehicle')
-            ) if deal.business_assets else 0,
-            "real_estate_value": sum(
-                a.get('value', 0) for a in (deal.business_assets or [])
-                if isinstance(a, dict) and a.get('type') == 'real_estate'
-            ) if deal.business_assets else 0,
+                "equipment_value": _safe_asset_sum(deal, ['equipment', 'machinery', 'vehicle']),
+            "real_estate_value": _safe_asset_sum(deal, ['real_estate']),
             "total_debt": deal.loan_amount_requested or 0,
             "cash_on_hand": 0,
             "years_in_business": deal.owner_experience_years or 0,
@@ -427,8 +434,8 @@ async def prefill_from_deal(
             "current_multiple": rpt.sde_multiple_implied if rpt else None,
             "has_tax_returns": any(
                 d.document_type == 'tax_return'
-                for d in deal.documents
-            ) if deal.documents else False,
+                for d in (deal.documents or [])
+            ) if hasattr(deal, 'documents') and deal.documents is not None else False,
         },
         # Pass through risk report data for context
         "risk_report": {
