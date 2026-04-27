@@ -1177,6 +1177,11 @@ class ApiClient {
     return response.data;
   }
 
+  async prefillValuationFromDeal(dealId: number): Promise<any> {
+    const response = await this.client.get(`/valuation-engine/from-deal/${dealId}`);
+    return response.data;
+  }
+
   async getLatestValuation(): Promise<any> {
     const response = await this.client.get('/valuation-engine/latest');
     return response.data;

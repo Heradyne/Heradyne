@@ -364,3 +364,80 @@ async def connect_payroll(
         "provider": data.provider,
         "message": f"{data.provider} connected. Re-run your valuation to include payroll data."
     }
+
+@router.get("/from-deal/{deal_id}")
+async def prefill_from_deal(
+    deal_id: int,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """Pre-fill valuation inputs from an existing deal submission."""
+    from app.models.deal import Deal, DealRiskReport
+
+    deal = db.query(Deal).filter(
+        Deal.id == deal_id,
+        Deal.borrower_id == current_user.id,
+    ).first()
+    if not deal:
+        raise HTTPException(status_code=404, detail="Deal not found")
+
+    # Get latest risk report for valuation data
+    rpt = db.query(DealRiskReport).filter(
+        DealRiskReport.deal_id == deal_id
+    ).order_by(DealRiskReport.version.desc()).first()
+
+    # Calculate addbacks total
+    addbacks_total = 0
+    if deal.addbacks:
+        addbacks_total = sum(a.get('amount', 0) for a in deal.addbacks if isinstance(a, dict))
+
+    # SDE = normalized_sde from report or calculate manually
+    sde = (rpt.normalized_sde if rpt and rpt.normalized_sde else
+           (deal.ebitda + (deal.owner_draw_annual or 0) + addbacks_total))
+
+    return {
+        "deal_id": deal_id,
+        "deal_name": deal.name,
+        "prefilled": {
+            "business_description": deal.business_description or f"{deal.name} — {deal.industry} business",
+            "industry": deal.industry,
+            "annual_revenue": deal.annual_revenue,
+            "gross_profit": deal.gross_profit or 0,
+            "ebitda": deal.ebitda,
+            "owner_compensation": deal.owner_draw_annual or 0,
+            "owner_benefits": 0,
+            "one_time_expenses": addbacks_total,
+            "inventory_value": 0,
+            "equipment_value": sum(
+                a.get('value', 0) for a in (deal.business_assets or [])
+                if isinstance(a, dict) and a.get('type') in ('equipment', 'machinery', 'vehicle')
+            ) if deal.business_assets else 0,
+            "real_estate_value": sum(
+                a.get('value', 0) for a in (deal.business_assets or [])
+                if isinstance(a, dict) and a.get('type') == 'real_estate'
+            ) if deal.business_assets else 0,
+            "total_debt": deal.loan_amount_requested or 0,
+            "cash_on_hand": 0,
+            "years_in_business": deal.owner_experience_years or 0,
+            "num_employees": 0,
+            "owner_hours_per_week": 50,
+            "growth_rate_pct": 0,
+            # From risk report if available
+            "current_value": rpt.equity_value_mid if rpt else None,
+            "current_multiple": rpt.sde_multiple_implied if rpt else None,
+            "has_tax_returns": any(
+                d.document_type == 'tax_return'
+                for d in deal.documents
+            ) if deal.documents else False,
+        },
+        # Pass through risk report data for context
+        "risk_report": {
+            "health_score": rpt.health_score if rpt else None,
+            "dscr": rpt.dscr_base if rpt else None,
+            "equity_value_low": rpt.equity_value_low if rpt else None,
+            "equity_value_mid": rpt.equity_value_mid if rpt else None,
+            "equity_value_high": rpt.equity_value_high if rpt else None,
+            "normalized_sde": rpt.normalized_sde if rpt else None,
+            "sde_multiple": rpt.sde_multiple_implied if rpt else None,
+        } if rpt else None,
+    }

@@ -41,6 +41,8 @@ const METRIC_OPTIONS = [
 
 export default function ForecastPage() {
   const [latestVal, setLatestVal] = useState<any>(null);
+  const [deals, setDeals] = useState<any[]>([]);
+  const [selectedDeal, setSelectedDeal] = useState<any>(null);
   const [decisions, setDecisions] = useState<any[]>([]);
   const [showDecisionForm, setShowDecisionForm] = useState(false);
   const [newDecision, setNewDecision] = useState<any>({ type: '', description: '', timeline_months: 12, investment_required: 0, revenue_impact_pct: 0, cost_impact: 0 });
@@ -55,7 +57,21 @@ export default function ForecastPage() {
   const [customInputs, setCustomInputs] = useState<any>({});
   const [showCustomInputs, setShowCustomInputs] = useState(false);
 
-  useEffect(() => { loadData(); }, []);
+  useEffect(() => { loadData(); loadDeals(); }, []);
+
+  const loadDeals = async () => {
+    try {
+      const data = await api.getDeals();
+      setDeals((data || []).filter((d: any) => d.status !== 'draft'));
+    } catch { /* silent */ }
+  };
+
+  const selectDeal = async (dealId: number) => {
+    try {
+      const data = await api.prefillValuationFromDeal(dealId);
+      setSelectedDeal(data);
+    } catch { /* silent */ }
+  };
 
   const loadData = async () => {
     try {
@@ -91,16 +107,18 @@ export default function ForecastPage() {
     setError('');
     try {
       const vs = latestVal?.valuation_summary || {};
+      const dealPrefill = selectedDeal?.prefilled || {};
+      const dealRpt = selectedDeal?.risk_report || {};
       const inputs = latestVal?.inputs || {};
       const od = latestVal?.owner_dependency || {};
 
       const payload = {
-        business_description: inputs.business_description || customInputs.business_description || 'Small business',
-        industry: inputs.industry || customInputs.industry || 'Services',
-        annual_revenue: inputs.annual_revenue || customInputs.annual_revenue || 0,
-        ebitda: inputs.ebitda || customInputs.ebitda || 0,
-        sde: vs.sde || customInputs.sde || 0,
-        current_value: vs.valuation_mid || customInputs.current_value || 0,
+        business_description: dealPrefill.business_description || inputs.business_description || customInputs.business_description || 'Small business',
+        industry: dealPrefill.industry || inputs.industry || customInputs.industry || 'Services',
+        annual_revenue: dealPrefill.annual_revenue || inputs.annual_revenue || customInputs.annual_revenue || 0,
+        ebitda: dealPrefill.ebitda || inputs.ebitda || customInputs.ebitda || 0,
+        sde: dealPrefill.normalized_sde || dealRpt.normalized_sde || vs.sde || customInputs.sde || 0,
+        current_value: dealRpt.equity_value_mid || vs.valuation_mid || customInputs.current_value || 0,
         owner_hours_per_week: inputs.owner_hours_per_week || customInputs.owner_hours || 40,
         num_employees: inputs.num_employees || customInputs.num_employees || 0,
         customer_concentration_pct: inputs.customer_concentration_pct || customInputs.customer_concentration_pct || 0,
@@ -196,6 +214,24 @@ export default function ForecastPage() {
                     className="input w-full text-sm py-1" />
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* Deal selector */}
+          {deals.length > 0 && (
+            <div className="card">
+              <p className="text-xs font-bold text-gray-500 uppercase mb-2">Pre-fill from Deal</p>
+              <select value={selectedDeal?.deal_id || ''}
+                onChange={e => e.target.value ? selectDeal(+e.target.value) : setSelectedDeal(null)}
+                className="input w-full text-sm">
+                <option value="">Use valuation data</option>
+                {deals.map((d: any) => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+              {selectedDeal && (
+                <p className="text-xs text-green-600 mt-1">✓ Using data from {selectedDeal.deal_name}</p>
+              )}
             </div>
           )}
 

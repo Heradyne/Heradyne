@@ -97,6 +97,9 @@ export default function ValuationEnginePage() {
   const [form, setForm] = useState(defaultForm);
   const [result, setResult] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
+  const [deals, setDeals] = useState<any[]>([]);
+  const [selectedDealId, setSelectedDealId] = useState<number | null>(null);
+  const [prefilling, setPrefilling] = useState(false);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
@@ -105,7 +108,43 @@ export default function ValuationEnginePage() {
 
   useEffect(() => {
     loadHistory();
+    loadDeals();
   }, []);
+
+  const loadDeals = async () => {
+    try {
+      const data = await api.getDeals();
+      const owned = (data || []).filter((d: any) => d.status !== 'draft');
+      setDeals(owned);
+    } catch { /* silent */ }
+  };
+
+  const prefillFromDeal = async (dealId: number) => {
+    setPrefilling(true);
+    try {
+      const data = await api.prefillValuationFromDeal(dealId);
+      const p = data.prefilled;
+      setForm(prev => ({
+        ...prev,
+        business_description: p.business_description || prev.business_description,
+        industry: p.industry || prev.industry,
+        annual_revenue: p.annual_revenue ? String(p.annual_revenue) : prev.annual_revenue,
+        gross_profit: p.gross_profit ? String(p.gross_profit) : prev.gross_profit,
+        ebitda: p.ebitda ? String(p.ebitda) : prev.ebitda,
+        owner_compensation: p.owner_compensation ? String(p.owner_compensation) : prev.owner_compensation,
+        owner_benefits: p.owner_benefits ? String(p.owner_benefits) : prev.owner_benefits,
+        one_time_expenses: p.one_time_expenses ? String(p.one_time_expenses) : prev.one_time_expenses,
+        equipment_value: p.equipment_value ? String(p.equipment_value) : prev.equipment_value,
+        real_estate_value: p.real_estate_value ? String(p.real_estate_value) : prev.real_estate_value,
+        total_debt: p.total_debt ? String(p.total_debt) : prev.total_debt,
+        years_in_business: p.years_in_business ? String(p.years_in_business) : prev.years_in_business,
+        has_tax_returns: p.has_tax_returns || prev.has_tax_returns,
+      }));
+      setSelectedDealId(dealId);
+      setStep('business');
+    } catch { /* silent */ }
+    finally { setPrefilling(false); }
+  };
 
   const loadHistory = async () => {
     try {
@@ -284,8 +323,30 @@ export default function ValuationEnginePage() {
                 <p className="text-sm text-slate-400 mb-4">
                   Connect your bank, payroll, and upload tax returns for the most accurate valuation — or start with manual inputs.
                 </p>
+                {/* Deal selector */}
+                {deals.length > 0 && (
+                  <div className="bg-white bg-opacity-10 rounded-xl p-4 mb-4">
+                    <p className="text-sm font-semibold text-blue-200 mb-2">📂 Pre-fill from an existing deal submission</p>
+                    <div className="flex gap-2">
+                      <select
+                        value={selectedDealId || ''}
+                        onChange={e => e.target.value && prefillFromDeal(+e.target.value)}
+                        className="flex-1 bg-white bg-opacity-20 border border-white border-opacity-20 rounded-lg px-3 py-2 text-white text-sm"
+                      >
+                        <option value="" className="text-gray-900">Select a deal to pre-fill...</option>
+                        {deals.map((d: any) => (
+                          <option key={d.id} value={d.id} className="text-gray-900">
+                            {d.name} — {d.industry}
+                          </option>
+                        ))}
+                      </select>
+                      {prefilling && <Loader className="h-5 w-5 animate-spin text-white self-center shrink-0" />}
+                    </div>
+                    {selectedDealId && <p className="text-xs text-green-300 mt-1">✓ Deal data pre-filled — review and adjust below</p>}
+                  </div>
+                )}
                 <button onClick={() => setStep('business')} className="btn bg-white text-slate-900 hover:bg-gray-100 font-semibold px-8 py-3 inline-flex items-center gap-2">
-                  Start Valuation <ChevronRight className="h-5 w-5" />
+                  {selectedDealId ? 'Review Pre-filled Data' : 'Start Valuation'} <ChevronRight className="h-5 w-5" />
                 </button>
               </div>
 
