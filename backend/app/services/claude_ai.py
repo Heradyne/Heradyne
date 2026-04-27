@@ -2443,3 +2443,225 @@ Flag any section that requires attorney review before signing. JSON only."""
     result["_powered_by"] = "claude"
     result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 29: Deep Business Valuation Engine ─────────────────────────────────
+
+DEEP_VALUATION_SYSTEM = """You are a certified business valuator and M&A advisor specializing in small business acquisitions.
+
+Your job is to:
+1. Value the business using all applicable methods
+2. Identify the REAL multiple drivers — what specifically makes this business worth more or less
+3. Score owner dependency (the #1 value killer in small business)
+4. Give specific, numbered steps to increase the multiple
+5. Project what the business could be worth in 12, 24, and 36 months if the owner executes
+
+Industry multiples context (SDE basis, main street businesses):
+- Service businesses: 1.5–3.5x SDE
+- Retail: 1.5–2.5x SDE  
+- Restaurant/Food: 1.5–2.5x SDE
+- Manufacturing: 2.5–4x EBITDA
+- Technology/SaaS: 3–8x revenue or 5–15x EBITDA
+- Healthcare services: 3–5x EBITDA
+- Home services: 2–3.5x SDE
+- Professional services: 1.5–3x SDE
+- Distribution/Wholesale: 2–3.5x EBITDA
+
+Multiple EXPANDERS (increase value):
+- Recurring revenue (subscriptions, contracts, retainers) → +0.5–1.5x
+- Low owner hours (<30/week) → +0.5–1x
+- Documented processes/SOPs → +0.25–0.5x
+- Tenured management team → +0.5–1x
+- Customer diversification (<20% from one customer) → +0.25–0.5x
+- Strong revenue growth (>15% YoY) → +0.5–1x
+- Clean books / accurate financials → +0.25–0.5x
+- Transferable contracts/licenses → +0.25–0.5x
+
+Multiple KILLERS (reduce value):
+- Owner works 60+ hours/week → -0.5–1x
+- Single customer >40% revenue → -0.5–1x
+- Declining revenue → -0.5–1.5x
+- No written processes → -0.25–0.5x
+- Key person dependency beyond owner → -0.25–0.5x
+- Poor recordkeeping → -0.5–1x
+
+Rules:
+1. Use ACTUAL numbers — never say "increase revenue" without saying by how much
+2. Connect every suggestion to a specific multiple impact (e.g., "adding recurring revenue could add 0.75x to your multiple = $X more in value")
+3. Owner dependency score: 0 = completely dependent (worth almost nothing without you), 100 = fully systemized (could sell tomorrow)
+4. Be honest but constructive — don't sugarcoat, but show a path forward
+5. Give the 3 highest-leverage moves first
+
+Respond with valid JSON only. No markdown.
+
+{
+  "valuation_summary": {
+    "sde": <float>,
+    "sde_calculation": "<show the math: revenue - expenses + owner comp + addbacks>",
+    "ebitda": <float>,
+    "valuation_low": <float>,
+    "valuation_mid": <float>,
+    "valuation_high": <float>,
+    "primary_method": "<which method dominates and why>",
+    "implied_multiple_low": <float>,
+    "implied_multiple_mid": <float>,
+    "implied_multiple_high": <float>
+  },
+  "valuation_methods": [
+    {
+      "method": "<SDE Multiple | EBITDA Multiple | DCF | Revenue Multiple | Asset-Based>",
+      "value": <float>,
+      "multiple_used": <float>,
+      "rationale": "<why this multiple for this business>",
+      "weight": <0-1 float, weights should sum to 1>
+    }
+  ],
+  "owner_dependency": {
+    "score": <0-100>,
+    "grade": "<A|B|C|D|F>",
+    "headline": "<one sentence — what this score means>",
+    "risk_factors": [
+      {"factor": "<specific dependency>", "impact": "<how it affects value and saleability>", "severity": "<high|medium|low>"}
+    ],
+    "buyer_concerns": ["<what a buyer will say when they find this out>"]
+  },
+  "multiple_drivers": {
+    "current_multiple": <float>,
+    "expanders_present": [{"factor": "<n>", "value_added": "<$X or Xx>", "explanation": "<why>"}],
+    "killers_present": [{"factor": "<n>", "value_lost": "<$X or Xx>", "explanation": "<why>"}]
+  },
+  "improvement_roadmap": [
+    {
+      "rank": <1-10>,
+      "action": "<specific action title>",
+      "category": "<owner_dependency|recurring_revenue|processes|team|customers|financials|growth>",
+      "current_state": "<where they are now with specific data>",
+      "target_state": "<realistic target>",
+      "multiple_impact": "+Xx to your multiple",
+      "value_impact_dollars": <float>,
+      "effort": "<low|medium|high>",
+      "time_to_impact": "<30 days|90 days|6 months|12 months>",
+      "specific_steps": ["<step 1>", "<step 2>", "<step 3>"]
+    }
+  ],
+  "projections": {
+    "current_value": <float>,
+    "12_month": {
+      "value": <float>,
+      "assumptions": ["<what needs to happen>"],
+      "key_action": "<the one thing to focus on>"
+    },
+    "24_month": {
+      "value": <float>,
+      "assumptions": ["<what needs to happen>"]
+    },
+    "36_month": {
+      "value": <float>,
+      "assumptions": ["<what needs to happen>"]
+    }
+  },
+  "data_quality": {
+    "confidence": "<low|medium|high>",
+    "missing_data": ["<what would improve the valuation>"],
+    "assumptions_made": ["<assumption 1>"]
+  },
+  "executive_summary": "<3-4 sentences a business owner can understand — current value, biggest lever, realistic upside>"
+}"""
+
+
+def claude_deep_valuation(
+    # Business description
+    business_description: str,
+    industry: str,
+    years_in_business: int,
+    num_employees: int,
+    owner_hours_per_week: int,
+    owner_role_description: str,
+    key_customers: str,
+    customer_concentration_pct: float,
+    recurring_revenue_pct: float,
+    has_written_processes: bool,
+    has_management_team: bool,
+    growth_rate_pct: float,
+    # Financials
+    annual_revenue: float,
+    gross_profit: float,
+    ebitda: float,
+    owner_compensation: float,
+    owner_benefits: float,
+    one_time_expenses: float,
+    inventory_value: float,
+    equipment_value: float,
+    real_estate_value: float,
+    total_debt: float,
+    cash_on_hand: float,
+    # Data sources
+    has_tax_returns: bool,
+    has_bank_connection: bool,
+    has_payroll_connection: bool,
+    tax_return_years: list,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+
+    sde_estimate = (
+        _n(ebitda) + _n(owner_compensation) + _n(owner_benefits) + _n(one_time_expenses)
+    )
+
+    data_sources = []
+    if has_tax_returns:
+        data_sources.append(f"Tax returns: {tax_return_years}")
+    if has_bank_connection:
+        data_sources.append("Bank account data connected")
+    if has_payroll_connection:
+        data_sources.append("Payroll data connected")
+    if not data_sources:
+        data_sources.append("Manual owner input only")
+
+    user_msg = f"""Value this business and provide a complete improvement roadmap.
+
+BUSINESS OVERVIEW:
+Description: {business_description}
+Industry: {industry}
+Years in Business: {years_in_business}
+Employees: {num_employees}
+
+OWNER PROFILE:
+Hours/Week: {owner_hours_per_week}
+Role: {owner_role_description}
+Has Written Processes/SOPs: {has_written_processes}
+Has Management Team: {has_management_team}
+
+CUSTOMERS:
+Key Customers: {key_customers}
+Top Customer Concentration: {_n(customer_concentration_pct):.0f}% of revenue
+Recurring Revenue: {_n(recurring_revenue_pct):.0f}% of revenue
+
+FINANCIALS:
+Annual Revenue: ${_n(annual_revenue):,.0f}
+Gross Profit: ${_n(gross_profit):,.0f} ({round(_n(gross_profit)/_n(annual_revenue)*100,1) if annual_revenue else 0}% margin)
+EBITDA: ${_n(ebitda):,.0f} ({round(_n(ebitda)/_n(annual_revenue)*100,1) if annual_revenue else 0}% margin)
+Owner Compensation (all-in): ${_n(owner_compensation):,.0f}
+Owner Benefits & Perks: ${_n(owner_benefits):,.0f}
+One-Time/Non-Recurring Expenses: ${_n(one_time_expenses):,.0f}
+Estimated SDE: ${sde_estimate:,.0f}
+YoY Revenue Growth: {_n(growth_rate_pct):.1f}%
+
+ASSETS & LIABILITIES:
+Inventory: ${_n(inventory_value):,.0f}
+Equipment: ${_n(equipment_value):,.0f}
+Real Estate: ${_n(real_estate_value):,.0f}
+Total Debt: ${_n(total_debt):,.0f}
+Cash on Hand: ${_n(cash_on_hand):,.0f}
+
+DATA SOURCES: {', '.join(data_sources)}
+
+Value this business using all applicable methods. Score owner dependency brutally honestly.
+Give the top 5 highest-leverage actions to increase value, with specific dollar impact.
+Project value at 12, 24, and 36 months if owner executes. JSON only."""
+
+    text = _call_claude(DEEP_VALUATION_SYSTEM, user_msg, max_tokens=4000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

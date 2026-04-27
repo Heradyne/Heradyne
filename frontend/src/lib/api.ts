@@ -1165,6 +1165,38 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Business Valuation Engine ─────────────────────────────────────────────
+  async runValuation(data: any): Promise<any> {
+    const response = await this.client.post('/valuation-engine/valuate', data, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getValuationHistory(): Promise<any> {
+    const response = await this.client.get('/valuation-engine/history');
+    return response.data;
+  }
+
+  async getLatestValuation(): Promise<any> {
+    const response = await this.client.get('/valuation-engine/latest');
+    return response.data;
+  }
+
+  async getValuationById(id: number): Promise<any> {
+    const response = await this.client.get(`/valuation-engine/${id}`);
+    return response.data;
+  }
+
+  async connectBankAccount(provider: string): Promise<any> {
+    const response = await this.client.post('/valuation-engine/connect-bank', { provider });
+    return response.data;
+  }
+
+  async connectPayroll(provider: string): Promise<any> {
+    const response = await this.client.post('/valuation-engine/connect-payroll', { provider });
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();
