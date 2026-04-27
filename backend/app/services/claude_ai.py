@@ -2665,3 +2665,175 @@ Project value at 12, 24, and 36 months if owner executes. JSON only."""
     result["_powered_by"] = "claude"
     result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
     return result
+
+# ── ENGINE 30: Business Decision Forecaster ───────────────────────────────────
+
+FORECAST_SYSTEM = """You are a financial modeler and business strategist building a detailed forecast for a small business owner.
+
+The owner is considering specific decisions. Your job is to model exactly what happens to their business over 36 months if they execute each decision — or combination of decisions.
+
+You must model these metrics monthly:
+1. Revenue (with growth rates and seasonality if relevant)
+2. EBITDA and EBITDA margin
+3. SDE (Seller's Discretionary Earnings)
+4. Owner hours per week
+5. Customer concentration % (top customer)
+6. Recurring revenue %
+7. Employee count
+8. Cash position
+9. Business value (estimated, using appropriate multiple)
+10. Owner dependency score (0-100)
+
+Decision types and their typical effects:
+- HIRE_MANAGER: +$80-150K salary cost, -15-25 owner hours/week, +0.3-0.8 owner dependency score over 12 months, enables growth
+- ADD_SERVICE_LINE: +X% revenue after 6-9 month ramp, +margin impact, requires capital
+- CUT_COST_CENTER: immediate EBITDA improvement, potential revenue risk
+- RAISE_PRICES: immediate revenue/margin improvement, potential churn risk (model both outcomes)
+- ADD_RECURRING: revenue shift to recurring over time, multiple expansion, lower churn
+- REDUCE_CUSTOMER_CONCENTRATION: diversification takes 12-18 months, reduces risk multiple penalty
+- HIRE_SALES: 6-12 month ramp, +X% revenue after ramp, salary cost
+- DOCUMENT_PROCESSES: 3-6 month effort, +owner dependency score, enables delegation
+- ACQUIRE_BUSINESS: immediate revenue add, integration costs, synergies over time
+- REDUCE_OWNER_HOURS: model the constraint — what needs to be in place first
+
+Rules:
+1. Use actual numbers from the business — never use round numbers without justification
+2. Model the COST of each decision (time, money, distraction) not just the upside
+3. Show the J-curve: many decisions get worse before they get better
+4. Month 1-6 is typically execution/cost, Month 6-18 is inflection, Month 18-36 is harvest
+5. Run THREE scenarios for each set of decisions:
+   - Conservative (things take longer, cost more)
+   - Base case (as planned)
+   - Aggressive (everything works perfectly)
+6. Flag interdependencies: "you can't do A and B simultaneously"
+7. Show the valuation impact at Month 12, 24, and 36 for each scenario
+
+Respond with valid JSON only. No markdown.
+
+{
+  "forecast_summary": {
+    "decisions_modeled": ["<decision>"],
+    "horizon_months": 36,
+    "key_insight": "<the most important thing the owner should know>",
+    "recommended_sequence": "<if multiple decisions, what order and why>"
+  },
+  "scenarios": {
+    "conservative": {
+      "label": "Conservative",
+      "assumption": "<what would make this happen>",
+      "monthly_data": [
+        {
+          "month": 1,
+          "revenue": <float>,
+          "ebitda": <float>,
+          "sde": <float>,
+          "owner_hours": <float>,
+          "customer_concentration_pct": <float>,
+          "recurring_revenue_pct": <float>,
+          "employees": <int>,
+          "cash_position": <float>,
+          "business_value": <float>,
+          "owner_dependency_score": <int>,
+          "key_event": "<what happens this month, or null>"
+        }
+      ],
+      "milestones": [
+        {"month": <int>, "event": "<milestone>", "impact": "<financial impact>"}
+      ],
+      "month_12_summary": {"revenue": <f>, "ebitda": <f>, "value": <f>, "owner_hours": <f>},
+      "month_24_summary": {"revenue": <f>, "ebitda": <f>, "value": <f>, "owner_hours": <f>},
+      "month_36_summary": {"revenue": <f>, "ebitda": <f>, "value": <f>, "owner_hours": <f>}
+    },
+    "base": { "<same structure>" },
+    "aggressive": { "<same structure>" }
+  },
+  "decision_analysis": [
+    {
+      "decision": "<decision name>",
+      "upfront_cost": <float>,
+      "monthly_cost": <float>,
+      "break_even_month": <int>,
+      "roi_36_month": "<X% return>",
+      "risks": ["<risk>"],
+      "prerequisites": ["<what must be in place first>"],
+      "j_curve": true
+    }
+  ],
+  "interdependencies": ["<decisions that affect each other>"],
+  "cash_requirements": {
+    "total_investment": <float>,
+    "peak_cash_need_month": <int>,
+    "peak_cash_amount": <float>,
+    "funding_options": ["<option>"]
+  },
+  "without_decisions": {
+    "month_36_value": <float>,
+    "month_36_revenue": <float>,
+    "note": "<what happens if they do nothing>"
+  }
+}"""
+
+
+def claude_business_forecast(
+    # Current business state
+    business_description: str,
+    industry: str,
+    annual_revenue: float,
+    ebitda: float,
+    sde: float,
+    current_value: float,
+    owner_hours_per_week: float,
+    num_employees: int,
+    customer_concentration_pct: float,
+    recurring_revenue_pct: float,
+    owner_dependency_score: int,
+    current_multiple: float,
+    cash_on_hand: float,
+    growth_rate_pct: float,
+    # Decisions to model
+    decisions: list,
+) -> Optional[dict]:
+    _n = lambda v: v or 0
+
+    decisions_text = "\n".join([
+        f"- {d.get('type', 'UNKNOWN')}: {d.get('description', '')} "
+        f"(Timeline: {d.get('timeline_months', 12)} months, "
+        f"Investment: ${_n(d.get('investment_required', 0)):,.0f}, "
+        f"Expected revenue impact: {d.get('revenue_impact_pct', 0)}%, "
+        f"Expected cost impact: ${_n(d.get('cost_impact', 0)):,.0f}/mo)"
+        for d in decisions
+    ])
+
+    user_msg = f"""Build a 36-month financial forecast for this business modeling specific owner decisions.
+
+CURRENT BUSINESS STATE:
+Description: {business_description}
+Industry: {industry}
+Annual Revenue: ${_n(annual_revenue):,.0f}
+EBITDA: ${_n(ebitda):,.0f} ({round(_n(ebitda)/_n(annual_revenue)*100,1) if annual_revenue else 0}% margin)
+SDE: ${_n(sde):,.0f}
+Current Business Value: ${_n(current_value):,.0f}
+Current Multiple: {_n(current_multiple):.2f}x SDE
+Owner Hours/Week: {_n(owner_hours_per_week)}
+Employees: {_n(num_employees)}
+Customer Concentration (top customer): {_n(customer_concentration_pct):.0f}%
+Recurring Revenue: {_n(recurring_revenue_pct):.0f}%
+Owner Dependency Score: {_n(owner_dependency_score)}/100
+Cash on Hand: ${_n(cash_on_hand):,.0f}
+Current Growth Rate: {_n(growth_rate_pct):.1f}%
+
+DECISIONS TO MODEL:
+{decisions_text if decisions_text else "No specific decisions — model organic growth baseline only"}
+
+Build a full 36-month model with monthly data for all three scenarios.
+Show the J-curve where costs hit before benefits materialize.
+Be realistic — most small business initiatives take 2x longer and cost 1.5x more than planned.
+JSON only."""
+
+    text = _call_claude(FORECAST_SYSTEM, user_msg, max_tokens=4000)
+    result = _parse_json(text)
+    if not result:
+        return None
+    result["_powered_by"] = "claude"
+    result["generated_at"] = __import__("datetime").datetime.utcnow().isoformat()
+    return result

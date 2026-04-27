@@ -1197,6 +1197,23 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Business Forecaster ───────────────────────────────────────────────────
+  async runForecast(data: any): Promise<any> {
+    const response = await this.client.post('/forecast/run', data, { timeout: 120000 });
+    return response.data;
+  }
+
+  async getForecastHistory(): Promise<any> {
+    const response = await this.client.get('/forecast/history');
+    return response.data;
+  }
+
+  async getForecastById(id: number): Promise<any> {
+    const response = await this.client.get(`/forecast/${id}`);
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();
