@@ -9,7 +9,7 @@ import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
   ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList, FileBarChart,
-  AlertCircle, LayoutDashboard, AlertTriangle, Package
+  AlertCircle, LayoutDashboard, AlertTriangle, Package, MessageSquare, Zap
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { NotificationBell } from '@/components/notification-bell';
@@ -48,11 +48,6 @@ const NAV_DEFINITIONS = {
     { id: 'sba-compliance',  name: 'SBA Compliance',   href: '/dashboard/sba-compliance',    icon: Scale,       always: false },
     { id: 'committee',       name: 'Committee Deck',   href: '/dashboard/committee',         icon: LayoutDashboard, always: false },
     { id: 'guaranty',        name: 'Guaranty Package', href: '/dashboard/guaranty',          icon: AlertCircle, always: false },
-    { id: 'pipeline',        name: 'Deal Pipeline',     href: '/dashboard/pipeline',          icon: LayoutDashboard, always: false },
-    { id: 'comms-hub',       name: 'Comms Hub',         href: '/dashboard/comms-hub',         icon: MessageSquare,   always: false },
-    { id: 'portfolio-heatmap',name: 'Portfolio Heat Map',href: '/dashboard/portfolio-heatmap', icon: BarChart3,       always: false },
-    { id: 'stress-test',     name: 'Stress Test',       href: '/dashboard/stress-test',       icon: Zap,             always: false },
-    { id: 'sba-wizard',      name: 'SBA Package Wizard',href: '/dashboard/sba-wizard',        icon: FileText,        always: false },
     { id: 'ai-agent',        name: 'AI Underwriter',   href: '/dashboard/ai-agent',          icon: Brain,       always: false },
     { id: 'financials',      name: 'Financials',       href: '/dashboard/financials',        icon: DollarSign,  always: false },
     { id: 'secondary-market',name: 'Secondary Market', href: '/dashboard/secondary-market',  icon: TrendingUp,  always: false },
