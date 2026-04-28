@@ -1219,6 +1219,81 @@ class ApiClient {
     return response.data;
   }
 
+
+  // ── Pipeline CRM ──────────────────────────────────────────────────────────
+  async getPipeline(): Promise<any> {
+    const response = await this.client.get('/pipeline/');
+    return response.data;
+  }
+  async updatePipelineStage(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/pipeline/${dealId}/stage`, data);
+    return response.data;
+  }
+  async setPipelineReminder(dealId: number, data: any): Promise<any> {
+    const response = await this.client.put(`/pipeline/${dealId}/reminder`, data);
+    return response.data;
+  }
+  async getPipelineStats(): Promise<any> {
+    const response = await this.client.get('/pipeline/stats');
+    return response.data;
+  }
+
+  // ── Communications Hub ────────────────────────────────────────────────────
+  async getDealThreads(dealId: number): Promise<any> {
+    const response = await this.client.get(`/comms/${dealId}/threads`);
+    return response.data;
+  }
+  async createThread(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/comms/${dealId}/threads`, data);
+    return response.data;
+  }
+  async getThreadMessages(threadId: number): Promise<any> {
+    const response = await this.client.get(`/comms/threads/${threadId}/messages`);
+    return response.data;
+  }
+  async sendMessage(threadId: number, body: string): Promise<any> {
+    const response = await this.client.post(`/comms/threads/${threadId}/messages`, { body });
+    return response.data;
+  }
+  async resolveThread(threadId: number): Promise<any> {
+    const response = await this.client.put(`/comms/threads/${threadId}/resolve`, {});
+    return response.data;
+  }
+  async createDocRequest(dealId: number, data: any): Promise<any> {
+    const response = await this.client.post(`/comms/${dealId}/doc-request`, data);
+    return response.data;
+  }
+  async getDocRequest(dealId: number): Promise<any> {
+    const response = await this.client.get(`/comms/${dealId}/doc-request`);
+    return response.data;
+  }
+  async updateDocItem(reqId: number, itemIndex: number, completed: boolean): Promise<any> {
+    const response = await this.client.put(`/comms/doc-request/${reqId}/item`, { item_index: itemIndex, completed });
+    return response.data;
+  }
+
+  // ── Portfolio Tools ───────────────────────────────────────────────────────
+  async getPortfolioHeatmap(): Promise<any> {
+    const response = await this.client.get('/portfolio-tools/heatmap');
+    return response.data;
+  }
+  async getPortfolioBenchmarks(): Promise<any> {
+    const response = await this.client.get('/portfolio-tools/benchmarks');
+    return response.data;
+  }
+  async runStressTest(data: any): Promise<any> {
+    const response = await this.client.post('/portfolio-tools/stress-test', data);
+    return response.data;
+  }
+  async getStressTests(): Promise<any> {
+    const response = await this.client.get('/portfolio-tools/stress-tests');
+    return response.data;
+  }
+  async getSBAWizard(dealId: number): Promise<any> {
+    const response = await this.client.get(`/portfolio-tools/sba-wizard/${dealId}`);
+    return response.data;
+  }
+
 }
 
 export const api = new ApiClient();

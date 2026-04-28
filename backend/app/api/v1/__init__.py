@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import underwriting, predeal, portfolio_reserve, sba_diligence, support_indication, qsbs_eval, deal_chat, admin_reseed, diligence, ai_features, servicing, compliance, employee_kpi, sprint4, business_value, leaseback, notifications, valuation_engine, forecast
+from app.api.v1.endpoints import underwriting, predeal, portfolio_reserve, sba_diligence, support_indication, qsbs_eval, deal_chat, admin_reseed, diligence, ai_features, servicing, compliance, employee_kpi, sprint4, business_value, leaseback, notifications, valuation_engine, forecast, pipeline, comms, portfolio_tools
 from app.api.v1.endpoints import auth, users, deals, policies, matching, cashflow, assumptions, audit, financial, secondary_market, origination, signature_documents, default_protection, collateral, verification, reinsurance, ai_agent, sba_compliance, actuarial
 
 api_router = APIRouter()
@@ -44,6 +44,9 @@ api_router.include_router(leaseback.router, prefix="/leaseback", tags=["Leasebac
 api_router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
 api_router.include_router(valuation_engine.router, prefix="/valuation-engine", tags=["Valuation Engine"])
 api_router.include_router(forecast.router, prefix="/forecast", tags=["Forecast"])
+api_router.include_router(pipeline.router, prefix="/pipeline", tags=["Pipeline CRM"])
+api_router.include_router(comms.router, prefix="/comms", tags=["Communications"])
+api_router.include_router(portfolio_tools.router, prefix="/portfolio-tools", tags=["Portfolio Tools"])
 
 api_router.include_router(admin_reseed.router, prefix="/admin", tags=["Admin"])
 api_router.include_router(diligence.router, prefix="", tags=["Section 2 — Full Diligence"])
