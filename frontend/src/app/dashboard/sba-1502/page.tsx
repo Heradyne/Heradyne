@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { FileText, Loader, RefreshCw, CheckCircle, AlertTriangle, XCircle, Send, ChevronDown, ChevronUp, X, Printer } from 'lucide-react';
+import { FileText, Loader, RefreshCw, CheckCircle, AlertTriangle, XCircle, Send, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -232,9 +232,8 @@ export default function SBA1502Page() {
                 {/* Submit button */}
                 {activeReport.status !== 'submitted' && (
                   <div className="mt-4 flex items-center gap-3">
-                    <button onClick={() => setShowPreview(true)}
-                      className="btn btn-secondary inline-flex items-center gap-2">
-                      <Printer className="h-4 w-4" /> Preview Report
+                    <button onClick={() => setShowPreview(true)} className="btn btn-secondary inline-flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> Preview Report
                     </button>
                     {activeReport.ready_to_submit ? (
                       <button onClick={() => submitReport(activeReport.report_id)} disabled={submitting}
@@ -253,9 +252,8 @@ export default function SBA1502Page() {
                       <CheckCircle className="h-5 w-5" />
                       <p className="text-sm font-medium">Submitted to SBA</p>
                     </div>
-                    <button onClick={() => setShowPreview(true)}
-                      className="btn btn-secondary text-sm inline-flex items-center gap-2">
-                      <Printer className="h-4 w-4" /> View Report
+                    <button onClick={() => setShowPreview(true)} className="btn btn-secondary text-sm inline-flex items-center gap-2">
+                      <FileText className="h-4 w-4" /> View Report
                     </button>
                   </div>
                 )}
@@ -324,14 +322,11 @@ export default function SBA1502Page() {
           )}
         </div>
       </div>
-    </div>
 
       {/* ── 1502 Preview Modal ── */}
       {showPreview && activeReport && (
         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-start justify-center z-50 overflow-y-auto py-8 px-4">
           <div className="bg-white w-full max-w-4xl rounded-2xl shadow-2xl">
-
-            {/* Modal toolbar */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 sticky top-0 bg-white rounded-t-2xl z-10">
               <div>
                 <h2 className="font-bold text-gray-900">SBA Form 1502 — {activeReport.report_month}</h2>
@@ -339,189 +334,124 @@ export default function SBA1502Page() {
               </div>
               <div className="flex gap-2">
                 <button onClick={() => window.print()} className="btn btn-secondary text-sm inline-flex items-center gap-2">
-                  <Printer className="h-4 w-4" /> Print / PDF
+                  <FileText className="h-4 w-4" /> Print / PDF
                 </button>
-                <button onClick={() => setShowPreview(false)} className="btn btn-secondary text-sm inline-flex items-center gap-1">
-                  <X className="h-4 w-4" /> Close
-                </button>
+                <button onClick={() => setShowPreview(false)} className="btn btn-secondary text-sm"><X className="h-4 w-4" /></button>
               </div>
             </div>
 
-            {/* Formal SBA 1502 layout */}
-            <div className="p-8 text-sm" style={{ fontFamily: 'Georgia, serif' }}>
-
-              {/* Form title block */}
+            <div className="p-8 text-sm">
               <div className="border-2 border-gray-800 p-5 mb-6">
                 <div className="flex justify-between items-start">
                   <div>
                     <p className="text-xs text-gray-500 uppercase tracking-widest">U.S. Small Business Administration</p>
-                    <h1 className="text-2xl font-bold mt-1">SBA FORM 1502</h1>
+                    <h2 className="text-2xl font-bold mt-1">SBA FORM 1502</h2>
                     <p className="text-sm text-gray-600">Guaranteed Loan Status Report</p>
                   </div>
                   <div className="text-right text-xs text-gray-500">
-                    <p>OMB Approval No. 3245-0017</p>
-                    <p className="mt-1">Reporting Period: <strong className="text-gray-800">{activeReport.report_month}</strong></p>
+                    <p>Reporting Period: <strong>{activeReport.report_month}</strong></p>
                     <p className="mt-1">Status: <strong className={activeReport.status === 'submitted' ? 'text-green-700' : 'text-yellow-700'}>{(activeReport.status || 'DRAFT').toUpperCase()}</strong></p>
                   </div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-6 mt-5 pt-4 border-t border-gray-300">
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Lender / Institution</p>
-                    <p className="text-base font-semibold">{activeReport.lender_id_placeholder || '— Not specified —'}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-gray-500 uppercase mb-1">Date Prepared</p>
-                    <p className="text-base">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                  </div>
+                  <div><p className="text-xs font-bold text-gray-500 uppercase mb-1">Lender</p><p className="font-semibold">{activeReport.lender_id_placeholder || '—'}</p></div>
+                  <div><p className="text-xs font-bold text-gray-500 uppercase mb-1">Date Prepared</p><p>{new Date().toLocaleDateString()}</p></div>
                 </div>
               </div>
 
-              {/* Part I — Portfolio Summary */}
               <div className="mb-6">
-                <div className="bg-gray-800 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest mb-0">
-                  PART I — PORTFOLIO SUMMARY
-                </div>
+                <div className="bg-gray-800 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest">PART I — PORTFOLIO SUMMARY</div>
                 <table className="w-full border border-gray-300 text-sm">
                   <tbody>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-2 text-gray-600 w-1/2">Total Number of Active SBA Loans</td>
-                      <td className="px-4 py-2 font-bold text-right">{activeReport.summary?.total_loans || 0}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <td className="px-4 py-2 text-gray-600">Total Outstanding Principal Balance</td>
-                      <td className="px-4 py-2 font-bold text-right">{formatCurrency(activeReport.summary?.total_outstanding_balance || 0)}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200">
-                      <td className="px-4 py-2 text-gray-600">Total SBA Guaranteed Balance (75%)</td>
-                      <td className="px-4 py-2 font-bold text-right text-blue-700">{formatCurrency(activeReport.summary?.total_guaranteed_balance || 0)}</td>
-                    </tr>
-                    <tr className="border-b border-gray-200 bg-gray-50">
-                      <td className="px-4 py-2 text-gray-600">Loans 30+ Days Past Due (Delinquent)</td>
-                      <td className={`px-4 py-2 font-bold text-right ${(activeReport.summary?.delinquent_loans || 0) > 0 ? 'text-red-700' : 'text-green-700'}`}>
-                        {activeReport.summary?.delinquent_loans || 0}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-2 text-gray-600">Loans in Default / Charged Off</td>
-                      <td className={`px-4 py-2 font-bold text-right ${(activeReport.summary?.default_loans || 0) > 0 ? 'text-red-700' : 'text-green-700'}`}>
-                        {activeReport.summary?.default_loans || 0}
-                      </td>
-                    </tr>
+                    {[
+                      ['Total Number of Active SBA Loans', activeReport.summary?.total_loans || 0, false],
+                      ['Total Outstanding Principal Balance', formatCurrency(activeReport.summary?.total_outstanding_balance || 0), false],
+                      ['Total SBA Guaranteed Balance (75%)', formatCurrency(activeReport.summary?.total_guaranteed_balance || 0), false],
+                      ['Loans 30+ Days Past Due', activeReport.summary?.delinquent_loans || 0, (activeReport.summary?.delinquent_loans || 0) > 0],
+                      ['Loans in Default / Charged Off', activeReport.summary?.default_loans || 0, (activeReport.summary?.default_loans || 0) > 0],
+                    ].map(([label, val, alert], i) => (
+                      <tr key={i} className={`border-b border-gray-200 ${i % 2 === 0 ? 'bg-gray-50' : ''}`}>
+                        <td className="px-4 py-2 text-gray-600 w-2/3">{label as string}</td>
+                        <td className={`px-4 py-2 font-bold text-right ${alert ? 'text-red-700' : ''}`}>{val as string}</td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Part II — Individual Loan Detail */}
               <div className="mb-6">
-                <div className="bg-gray-800 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest mb-0">
-                  PART II — INDIVIDUAL LOAN STATUS ({(activeReport.loan_rows || []).length} LOAN{(activeReport.loan_rows || []).length !== 1 ? 'S' : ''})
-                </div>
+                <div className="bg-gray-800 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest">PART II — INDIVIDUAL LOAN STATUS</div>
                 <table className="w-full border border-gray-300 text-xs">
                   <thead>
                     <tr className="bg-gray-100 border-b-2 border-gray-400">
-                      <th className="px-3 py-2 text-left font-bold">SBA Loan Number</th>
-                      <th className="px-3 py-2 text-left font-bold">Borrower Name</th>
-                      <th className="px-3 py-2 text-right font-bold">Outstanding Balance</th>
-                      <th className="px-3 py-2 text-right font-bold">Guaranteed Amt</th>
-                      <th className="px-3 py-2 text-right font-bold">Pmt Received</th>
-                      <th className="px-3 py-2 text-right font-bold">Interest Accrued</th>
-                      <th className="px-3 py-2 text-center font-bold">Status</th>
-                      <th className="px-3 py-2 text-right font-bold">DPD</th>
+                      <th className="px-3 py-2 text-left">SBA Loan #</th>
+                      <th className="px-3 py-2 text-left">Borrower</th>
+                      <th className="px-3 py-2 text-right">Outstanding</th>
+                      <th className="px-3 py-2 text-right">Guaranteed</th>
+                      <th className="px-3 py-2 text-right">Pmt Received</th>
+                      <th className="px-3 py-2 text-right">Interest</th>
+                      <th className="px-3 py-2 text-center">Status</th>
+                      <th className="px-3 py-2 text-right">DPD</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(activeReport.loan_rows || []).map((loan: any, i: number) => (
                       <tr key={i} className={`border-b border-gray-200 ${i % 2 === 0 ? '' : 'bg-gray-50'} ${(loan.days_past_due || 0) > 90 ? 'bg-red-50' : ''}`}>
-                        <td className="px-3 py-2 font-mono text-xs">{loan.sba_loan_number || loan.loan_number || '—'}</td>
+                        <td className="px-3 py-2 font-mono">{loan.sba_loan_number || loan.loan_number || '—'}</td>
                         <td className="px-3 py-2 font-medium">{loan.borrower_name}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(loan.outstanding_balance || 0)}</td>
                         <td className="px-3 py-2 text-right text-blue-700">{formatCurrency(loan.guaranteed_balance || 0)}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(loan.current_payment || 0)}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(loan.interest_accrued || 0)}</td>
                         <td className="px-3 py-2 text-center">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                            (loan.days_past_due || 0) === 0 ? 'bg-green-100 text-green-700' :
-                            (loan.days_past_due || 0) <= 30 ? 'bg-yellow-100 text-yellow-700' :
-                            (loan.days_past_due || 0) <= 90 ? 'bg-orange-100 text-orange-700' :
-                            'bg-red-100 text-red-700'
-                          }`}>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${(loan.days_past_due||0)===0?'bg-green-100 text-green-700':(loan.days_past_due||0)<=30?'bg-yellow-100 text-yellow-700':(loan.days_past_due||0)<=90?'bg-orange-100 text-orange-700':'bg-red-100 text-red-700'}`}>
                             {loan.status_label || loan.payment_status || 'Current'}
                           </span>
                         </td>
-                        <td className={`px-3 py-2 text-right font-bold ${(loan.days_past_due || 0) > 0 ? 'text-red-600' : 'text-gray-400'}`}>
-                          {loan.days_past_due || 0}
-                        </td>
+                        <td className={`px-3 py-2 text-right font-bold ${(loan.days_past_due||0)>0?'text-red-600':'text-gray-400'}`}>{loan.days_past_due || 0}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-200 border-t-2 border-gray-600 font-bold">
-                      <td className="px-3 py-2 text-xs uppercase" colSpan={2}>Totals</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency((activeReport.loan_rows || []).reduce((s: number, l: any) => s + (l.outstanding_balance || 0), 0))}</td>
-                      <td className="px-3 py-2 text-right text-blue-700">{formatCurrency((activeReport.loan_rows || []).reduce((s: number, l: any) => s + (l.guaranteed_balance || 0), 0))}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency((activeReport.loan_rows || []).reduce((s: number, l: any) => s + (l.current_payment || 0), 0))}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency((activeReport.loan_rows || []).reduce((s: number, l: any) => s + (l.interest_accrued || 0), 0))}</td>
+                    <tr className="bg-gray-200 border-t-2 border-gray-600 font-bold text-xs">
+                      <td className="px-3 py-2" colSpan={2}>TOTALS</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency((activeReport.loan_rows||[]).reduce((s:number,l:any)=>s+(l.outstanding_balance||0),0))}</td>
+                      <td className="px-3 py-2 text-right text-blue-700">{formatCurrency((activeReport.loan_rows||[]).reduce((s:number,l:any)=>s+(l.guaranteed_balance||0),0))}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency((activeReport.loan_rows||[]).reduce((s:number,l:any)=>s+(l.current_payment||0),0))}</td>
+                      <td className="px-3 py-2 text-right">{formatCurrency((activeReport.loan_rows||[]).reduce((s:number,l:any)=>s+(l.interest_accrued||0),0))}</td>
                       <td colSpan={2}></td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
 
-              {/* Validation notices */}
-              {(activeReport.validation_errors || []).length > 0 && (
+              {(activeReport.validation_errors||[]).length > 0 && (
                 <div className="mb-6 border-2 border-red-400 rounded-lg p-4 bg-red-50">
-                  <p className="font-bold text-red-800 mb-2 flex items-center gap-2">
-                    <AlertTriangle className="h-4 w-4" /> {activeReport.validation_errors.length} Validation Error{activeReport.validation_errors.length !== 1 ? 's' : ''} — Must Resolve Before Submitting
-                  </p>
-                  {(activeReport.validation_errors || []).map((e: string, i: number) => (
-                    <p key={i} className="text-sm text-red-700 flex gap-2"><span className="shrink-0">•</span>{e}</p>
+                  <p className="font-bold text-red-800 mb-2">{activeReport.validation_errors.length} Validation Error(s) — Must Resolve Before Submitting</p>
+                  {(activeReport.validation_errors||[]).map((e:string,i:number)=>(
+                    <p key={i} className="text-sm text-red-700">• {e}</p>
                   ))}
                 </div>
               )}
 
-              {/* Part III — Certification */}
               <div className="border-2 border-gray-400 p-5">
-                <div className="bg-gray-800 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest -mx-5 -mt-5 mb-4">
-                  PART III — LENDER CERTIFICATION
-                </div>
-                <p className="text-xs text-gray-600 leading-relaxed mb-6">
-                  I certify that the information contained in this report is true and accurate and that the lender is in compliance with all SBA Loan Program Requirements applicable to the 7(a) loan program, including those in 13 CFR Part 120. I understand that any false statement made in connection with this report may subject the lender, and/or its officers, to criminal and/or civil penalties under applicable federal statutes, including 18 U.S.C. §§ 1001 and 1014.
-                </p>
+                <div className="bg-gray-800 text-white px-4 py-2 font-bold text-xs uppercase tracking-widest -mx-5 -mt-5 mb-4">PART III — LENDER CERTIFICATION</div>
+                <p className="text-xs text-gray-600 leading-relaxed mb-6">I certify that the information contained in this report is true and accurate and that the lender is in compliance with all SBA Loan Program Requirements applicable to the 7(a) loan program, including those in 13 CFR Part 120.</p>
                 <div className="grid grid-cols-2 gap-8">
-                  <div>
-                    <div className="border-b-2 border-gray-800 h-10 mb-1"></div>
-                    <p className="text-xs text-gray-500">Authorized Representative Signature</p>
-                  </div>
-                  <div>
-                    <div className="border-b-2 border-gray-800 h-10 mb-1"></div>
-                    <p className="text-xs text-gray-500">Date (MM/DD/YYYY)</p>
-                  </div>
-                  <div>
-                    <div className="border-b-2 border-gray-800 h-10 mb-1"></div>
-                    <p className="text-xs text-gray-500">Printed Name</p>
-                  </div>
-                  <div>
-                    <div className="border-b-2 border-gray-800 h-10 mb-1"></div>
-                    <p className="text-xs text-gray-500">Title</p>
-                  </div>
+                  {['Authorized Representative Signature','Date (MM/DD/YYYY)','Printed Name','Title'].map(label=>(
+                    <div key={label}><div className="border-b-2 border-gray-800 h-10 mb-1"></div><p className="text-xs text-gray-500">{label}</p></div>
+                  ))}
                 </div>
               </div>
-
             </div>
 
-            {/* Modal footer actions */}
             <div className="px-8 py-4 border-t border-gray-200 flex justify-between items-center bg-gray-50 rounded-b-2xl">
-              <button onClick={() => setShowPreview(false)} className="btn btn-secondary">Close Preview</button>
+              <button onClick={() => setShowPreview(false)} className="btn btn-secondary">Close</button>
               <div className="flex gap-3">
-                <button onClick={() => window.print()} className="btn btn-secondary inline-flex items-center gap-2">
-                  <Printer className="h-4 w-4" /> Print / Save as PDF
-                </button>
+                <button onClick={() => window.print()} className="btn btn-secondary inline-flex items-center gap-2"><FileText className="h-4 w-4" />Print / Save as PDF</button>
                 {activeReport.ready_to_submit && activeReport.status !== 'submitted' && (
-                  <button onClick={() => { submitReport(activeReport.report_id); setShowPreview(false); }}
-                    disabled={submitting} className="btn btn-primary inline-flex items-center gap-2">
-                    {submitting ? <Loader className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                    Submit to SBA
+                  <button onClick={() => { submitReport(activeReport.report_id); setShowPreview(false); }} disabled={submitting} className="btn btn-primary inline-flex items-center gap-2">
+                    {submitting ? <Loader className="h-4 w-4 animate-spin" /> : <></>}Submit to SBA
                   </button>
                 )}
               </div>
@@ -530,5 +460,6 @@ export default function SBA1502Page() {
         </div>
       )}
 
+    </div>
   );
 }
