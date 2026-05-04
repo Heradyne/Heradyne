@@ -9,7 +9,7 @@ import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
   ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList, FileBarChart,
-  AlertCircle, LayoutDashboard, AlertTriangle, Package, MessageSquare, Zap
+  AlertCircle, LayoutDashboard, AlertTriangle, Package
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { NotificationBell } from '@/components/notification-bell';
@@ -36,6 +36,7 @@ const NAV_DEFINITIONS = {
     { id: 'home',            name: 'Dashboard',        href: '/dashboard',                  icon: Home,        always: true },
     { id: 'matches',         name: 'Matched Deals',    href: '/dashboard/matches',           icon: FileText,    always: true },
     { id: 'term-sheets',     name: 'Term Sheets',      href: '/dashboard/term-sheets',       icon: Send,        always: false },
+    { id: 'policies',        name: 'My Policies',      href: '/dashboard/policies',          icon: ShieldCheck, always: false },
     { id: 'collateral',      name: 'Collateral & LTV', href: '/dashboard/collateral',        icon: Building2,   always: false },
     { id: 'monitoring',      name: 'Portfolio',        href: '/dashboard/monitoring',        icon: Activity,    always: false },
     { id: 'covenant-monitoring', name: 'Covenants',      href: '/dashboard/covenant-monitoring', icon: Shield,      always: false },
