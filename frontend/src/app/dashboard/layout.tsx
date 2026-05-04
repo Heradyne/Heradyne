@@ -9,7 +9,7 @@ import {
   Shield, Home, FileText, Users, Settings, LogOut,
   Building2, ShieldCheck, BarChart3, DollarSign, TrendingUp, CreditCard, FileSignature, ShieldAlert,
   ClipboardCheck, Brain, Scale, Calculator, Activity, PieChart, Send, Lock, MapPin, ClipboardList, FileBarChart,
-  AlertCircle, LayoutDashboard, AlertTriangle, Package
+  AlertCircle, LayoutDashboard, AlertTriangle, Package, MessageSquare, Zap
 } from 'lucide-react';
 import { useAuth } from '@/lib/auth';
 import { NotificationBell } from '@/components/notification-bell';
