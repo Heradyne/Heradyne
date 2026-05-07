@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Heradyne — Risk Infrastructure for Small Business Lending',
-  description: 'Heradyne is the risk infrastructure layer for small business lending — turning unfinanceable acquisition deals into insured, structured assets.',
+  title: 'Heradyne Risk Infrastructure for Small Business Lending',
+  description: 'Heradyne is the risk infrastructure layer for small business lending turning unfinanceable acquisition deals into insured, structured assets.',
 };
 
 export default function Home() {
@@ -121,13 +121,13 @@ export default function Home() {
         <section className="hl-hero">
           <span className="hl-eyebrow">Risk Infrastructure · SMB Acquisitions</span>
           <h1 className="hl-h1">Unlocking the<br /><em>Next Trillion</em><br />in Main Street Transactions</h1>
-          <p className="hl-sub">Heradyne is the risk infrastructure layer for small business lending — turning unfinanceable acquisition deals into insured, structured assets that lenders, insurers, and capital markets can confidently deploy.</p>
+          <p className="hl-sub">Heradyne is the risk infrastructure layer for small business lending turning unfinanceable acquisition deals into insured, structured assets that lenders, insurers, and capital markets can confidently deploy.</p>
 
           <div className="hl-cta-split">
             <Link className="hl-card primary" href="/pre-deal">
               <div className="hl-card-tag">For Buyers &amp; Sellers</div>
               <div className="hl-card-title">Validate Your Business</div>
-              <div className="hl-card-body">Get an institutional-grade valuation and full diligence package powered by SBA-calibrated AI — in minutes, not weeks.</div>
+              <div className="hl-card-body">Get an institutional-grade valuation and full diligence package powered by SBA-calibrated AI in minutes, not weeks.</div>
               <div className="hl-card-action">Get my valuation</div>
             </Link>
             <Link className="hl-card" href="/register">
@@ -170,18 +170,18 @@ export default function Home() {
         <section className="hl-solution" id="solution">
           <div className="hl-sec-hdr dk">
             <h2>We Make<br /><em>Unfinanceable Deals</em><br />Financeable.</h2>
-            <p>Heradyne is the risk infrastructure layer for SMB acquisition lending. We analyze, price, structure, and route each deal — converting loans into insured, financeable assets.</p>
+            <p>Heradyne is the risk infrastructure layer for SMB acquisition lending. We analyze, price, structure, and route each deal converting loans into insured, financeable assets.</p>
           </div>
           <div className="hl-steps">
             <div className="hl-step">
               <div className="hl-snum">01</div>
               <div className="hl-stitle">Analyze</div>
-              <div className="hl-sbody">Default risk assessment for every deal, powered by 1.5M+ SBA 7(a) loans and 25 years of performance data. Probability of Default, Loss Given Default, and Expected Loss — calculated per transaction in real time.</div>
+              <div className="hl-sbody">Default risk assessment for every deal, powered by 1.5M+ SBA 7(a) loans and 25 years of performance data. Probability of Default, Loss Given Default, and Expected Loss calculated per transaction in real time.</div>
             </div>
             <div className="hl-step">
               <div className="hl-snum">02</div>
               <div className="hl-stitle">Price</div>
-              <div className="hl-sbody">Dynamically priced risk per transaction. Not static tables — actuarial modeling that accounts for industry, geography, deal structure, and stress scenarios.</div>
+              <div className="hl-sbody">Dynamically priced risk per transaction. Not static tables actuarial modeling that accounts for industry, geography, deal structure, and stress scenarios.</div>
             </div>
             <div className="hl-step">
               <div className="hl-snum">03</div>
@@ -191,7 +191,7 @@ export default function Home() {
             <div className="hl-step">
               <div className="hl-snum">04</div>
               <div className="hl-stitle">Route</div>
-              <div className="hl-sbody">Match each deal to its best capital source. Multi-source routing connects lenders, insurers, and institutional investors — none of whom currently operate in this gap.</div>
+              <div className="hl-sbody">Match each deal to its best capital source. Multi-source routing connects lenders, insurers, and institutional investors none of whom currently operate in this gap.</div>
             </div>
           </div>
         </section>
@@ -199,7 +199,7 @@ export default function Home() {
         {/* BOTTOM CTA */}
         <section className="hl-bcta">
           <h2>Ready to get started?<br /><em>Your first valuation takes minutes.</em></h2>
-          <p>Whether you&apos;re buying a business, lending on one, or insuring the risk — Heradyne gives you the institutional-grade analysis to act with confidence.</p>
+          <p>Whether you&apos;re buying a business, lending on one, or insuring the risk Heradyne gives you the institutional-grade analysis to act with confidence.</p>
           <div className="hl-bactions">
             <Link className="hl-btn-lt" href="/pre-deal">Validate My Business</Link>
             <Link className="hl-btn-gh" href="/register">Create an Account</Link>
@@ -209,7 +209,7 @@ export default function Home() {
         {/* FOOTER */}
         <footer className="hl-footer">
           <a className="hl-flogo" href="#">HERADYNE</a>
-          <p className="hl-fcopy">Confidential — Not for Distribution &nbsp;·&nbsp; © 2025 Heradyne</p>
+          <p className="hl-fcopy">Confidential Not for Distribution &nbsp;·&nbsp; © 2025 Heradyne</p>
           <a className="hl-flink" href="mailto:Tate.Beasley@Heradyne.com">Tate.Beasley@Heradyne.com</a>
         </footer>
       </div>
