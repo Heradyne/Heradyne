@@ -210,7 +210,6 @@ export default function Home() {
         <footer className="hl-footer">
           <a className="hl-flogo" href="#">HERADYNE</a>
           
-          <a className="hl-flink" href="mailto:Tate.Beasley@Heradyne.com">Tate.Beasley@Heradyne.com</a>
         </footer>
       </div>
     </>
